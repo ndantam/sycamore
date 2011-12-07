@@ -165,7 +165,11 @@
                           'a-e 'c)))
     (lisp-unit:assert-true
      (dfa-equal fig-3-7
-                (dfa-minimize-hopcroft fig-3-5))))
+                (dfa-minimize-hopcroft fig-3-5)))
+
+    (lisp-unit:assert-true
+     (dfa-equal fig-3-7
+                (dfa-minimize-brzozowski fig-3-5))))
   t)
 
 
@@ -184,8 +188,10 @@
                            13 (list 13 123))))
     (lisp-unit:assert-true (dfa-equal fig-1-44
                                       (dfa-minimize-hopcroft fig-1-44)))
+    (lisp-unit:assert-true (dfa-equal fig-1-44
+                                      (dfa-minimize-brzozowski fig-1-44)))
     (lisp-unit:assert-true (dfa-equal (dfa-minimize-hopcroft (nfa->dfa fig-1-42))
-                                      (dfa-minimize-hopcroft fig-1-44)))))
+                                      fig-1-44))))
 
 
 (lisp-unit:define-test regex-dfa-matcher
