@@ -51,3 +51,207 @@
                       (dfa-minimize-hopcroft dfa))))
     (lisp-unit:assert-true
      (min-cmp (make-fa '((0 a 1) (1 b 2) (2 a 1)) 0 1)))))
+
+;; examples from the dragon book
+(lisp-unit:define-test fa-dragon
+  (let* ((fig-3-56  '(:concatenation (:closure (:union a b)) a b b))
+         (fig-3-63 (make-fa '((0 b 0) (0 a 1) (1 a 1) (1 b 2) (2 a 1) (2 b 3)
+                              (3 a 1) (3 b 0))
+                            0 3))
+         (my-fig-3-36 (regex->nfa fig-3-56))
+         (my-fig-3-63 (nfa->dfa my-fig-3-36)))
+
+    (lisp-unit:assert-true (dfa-equal fig-3-63
+                                      (dfa-minimize-hopcroft my-fig-3-63)))
+    (lisp-unit:assert-true (dfa-equal fig-3-63
+                                      (dfa-minimize-hopcroft my-fig-3-63)))))
+
+;; examples from Hopcroft '79
+(lisp-unit:define-test fa-hopcroft-79
+  (let ((fig-2-15-a (make-fa '((q7 :epsilon q5) (q7 :epsilon q8)
+                               (q5 1 q6)
+                               (q6 :epsilon q5) (q6 :epsilon q8))
+                             'q7 'q8))
+        (fig-2-15-b (make-fa '((q3 0 q4)
+                               (q4 :epsilon q7)
+                               (q7 :epsilon q5) (q7 :epsilon q8)
+                               (q5 1 q6)
+                               (q6 :epsilon q5) (q6 :epsilon q8))
+                             'q3 'q8))
+        (fig-2-15-c (make-fa '((q9 :epsilon q1) (q9 :epsilon q3)
+                               (q1 1 q2)
+                               (q2 :epsilon q10)
+                               (q3 0 q4)
+                               (q4 :epsilon q7)
+                               (q7 :epsilon q8) (q7 :epsilon q5)
+                               (q5 1 q6)
+                               (q6 :epsilon q5) (q6 :epsilon q8)
+                               (q8 :epsilon q10))
+                             'q9 'q10))
+        (regex-2-15-a '(:closure 1))
+        (regex-2-15-b '(:concatenation 0 (:closure 1)))
+        (regex-2-15-c '(:union (:concatenation 0 (:closure 1)) 1)))
+    (lisp-unit:assert-true
+     (dfa-equal (dfa-minimize-hopcroft (nfa->dfa fig-2-15-a))
+                (dfa-minimize-hopcroft (nfa->dfa (regex->nfa regex-2-15-a)))))
+    (lisp-unit:assert-true
+     (dfa-equal (dfa-minimize-brzozowski (nfa->dfa fig-2-15-a))
+                (dfa-minimize-hopcroft (nfa->dfa (regex->nfa regex-2-15-a)))))
+
+    (lisp-unit:assert-true
+     (dfa-equal (dfa-minimize-hopcroft (nfa->dfa fig-2-15-b))
+                (dfa-minimize-hopcroft (nfa->dfa (regex->nfa regex-2-15-b)))))
+    (lisp-unit:assert-true
+     (dfa-equal (dfa-minimize-brzozowski (nfa->dfa fig-2-15-b))
+                (dfa-minimize-hopcroft (nfa->dfa (regex->nfa regex-2-15-b)))))
+
+    (lisp-unit:assert-true
+     (dfa-equal (dfa-minimize-hopcroft (nfa->dfa fig-2-15-c))
+                (dfa-minimize-hopcroft (nfa->dfa (regex->nfa regex-2-15-c)))))
+    (lisp-unit:assert-true
+     (dfa-equal (dfa-minimize-brzozowski (nfa->dfa fig-2-15-c))
+                (dfa-minimize-hopcroft (nfa->dfa (regex->nfa regex-2-15-c))))))
+
+
+
+  (let ((ex-3-7 '(:concatenation (:closure 0) 1 (:closure 0)))
+        (fig-3-2 (make-fa '((a 0 b) (a 1 c)
+                            (b 0 a) (b 1 d)
+                            (c 0 e) (c 1 f)
+                            (d 0 e) (d 1 f)
+                            (e 0 e) (e 1 f)
+                            (f 0 f) (f 1 f))
+                            'a '(c d e)))
+        (fig-3-4 (make-fa '((e 0 e) (e 1 1)
+                            (1 0 1) (1 1 11)
+                            (11 0 11) (11 1 11))
+                          'e '1))
+        (fig-3-4-min (make-fa '((e 0 e) (e 1 1)
+                                (1 0 1))
+                              'e '1)))
+    ;; mostly-minimal
+    (lisp-unit:assert-true (dfa-equal fig-3-4-min
+                                      (dfa-minimize-hopcroft fig-3-4)))
+    (lisp-unit:assert-true (dfa-equal fig-3-4-min
+                                      (dfa-minimize-brzozowski fig-3-4)))
+
+    ;; bigger dfa
+    (lisp-unit:assert-true (dfa-equal fig-3-4-min
+                                      (dfa-minimize-hopcroft fig-3-2)))
+    (lisp-unit:assert-true (dfa-equal fig-3-4-min
+                                      (dfa-minimize-brzozowski fig-3-2)))
+    ; regex
+    (lisp-unit:assert-true
+     (dfa-equal fig-3-4-min
+                (dfa-minimize-hopcroft (nfa->dfa (regex->nfa ex-3-7)))))
+    (lisp-unit:assert-true
+     (dfa-equal fig-3-4-min
+                (dfa-minimize-brzozowski (nfa->dfa (regex->nfa ex-3-7))))))
+
+  (let ((fig-3-5 (make-fa '((a 0 b) (a 1 f)
+                            (b 0 g) (b 1 c)
+                            (c 0 a) (c 1 c)
+                            (d 0 c) (d 1 g)
+                            (e 0 h) (e 1 f)
+                            (f 0 c) (f 1 g)
+                            (g 0 g) (g 1 e)
+                            (h 0 g) (h 1 c))
+                          'a 'c))
+        (fig-3-7 (make-fa '((a-e 0 b-h) (a-e 1 d-f)
+                            (b-h 0 g)   (b-h 1 c)
+                            (g 0 g)     (g 1 a-e)
+                            (c 0 a-e)   (c 1 c)
+                            (d-f 0 c)   (d-f 1 g))
+                          'a-e 'c)))
+    (lisp-unit:assert-true
+     (dfa-equal fig-3-7
+                (dfa-minimize-hopcroft fig-3-5))))
+  t)
+
+
+
+;; examples from Sipser
+(lisp-unit:define-test fa-sipser
+  (let ((fig-1-42 (make-fa '((1 :epsilon 3) (1 b 2)
+                             (2 a 2) (2 a 3) (2 b 3)
+                             (3 a 1))
+                           1 1))
+        (fig-1-44 (make-fa '((2 a 23) (2 b 3)
+                             (3 a 13)
+                             (13 a 13) (13 b 2)
+                             (23 b 3) (23 a 123)
+                             (123 a 123) (123 b 23))
+                           13 (list 13 123))))
+    (lisp-unit:assert-true (dfa-equal fig-1-44
+                                      (dfa-minimize-hopcroft fig-1-44)))
+    (lisp-unit:assert-true (dfa-equal (dfa-minimize-hopcroft (nfa->dfa fig-1-42))
+                                      (dfa-minimize-hopcroft fig-1-44)))))
+
+
+(lisp-unit:define-test regex-dfa-matcher
+  (labels ((equiv-hop-brz (regex)
+             (let ((dfa (nfa->dfa (regex->nfa regex))))
+               (dfa-equal (dfa-minimize-brzozowski dfa)
+                          (dfa-minimize-hopcroft dfa))))
+           (match-dfa (regex string)
+             (funcall (dfa->string-matcher
+                       (nfa->dfa (regex->nfa regex)))
+                      string))
+           (match-hop (regex string)
+             (funcall (dfa->string-matcher
+                       (dfa-minimize-hopcroft
+                        (nfa->dfa (regex->nfa regex))))
+                      string))
+           (match-brz (regex string)
+             (funcall (dfa->string-matcher
+                       (dfa-minimize-brzozowski
+                        (nfa->dfa (regex->nfa regex))))
+                      string)))
+    (macrolet ((test (regex positive negative)
+                 `(progn
+                   (lisp-unit:assert-true (equiv-hop-brz ',regex))
+                   ,@(mapcan
+                      (lambda (p)
+                        `((lisp-unit:assert-true (match-dfa ',regex ,p))
+                          (lisp-unit:assert-true (match-hop  ',regex,p))
+                          (lisp-unit:assert-true (match-brz  ',regex,p))))
+                      positive)
+                   ,@(mapcan
+                      (lambda (n)
+                        `((lisp-unit:assert-false (match-dfa ',regex ,n))
+                          (lisp-unit:assert-false (match-hop ',regex ,n))
+                          (lisp-unit:assert-false (match-brz ',regex ,n))))
+                      negative))))
+    (test (:closure #\a)
+          ("" "a" "aa" "aaa" "aaa")
+          ("b" "ba" "aab" "baaa" "aba"))
+    (test (:concatenation (:closure #\a) #\b)
+          ("b" "ab" "aab" "aaab" "aaaaaab")
+          ("" "a" "aba" "aaa" "baaa"))
+    ;; Sipser p. 65, some "interesting" regexes
+    (test (:concatenation (:closure #\a) #\b (:closure #\a))
+          ("b" "ab" "aab" "baa" "aba" "aaba" "aaaaaab")
+          ("" "a" "abba" "baaab" "bbaaa"))
+    (test (:concatenation (:closure (:union #\a #\b #\c))
+                          #\a #\a #\b
+                          (:closure (:union #\a #\b #\c)))
+          ("aab" "aaab" "aaba" "aabaa" "aabaaba")
+          ("" "a" "abba" "baaa" "bbaaa"))
+    (test (:closure (:concatenation (:union #\a #\b)
+                                    (:union #\a #\b)))
+          ("" "aa" "bb" "ab" "ba" "aaaa" "aaab" "aaba" "bbaa")
+          ("a" "a" "b" "aaa" "aba" "baa" "bbb"))
+    (test (:closure (:concatenation (:union #\a #\b)
+                                    (:union #\a #\b)
+                                    (:union #\a #\b)))
+          ("" "aaa" "bbb" "aab" "aba" "aaaaaa" "bbbbbb" "aaabbb")
+          ("a" "a" "b" "aa" "ab" "ba" "babb" "bbaaa"))
+    (test (:union (:concatenation #\a (:closure (:union #\a #\b)) #\a)
+                  (:concatenation #\b (:closure (:union #\a #\b)) #\b)
+                  #\a #\b)
+          ("a" "b" "aa" "bb" "aba" "bab" "abaa" "bababab")
+          ("ab" "ba" "abb" "bba" "ababab"))
+    t)))
+
+
+
