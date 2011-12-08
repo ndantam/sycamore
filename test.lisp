@@ -44,10 +44,10 @@
 
 (lisp-unit:define-test dfa-minimize
   (lisp-unit:assert-true
-   (dfa-equal (dfa-minimize-brzozowski (make-fa '((0 a 1) (1 b 2) (2 a 1)) 0 1))
+   (dfa-equal (fa-minimize-brzozowski (make-fa '((0 a 1) (1 b 2) (2 a 1)) 0 1))
               (make-fa '((0 a 1) (1 b 0)) 0 1)))
   (flet ((min-cmp (dfa)
-           (dfa-equal (dfa-minimize-brzozowski dfa)
+           (dfa-equal (fa-minimize-brzozowski dfa)
                       (dfa-minimize-hopcroft dfa))))
     (lisp-unit:assert-true
      (min-cmp (make-fa '((0 a 1) (1 b 2) (2 a 1)) 0 1)))))
@@ -95,21 +95,21 @@
      (dfa-equal (dfa-minimize-hopcroft (nfa->dfa fig-2-15-a))
                 (dfa-minimize-hopcroft (nfa->dfa (regex->nfa regex-2-15-a)))))
     (lisp-unit:assert-true
-     (dfa-equal (dfa-minimize-brzozowski (nfa->dfa fig-2-15-a))
+     (dfa-equal (fa-minimize-brzozowski (nfa->dfa fig-2-15-a))
                 (dfa-minimize-hopcroft (nfa->dfa (regex->nfa regex-2-15-a)))))
 
     (lisp-unit:assert-true
      (dfa-equal (dfa-minimize-hopcroft (nfa->dfa fig-2-15-b))
                 (dfa-minimize-hopcroft (nfa->dfa (regex->nfa regex-2-15-b)))))
     (lisp-unit:assert-true
-     (dfa-equal (dfa-minimize-brzozowski (nfa->dfa fig-2-15-b))
+     (dfa-equal (fa-minimize-brzozowski (nfa->dfa fig-2-15-b))
                 (dfa-minimize-hopcroft (nfa->dfa (regex->nfa regex-2-15-b)))))
 
     (lisp-unit:assert-true
      (dfa-equal (dfa-minimize-hopcroft (nfa->dfa fig-2-15-c))
                 (dfa-minimize-hopcroft (nfa->dfa (regex->nfa regex-2-15-c)))))
     (lisp-unit:assert-true
-     (dfa-equal (dfa-minimize-brzozowski (nfa->dfa fig-2-15-c))
+     (dfa-equal (fa-minimize-brzozowski (nfa->dfa fig-2-15-c))
                 (dfa-minimize-hopcroft (nfa->dfa (regex->nfa regex-2-15-c))))))
 
 
@@ -133,20 +133,20 @@
     (lisp-unit:assert-true (dfa-equal fig-3-4-min
                                       (dfa-minimize-hopcroft fig-3-4)))
     (lisp-unit:assert-true (dfa-equal fig-3-4-min
-                                      (dfa-minimize-brzozowski fig-3-4)))
+                                      (fa-minimize-brzozowski fig-3-4)))
 
     ;; bigger dfa
     (lisp-unit:assert-true (dfa-equal fig-3-4-min
                                       (dfa-minimize-hopcroft fig-3-2)))
     (lisp-unit:assert-true (dfa-equal fig-3-4-min
-                                      (dfa-minimize-brzozowski fig-3-2)))
+                                      (fa-minimize-brzozowski fig-3-2)))
     ; regex
     (lisp-unit:assert-true
      (dfa-equal fig-3-4-min
                 (dfa-minimize-hopcroft (nfa->dfa (regex->nfa ex-3-7)))))
     (lisp-unit:assert-true
      (dfa-equal fig-3-4-min
-                (dfa-minimize-brzozowski (nfa->dfa (regex->nfa ex-3-7))))))
+                (fa-minimize-brzozowski (nfa->dfa (regex->nfa ex-3-7))))))
 
   (let ((fig-3-5 (make-fa '((a 0 b) (a 1 f)
                             (b 0 g) (b 1 c)
@@ -169,7 +169,7 @@
 
     (lisp-unit:assert-true
      (dfa-equal fig-3-7
-                (dfa-minimize-brzozowski fig-3-5))))
+                (fa-minimize-brzozowski fig-3-5))))
   t)
 
 
@@ -189,16 +189,18 @@
     (lisp-unit:assert-true (dfa-equal fig-1-44
                                       (dfa-minimize-hopcroft fig-1-44)))
     (lisp-unit:assert-true (dfa-equal fig-1-44
-                                      (dfa-minimize-brzozowski fig-1-44)))
+                                      (fa-minimize-brzozowski fig-1-44)))
     (lisp-unit:assert-true (dfa-equal (dfa-minimize-hopcroft (nfa->dfa fig-1-42))
                                       fig-1-44))))
 
 
 (lisp-unit:define-test regex-dfa-matcher
   (labels ((equiv-hop-brz (regex)
-             (let ((dfa (nfa->dfa (regex->nfa regex))))
-               (dfa-equal (dfa-minimize-brzozowski dfa)
-                          (dfa-minimize-hopcroft dfa))))
+             (let* ((nfa (regex->nfa regex))
+                    (dfa (nfa->dfa (regex->nfa regex)))
+                    (hop (dfa-minimize-hopcroft dfa)))
+               (and (dfa-equal (fa-minimize-brzozowski dfa) hop)
+                    (dfa-equal (fa-minimize-brzozowski nfa) hop))))
            (match-dfa (regex string)
              (funcall (dfa->string-matcher
                        (nfa->dfa (regex->nfa regex)))
@@ -210,7 +212,7 @@
                       string))
            (match-brz (regex string)
              (funcall (dfa->string-matcher
-                       (dfa-minimize-brzozowski
+                       (fa-minimize-brzozowski
                         (nfa->dfa (regex->nfa regex))))
                       string)))
     (macrolet ((test (regex positive negative)
