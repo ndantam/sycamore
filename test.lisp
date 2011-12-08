@@ -202,18 +202,25 @@
                (and (dfa-equal (fa-minimize-brzozowski dfa) hop)
                     (dfa-equal (fa-minimize-brzozowski nfa) hop))))
            (match-dfa (regex string)
-             (funcall (dfa->string-matcher
-                       (nfa->dfa (regex->nfa regex)))
+             (funcall (chain regex
+                             #'regex->nfa
+                             #'nfa->dfa
+                             #'dfa-sort
+                             #'dfa->string-matcher)
                       string))
            (match-hop (regex string)
-             (funcall (dfa->string-matcher
-                       (dfa-minimize-hopcroft
-                        (nfa->dfa (regex->nfa regex))))
+             (funcall (chain regex
+                             #'regex->nfa
+                             #'nfa->dfa
+                             #'dfa-minimize-hopcroft
+                             #'dfa->string-matcher)
                       string))
            (match-brz (regex string)
-             (funcall (dfa->string-matcher
-                       (fa-minimize-brzozowski
-                        (nfa->dfa (regex->nfa regex))))
+             (funcall (chain regex
+                             #'regex->nfa
+                             #'nfa->dfa
+                             #'dfa-minimize-brzozowski
+                             #'dfa->string-matcher)
                       string)))
     (macrolet ((test (regex positive negative)
                  `(progn
