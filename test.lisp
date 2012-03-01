@@ -270,3 +270,24 @@
 
 
 
+
+(lisp-unit:define-test grammar-basic
+  (let ((g '((a b c) (b e f))))
+    ;; map
+    (lisp-unit:assert-true
+     (equal (grammar-map 'list (lambda (l r) (list :a l r))
+                         g)
+            '((:a a (b c))
+              (:a b (e f)))))
+    ;; nonterminals
+    (let ((n-r '(a b))
+          (n (grammar-nonterminals g)))
+      (lisp-unit:assert-true
+       (finite-set-equal n n-r)))
+    ;; substitute list
+    (lisp-unit:assert-true
+     '((a k b c) (c k b f))
+     (grammar-substitute-terminal-list '((a b c) (c b f))
+                                       'b '(k b)))
+    ;; regularize
+    ))
