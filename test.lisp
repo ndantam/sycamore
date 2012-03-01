@@ -291,3 +291,13 @@
                                        'b '(k b)))
     ;; regularize
     ))
+
+(lisp-unit:define-test grammar-regular
+  (let ((fa (make-fa '((0 x 1) (1 y 0) (1 z 2)) 0 2))
+        (gram-1 '((a x b) (b y a)  (b z)))
+        (gram-2 '((a x b) (b y a) (b y x b) (b z))))
+    (lisp-unit:assert-true
+     (fa-equiv fa (grammar->fa  gram-1)))
+    (lisp-unit:assert-true
+     (fa-equiv fa (nfa->dfa (grammar->fa gram-2))))))
+
