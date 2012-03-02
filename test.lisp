@@ -50,7 +50,17 @@
            (dfa-equal (fa-minimize-brzozowski dfa)
                       (dfa-minimize-hopcroft dfa))))
     (lisp-unit:assert-true
-     (min-cmp (make-fa '((0 a 1) (1 b 2) (2 a 1)) 0 1)))))
+     (min-cmp (make-fa '((0 a 1) (1 b 2) (2 a 1)) 0 1)))
+
+    (lisp-unit:assert-true
+     (make-fa '((0 a 1) (1 b 0)
+                (0 e 2) (1 e 2))
+              0 2))
+    (lisp-unit:assert-true
+     (min-cmp (make-fa '((0 a 1) (1 b 0) (1 c 2) (2 a 1)
+                         (0 e 3) (1 e 3) (2 e 3))
+                       0 3)
+              ))))
 
 ;; examples from the dragon book
 (lisp-unit:define-test fa-dragon
