@@ -311,3 +311,10 @@
     (lisp-unit:assert-true
      (fa-equiv fa (nfa->dfa (grammar->fa gram-2))))))
 
+
+(lisp-unit:define-test grammar-norm
+  (let ((sipser-2-10 '((s a s a) (s x b) (a b) (a s) (b y) (b)))
+        (no-epsilon '((s a s a) (s x b) (s x) (s s a) (s a s) (s s) (a b) (a s) (b y))))
+    (lisp-unit:assert-true
+     (finite-set-equal no-epsilon
+                       (grammar-remove-epsilon sipser-2-10)))))
