@@ -314,7 +314,13 @@
 
 (lisp-unit:define-test grammar-norm
   (let ((sipser-2-10 '((s a s a) (s x b) (a b) (a s) (b y) (b)))
-        (no-epsilon '((s a s a) (s x b) (s x) (s s a) (s a s) (s s) (a b) (a s) (b y))))
+        (no-epsilon '((s a s a) (s x b) (s x) (s s a) (s a s) (s s) (a b) (a s) (b y)))
+        (no-epsilon-unit '((s a s a) (s x b) (s x) (s s a) (s a s)
+                     (a y) (a a s a) (a x b) (a x) (a s a) (a a s)
+                     (b y))))
     (lisp-unit:assert-true
      (finite-set-equal no-epsilon
-                       (grammar-remove-epsilon sipser-2-10)))))
+                       (grammar-remove-epsilon sipser-2-10)))
+    (lisp-unit:assert-true
+     (finite-set-equal no-epsilon-unit
+                       (grammar-remove-unit (grammar-remove-epsilon sipser-2-10))))))
