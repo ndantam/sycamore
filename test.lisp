@@ -34,6 +34,8 @@
 ;;;;   OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 ;;;;   EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+(in-package :motion-grammar)
+
 (lisp-unit:define-test dfa-equal-basic
   (lisp-unit:assert-true (dfa-equal (make-fa '((0 a 1) (1 b 0)) 0 1)
                                     (make-fa '((x a y) (y b x)) 'x 'y)))
