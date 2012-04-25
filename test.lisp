@@ -301,6 +301,13 @@
      '((a k b c) (c k b f))
      (grammar-substitute-terminal-list '((a b c) (c b f))
                                        'b '(k b)))
+    ;; chain rule
+    (lisp-unit:assert-true (grammar-chain-rule-p '(1 2 3) '(a b c) '(a b)))
+    (lisp-unit:assert-true (grammar-chain-rule-p '(1 2 3) '(a b c) '(c a)))
+    (lisp-unit:assert-false (grammar-chain-rule-p '(1 2 3) '(a b c) '(a 1)))
+    (lisp-unit:assert-false (grammar-chain-rule-p '(1 2 3) '(a b c) '(a)))
+    (lisp-unit:assert-false (grammar-chain-rule-p '(1 2 3) '(a b c) '(a b c)))
+    (lisp-unit:assert-false (grammar-chain-rule-p '(1 2 3) '(a b c) '(a 1 c)))
     ;; regularize
     ))
 
@@ -325,4 +332,25 @@
                        (grammar-remove-epsilon sipser-2-10)))
     (lisp-unit:assert-true
      (finite-set-equal no-epsilon-unit
-                       (grammar-remove-unit (grammar-remove-epsilon sipser-2-10))))))
+                       (grammar-remove-unit (grammar-remove-epsilon sipser-2-10)))))
+  ;; Blum-Koch
+  (lisp-unit:assert-true
+   (finite-set-equal (blum-koch-subgrammar-productions 'b '((b a 2) (a 1)))
+                     (finite-set (list (gsymbol-gen 'b 'start) 1 (gsymbol-gen 'a 'b))
+                                 (list (gsymbol-gen 'a 'b) 2))))
+
+  (lisp-unit:assert-true
+   (finite-set-equal (blum-koch-subgrammar-productions  'b
+                                                        '((b d1 a1)
+                                                          (d1 d2 a2)
+                                                          (d2 d3 a3)
+                                                          (d3 d4 a4)
+                                                          (d4 a g)))
+                     (finite-set (list (gsymbol-gen 'b 'start) 'a 'g (gsymbol-gen 'd4 'b))
+                                 (list (gsymbol-gen 'd4 'b) 'a4 (gsymbol-gen 'd3 'b))
+                                 (list (gsymbol-gen 'd3 'b) 'a3 (gsymbol-gen 'd2 'b))
+                                 (list (gsymbol-gen 'd2 'b) 'a2 (gsymbol-gen 'd1 'b))
+                                 (list (gsymbol-gen 'd1 'b) 'a1))))
+
+
+)
