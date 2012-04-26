@@ -296,20 +296,40 @@
           (n (grammar-nonterminals g)))
       (lisp-unit:assert-true
        (finite-set-equal n n-r)))
+
     ;; substitute list
     (lisp-unit:assert-true
      '((a k b c) (c k b f))
      (grammar-substitute-terminal-list '((a b c) (c b f))
                                        'b '(k b)))
+
+    ;; remove non-sentential
+    (lisp-unit:assert-true
+     (equal (grammar-remove-nonsentential '((s a b) (s 1) (a 1)) '(1))
+            '((s 1)
+              (a 1))))
+
+    ;; Remove unreachables
+    (lisp-unit:assert-true
+     (equal (grammar-remove-unreachable '((a b) (b 1) (b 3) (c 2)))
+            '((a b) (b 1) (b 3))))
+
+    (lisp-unit:assert-true
+     (equal (grammar-remove-unreachable '((a 1 c) (b 1) (b 3) (c 2)))
+            '((a 1 c) (c 2))))
+
+    ;; Remove useless
+    (lisp-unit:assert-true
+     (equal (grammar-remove-useless '((s a b) (s 1) (a 1)) '(1))
+            '((s 1))))
+
     ;; chain rule
     (lisp-unit:assert-true (grammar-chain-rule-p '(1 2 3) '(a b c) '(a b)))
     (lisp-unit:assert-true (grammar-chain-rule-p '(1 2 3) '(a b c) '(c a)))
     (lisp-unit:assert-false (grammar-chain-rule-p '(1 2 3) '(a b c) '(a 1)))
     (lisp-unit:assert-false (grammar-chain-rule-p '(1 2 3) '(a b c) '(a)))
     (lisp-unit:assert-false (grammar-chain-rule-p '(1 2 3) '(a b c) '(a b c)))
-    (lisp-unit:assert-false (grammar-chain-rule-p '(1 2 3) '(a b c) '(a 1 c)))
-    ;; regularize
-    ))
+    (lisp-unit:assert-false (grammar-chain-rule-p '(1 2 3) '(a b c) '(a 1 c)))))
 
 (lisp-unit:define-test grammar-regular
   (let ((fa (make-fa '((0 x 1) (1 y 0) (1 z 2)) 0 2))
