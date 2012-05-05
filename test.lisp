@@ -323,6 +323,39 @@
      (equal (grammar-remove-useless '((s a b) (s 1) (a 1)) '(1))
             '((s 1))))
 
+    ;; first function
+    ;; dragon p222
+    (let ((first (grammar-first-function '((E T E-p)
+                                           (E-p + T E-p)
+                                           (E-p :epsilon)
+                                           (T F T-p)
+                                           (T-p * F T-p)
+                                           (T-p :epsilon)
+                                           (F |(| E |)|)
+                                           (F id)))))
+      (lisp-unit:assert-true (finite-set-equal (funcall first '+)
+                                               (finite-set '+)))
+      (lisp-unit:assert-true (finite-set-equal (funcall first '*)
+                                               (finite-set '*)))
+      (lisp-unit:assert-true (finite-set-equal (funcall first '|)|)
+                                               (finite-set '|)|)))
+      (lisp-unit:assert-true (finite-set-equal (funcall first '|(|)
+                                               (finite-set '|(|)))
+      (lisp-unit:assert-true (finite-set-equal (funcall first 'id)
+                                               (finite-set 'id)))
+
+      (lisp-unit:assert-true (finite-set-equal (funcall first 'F)
+                                               (finite-set '|(| 'id)))
+      (lisp-unit:assert-true (finite-set-equal (funcall first 'T)
+                                               (finite-set '|(| 'id)))
+      (lisp-unit:assert-true (finite-set-equal (funcall first 'E)
+                                               (finite-set '|(| 'id)))
+
+      (lisp-unit:assert-true (finite-set-equal (funcall first 'E-p)
+                                               (finite-set '+ :epsilon)))
+      (lisp-unit:assert-true (finite-set-equal (funcall first 'T-p)
+                                               (finite-set '* :epsilon))))
+
     ;; chain rule
     (lisp-unit:assert-true (grammar-chain-rule-p '(1 2 3) '(a b c) '(a b)))
     (lisp-unit:assert-true (grammar-chain-rule-p '(1 2 3) '(a b c) '(c a)))
