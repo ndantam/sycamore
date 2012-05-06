@@ -323,16 +323,19 @@
      (equal (grammar-remove-useless '((s a b) (s 1) (a 1)) '(1))
             '((s 1))))
 
-    ;; first function
+    ;; first/follow function
     ;; dragon p222
-    (let ((first (grammar-first-function '((E T E-p)
-                                           (E-p + T E-p)
-                                           (E-p :epsilon)
-                                           (T F T-p)
-                                           (T-p * F T-p)
-                                           (T-p :epsilon)
-                                           (F |(| E |)|)
-                                           (F id)))))
+    (let* ((grammar '((E T E-p)
+                      (E-p + T E-p)
+                      (E-p :epsilon)
+                      (T F T-p)
+                      (T-p * F T-p)
+                      (T-p :epsilon)
+                      (F |(| E |)|)
+                      (F id)))
+           (first (grammar-first-function grammar))
+           (follow (grammar-follow-function grammar)))
+      ;; first
       (lisp-unit:assert-true (finite-set-equal (funcall first '+)
                                                (finite-set '+)))
       (lisp-unit:assert-true (finite-set-equal (funcall first '*)
@@ -354,7 +357,20 @@
       (lisp-unit:assert-true (finite-set-equal (funcall first 'E-p)
                                                (finite-set '+ :epsilon)))
       (lisp-unit:assert-true (finite-set-equal (funcall first 'T-p)
-                                               (finite-set '* :epsilon))))
+                                               (finite-set '* :epsilon)))
+      ;; follow
+      (lisp-unit:assert-true (finite-set-equal (funcall follow 'E)
+                                               (finite-set '|)| :$)))
+      (lisp-unit:assert-true (finite-set-equal (funcall follow 'E-p)
+                                               (finite-set '|)| :$)))
+
+      (lisp-unit:assert-true (finite-set-equal (funcall follow 'T)
+                                               (finite-set '+ '|)| :$)))
+      (lisp-unit:assert-true (finite-set-equal (funcall follow 'T-p)
+                                               (finite-set '+ '|)| :$)))
+
+      (lisp-unit:assert-true (finite-set-equal (funcall follow 'F)
+                                               (finite-set '+ '* '|)| :$))))
 
     ;; chain rule
     (lisp-unit:assert-true (grammar-chain-rule-p '(1 2 3) '(a b c) '(a b)))
