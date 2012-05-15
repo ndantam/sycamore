@@ -574,8 +574,62 @@
                                    'q
                                    (make-avl nil 'c nil)))))
     (lisp-unit:assert-equalp (avl-rotate-right left)
-                      right)
+                             right)
     (lisp-unit:assert-equalp (avl-rotate-left right)
-                      left))
+                             left))
 
-  )
+
+  (dotimes (i 100)
+    (labels ((avl-list (tree)
+               (map-tree-inorder 'list #'identity tree)))
+      (let* ((list-1 (loop for i below 50 collect (random 100)))
+             (list-2 (loop for i below 100 collect (+ 110 (random 100))))
+             (sort-1 (remove-duplicates (sort (copy-list list-1) #'<)))
+             (sort-2 (remove-duplicates (sort (copy-list list-2) #'<)))
+             (avl-1 (fold (lambda (a x) (avl-insert x a #'< #'=)) (make-avl nil (car list-1) nil) (cdr list-1)))
+             (avl-2 (fold (lambda (a x) (avl-insert x a #'< #'=)) (make-avl nil (car list-2) nil) (cdr list-2)))
+             (avl-12 (fold (lambda (a x) (avl-insert x a #'< #'=)) avl-1 list-2))
+             (avl-cat (avl-concatenate avl-1 avl-2)))
+
+        ;; construction
+        (lisp-unit:assert-equal (avl-list avl-1) sort-1)
+        (lisp-unit:assert-equal (avl-list avl-2) sort-2)
+
+        ;; concatenate
+        (lisp-unit:assert-equal (avl-list avl-cat)
+                                (append sort-1 sort-2))
+        (lisp-unit:assert-equal (avl-list avl-cat)
+                                (avl-list avl-12))
+
+        ;; min
+        (lisp-unit:assert-equal (binary-tree-min avl-1)
+                                (car sort-1))
+        (lisp-unit:assert-equal (binary-tree-min avl-2)
+                                (car sort-2))
+
+        ;; remove-min
+        (lisp-unit:assert-equal (avl-list (avl-remove-min avl-1))
+                                (cdr sort-1))
+        (lisp-unit:assert-equal (avl-list (avl-remove-min avl-2))
+                                (cdr sort-2))
+
+        ;; remove
+        (let ((list (append sort-1 sort-2)))
+          (dotimes (i 10)
+            (let ((i (random (length list))))
+              (lisp-unit:assert-equal (avl-list (avl-remove avl-cat (elt list i) #'< #'=))
+                                      (append (subseq list 0 i)
+                                              (subseq list (1+ i)))))))
+
+
+        ;; split
+        (multiple-value-bind (left present right)
+            (avl-split avl-12 101 #'< #'=)
+          (lisp-unit:assert-equal (avl-list left) sort-1)
+          (lisp-unit:assert-equal (avl-list right) sort-2)
+          (lisp-unit:assert-false present)
+          )
+        )))
+
+
+)

@@ -57,9 +57,9 @@
 
 (defun map-tree-inorder-list (function tree)
   (when tree
-    (nconc (map-tree-list function (binary-tree-left tree))
+    (nconc (map-tree-inorder-list function (binary-tree-left tree))
            (cons (funcall function (binary-tree-value tree))
-                 (map-tree-list function (binary-tree-right tree))))))
+                 (map-tree-inorder-list function (binary-tree-right tree))))))
 
 (defun map-tree-inorder (result-type function tree)
   (cond
@@ -69,16 +69,16 @@
      (map-tree-inorder-list function tree))
     (t (error "Unknown result-type: ~A" result-type))))
 
-(defun tree-search-node (value tree less-function eq-function)
+(defun tree-search-node (value tree compare test)
   (cond
     ((null tree)
      nil)
-    ((funcall less-function value (binary-tree-value tree))
-     (tree-search-node value (binary-tree-left tree) less-function eq-function))
-    ((funcall eq-function value (binary-tree-value tree))
+    ((funcall compare value (binary-tree-value tree))
+     (tree-search-node value (binary-tree-left tree) compare test))
+    ((funcall test value (binary-tree-value tree))
      tree)
     (t
-     (tree-search-node value (binary-tree-right tree) less-function eq-function))))
+     (tree-search-node value (binary-tree-right tree) compare test))))
 
 
 (defun binary-tree-left-left (tree)
@@ -99,17 +99,17 @@
 (defun binary-tree-value-right (tree)
   (binary-tree-value (binary-tree-right tree)))
 
-
 (defun binary-tree-dot (tree &key output)
   (output-dot output
               (lambda (s)
                 (let ((i -1))
                   (labels ((helper (parent tree)
                              (let ((x (incf i)))
-                               (format s "~&  ~A[label=\"~A\"];~&"
+                               (format s "~&  ~A[label=\"~A\"~:[shape=none~;~]];~&"
                                        x (if tree
                                              (binary-tree-value tree)
-                                             nil))
+                                             nil)
+                                       tree)
                                (when parent
                                  (format s "~&  ~A -> ~A;~&"
                                          parent x))
@@ -120,11 +120,15 @@
                     (helper nil tree)
                     (format s "~&}~&"))))))
 
+(defun binary-tree-min (tree)
+  (do ((tree tree (binary-tree-left tree)))
+      ((null (binary-tree-left tree)) (binary-tree-value tree))))
+
 ;;;;;;;;;;;;;;;
 ;; RED-BLACK ;;
 ;;;;;;;;;;;;;;;
 
-;; Based on Chris Okasaki's Function red-black trees
+;; Based on Chris Okasaki's Functional red-black trees
 (defstruct (red-black
              (:include binary-tree)
              (:constructor make-red-black (red left value right)))
@@ -195,18 +199,18 @@
         (t
          (make-red-black red left value right))))))
 
-(defun red-black-insert (value tree less-function eq-function)
+(defun red-black-insert (value tree compare test)
   (labels ((ins (tree)
              (cond
                ((null tree) (make-red-black t nil value nil))
-               ((funcall less-function value (red-black-value tree))
-                (red-black-balance (red-black-red tree)
+               ((funcall compare value (red-black-value tree))
+                (balance-red-black (red-black-red tree)
                                    (ins (red-black-left tree))
                                    (red-black-value tree)
                                    (red-black-right tree)))
-               ((funcall eq-function value (red-black-value tree))
+               ((funcall test value (red-black-value tree))
                 tree)
-               (t (red-black-balance (red-black-red tree)
+               (t (balance-red-black (red-black-red tree)
                                      (red-black-left tree)
                                      (red-black-value tree)
                                      (ins (red-black-right tree)))))))
@@ -292,46 +296,96 @@
               (t
                (avl-balance (left-avl left value right))))))
          ;; left much too tall
-         ((> -2 d) ;; rotate right
-          (let ((x (avl-balance (right-avl left value right))))
-            (balance-avl (avl-balance (binary-tree-left x))
-                         (binary-tree-value x)
-                         (binary-tree-right x))))
+         ((> -2 d)
+          (balance-avl (binary-tree-left left)
+                       (binary-tree-value left)
+                       (balance-avl (binary-tree-right left)
+                                    value
+                                    right)))
          ;; right much too tall
          ((< 2 d)
-          (let ((x (avl-balance (left-avl left value right))))
-            (balance-avl (avl-balance (binary-tree-left x))
-                         (binary-tree-value x)
-                         (binary-tree-right x))))
+          (balance-avl (balance-avl left value (binary-tree-left right))
+                       (binary-tree-value right)
+                       (binary-tree-right right)))
          (t (error "Unbalanceble tree: ~A ~A" left right))))))
 
 
-(defun avl-insert (value tree less-function eq-function)
+(defun avl-insert (value tree compare test)
   (cond
     ((null tree)
      (make-avl nil value nil))
-    ((funcall less-function value (binary-tree-value tree))
-     (balance-avl (avl-insert value (avl-left tree) less-function eq-function)
+    ((funcall compare value (binary-tree-value tree))
+     (balance-avl (avl-insert value (avl-left tree) compare test)
                   (binary-tree-value tree)
                   (binary-tree-right tree)))
-    ((funcall eq-function value (binary-tree-value tree))
+    ((funcall test value (binary-tree-value tree))
      tree)
     (t
      (balance-avl (binary-tree-left tree)
                   (binary-tree-value tree)
-                  (avl-insert value (avl-right tree) less-function eq-function)))))
+                  (avl-insert value (avl-right tree) compare test)))))
 
-(defun avl-insert-blind (value tree less-function eq-function)
+(defun avl-insert-blind (value tree compare test)
   (cond
     ((null tree)
      (make-avl nil value nil))
-    ((funcall less-function value (binary-tree-value tree))
-     (make-avl (avl-insert value (avl-left tree) less-function eq-function)
+    ((funcall compare value (binary-tree-value tree))
+     (make-avl (avl-insert value (avl-left tree) compare test)
                (binary-tree-value tree)
                (binary-tree-right tree)))
-    ((funcall eq-function value (binary-tree-value tree))
+    ((funcall test value (binary-tree-value tree))
      tree)
     (t
      (make-avl (binary-tree-left tree)
                (binary-tree-value tree)
-               (avl-insert value (avl-right tree) less-function eq-function)))))
+               (avl-insert value (avl-right tree) compare test)))))
+
+(defun avl-remove-min (tree)
+  (let ((left (binary-tree-left tree)))
+    (if left
+        (balance-avl (avl-remove-min left)
+                     (binary-tree-value tree)
+                     (binary-tree-right tree))
+        (binary-tree-right tree))))
+
+(defun avl-concatenate (tree-1 tree-2)
+  (cond
+    ((null tree-1) tree-2)
+    ((null tree-2) tree-1)
+    (t (balance-avl tree-1 (binary-tree-min tree-2) (avl-remove-min tree-2)))))
+
+(defun avl-split (tree x compare test)
+  (cond
+    ((null tree)
+     (values nil nil nil))
+    ((funcall compare x (binary-tree-value tree))
+     (multiple-value-bind (left-left present right-left)
+         (avl-split (binary-tree-left tree) x compare test)
+       (values left-left present (balance-avl right-left
+                                              (binary-tree-value tree)
+                                              (binary-tree-right tree)))))
+    ((funcall test x (binary-tree-value tree))
+     (values (binary-tree-left tree) t (binary-tree-right tree)))
+    (t
+     (multiple-value-bind (left-right present right-right)
+         (avl-split (binary-tree-right tree) x compare test)
+       (values (balance-avl (binary-tree-left tree)
+                            (binary-tree-value tree)
+                            left-right)
+                present
+                right-right)))))
+
+(defun avl-remove (tree x compare test)
+  (cond
+    ((null tree) nil)
+    ((funcall compare x (binary-tree-value tree))
+     (balance-avl (avl-remove (avl-left tree) x compare test)
+                  (binary-tree-value tree)
+                  (binary-tree-right tree)))
+    ((funcall test x (binary-tree-value tree))
+     (avl-concatenate (avl-left tree)
+                      (avl-right tree)))
+    (t
+     (balance-avl (avl-left tree)
+                  (avl-value tree)
+                  (avl-remove (avl-right tree) x compare test)))))
