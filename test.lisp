@@ -521,3 +521,61 @@
 
 
 )
+
+
+(lisp-unit:define-test tree
+  ;; red-black
+  (let ((bal (make-red-black t
+                             (make-red-black nil 'a 'x 'b)
+                             'y
+                             (make-red-black nil 'c 'z 'd))))
+
+    (lisp-unit:assert-equalp bal
+                             (balance-red-black nil (make-red-black t 'a
+                                                                    'x
+                                                                    (make-red-black t 'b 'y 'c))
+                                                'z 'd))
+    (lisp-unit:assert-equalp bal
+                             (balance-red-black t
+                                                (make-red-black nil 'a 'x 'b)
+                                                'y
+                                                (make-red-black nil 'c 'z 'd)))
+
+    (lisp-unit:assert-equalp bal
+                             (balance-red-black nil
+                                                (make-red-black t (make-red-black t 'a 'x 'b)
+                                                                'y
+                                                                'c)
+                                                'z
+                                                'd))
+    (lisp-unit:assert-equalp bal
+                             (balance-red-black nil
+                                                'a
+                                                'x
+                                                (make-red-black t
+                                                                'b
+                                                                'y
+                                                                (make-red-black t 'c 'z 'd))))
+    (lisp-unit:assert-equalp bal
+                             (balance-red-black nil 'a 'x
+                                                (make-red-black t (make-red-black t 'b 'y 'c)
+                                                                'z 'd))))
+
+  ;; avl
+
+  (let ((left (make-avl (make-avl (make-avl nil 'a nil)
+                                  'p
+                                  (make-avl nil 'b nil))
+                        'q
+                        (make-avl nil 'c nil)))
+        (right (make-avl (make-avl nil 'a nil)
+                         'p
+                         (make-avl (make-avl nil 'b nil)
+                                   'q
+                                   (make-avl nil 'c nil)))))
+    (lisp-unit:assert-equalp (avl-rotate-right left)
+                      right)
+    (lisp-unit:assert-equalp (avl-rotate-left right)
+                      left))
+
+  )
