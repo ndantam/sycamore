@@ -48,7 +48,6 @@
   value
   right)
 
-
 (defun map-binary-tree-inorder (function tree)
   (when tree
     (map-binary-tree-inorder function (binary-tree-left tree))
@@ -102,11 +101,16 @@ RESULT-TYPE: (or 'list nil)"
 (defun binary-tree-search-node (tree value compare)
   "Return the node of TREE containing VALUE or NIL of not present."
   (when tree
-    (do* ((tree-1 tree (if (< c 0) (binary-tree-left tree) (binary-tree-right tree)))
-          (c (funcall compare value (binary-tree-value tree))
-             (funcall compare value (binary-tree-value tree-1))))
-         ((or (zerop c)
-              (null tree-1)) tree-1))))
+    (let ((c (funcall compare value (binary-tree-value tree))))
+      (cond ((< c 0)
+             (binary-tree-search-node (binary-tree-left tree) value compare))
+            ((> c 0)
+             (binary-tree-search-node (binary-tree-right tree) value compare))
+            (t tree)))))
+
+(defun binary-tree-member-p (tree value compare)
+  (when (binary-tree-search-node tree value compare)
+    t))
 
 (defun binary-tree-left-left (tree)
   (binary-tree-left (binary-tree-left tree)))
@@ -329,6 +333,158 @@ RESULT-TYPE: (or 'list nil)"
     (balance-avl-tree (avl-tree-left tree)
                       (avl-tree-value tree)
                       (avl-tree-remove (avl-tree-right tree) x compare))))
+
+
+(defun avl-tree-union (tree-1 tree-2 compare)
+  (cond
+    ((null tree-1) tree-2)
+    ((null tree-2) tree-1)
+    ((= 1 (avl-tree-height tree-2))
+     (avl-tree-insert tree-1 (avl-tree-value tree-2) compare))
+    ((= 1 (avl-tree-height tree-1))
+     (avl-tree-insert tree-2 (avl-tree-value tree-1) compare))
+    ((>= (avl-tree-height tree-2)
+         (avl-tree-height tree-1))
+     (multiple-value-bind (left-2 p-2 right-2) (avl-tree-split tree-2 (avl-tree-value tree-1) compare)
+       (declare (ignore p-2))
+       (balance-avl-tree (avl-tree-union (binary-tree-left tree-1) left-2 compare)
+                         (avl-tree-value tree-1)
+                         (avl-tree-union (binary-tree-right tree-1) right-2 compare))))
+    (t
+     (multiple-value-bind (left-1 p-1 right-1) (avl-tree-split tree-1 (avl-tree-value tree-2) compare)
+       (declare (ignore p-1))
+       (balance-avl-tree (avl-tree-union left-1 (binary-tree-left tree-2) compare)
+                         (avl-tree-value tree-2)
+                         (avl-tree-union right-1 (binary-tree-right tree-2) compare))))))
+
+(defun avl-tree-intersection (tree-1 tree-2 compare)
+  (cond
+    ((or (null tree-1)
+         (null tree-2))
+     nil)
+    ;; next two cases are a premature optimization
+    ((= 1 (avl-tree-height tree-1))
+     (when (binary-tree-search-node tree-2 (binary-tree-value tree-1) compare)
+       (make-avl-tree nil (binary-tree-value tree-1) nil)))
+    ((= 1 (avl-tree-height tree-2))
+     (when (binary-tree-search-node tree-1 (binary-tree-value tree-2) compare)
+       (make-avl-tree nil (binary-tree-value tree-2) nil)))
+    ;; general case
+    (t (multiple-value-bind (left-2 present right-2)
+           (avl-tree-split tree-2 (avl-tree-value tree-1) compare)
+         (let ((i-left (avl-tree-intersection (avl-tree-left tree-1) left-2 compare))
+               (i-right (avl-tree-intersection (avl-tree-right tree-1) right-2 compare)))
+           (if present
+               (balance-avl-tree i-left (avl-tree-value tree-1) i-right)
+               (avl-tree-concatenate i-left i-right)))))))
+
+(defun avl-tree-difference (tree-1 tree-2 compare)
+  (cond
+    ((null tree-1) nil)
+    ((null tree-2) tree-1)
+    ;; next cases is a premature optimization
+    ((= 1 (avl-tree-height tree-2))
+     (avl-tree-remove tree-1 (binary-tree-value tree-2) compare))
+    ;; general case
+    (t (multiple-value-bind (left-2 present right-2)
+           (avl-tree-split tree-2 (binary-tree-value tree-1) compare)
+         (let ((left (avl-tree-difference (binary-tree-left tree-1) left-2 compare))
+               (right (avl-tree-difference (binary-tree-right tree-1) right-2 compare)))
+           (if present
+               (avl-tree-concatenate left right)
+               (balance-avl-tree left (binary-tree-value tree-1) right)))))))
+
+;;;;;;;;;;;;;;;
+;; TREE-MAPS ;;
+;;;;;;;;;;;;;;;
+
+(defstruct (tree-map (:constructor %make-tree-map (compare root)))
+  compare
+  (root nil))
+
+(defun make-tree-map (compare)
+  "Create a new tree-map."
+    (%make-tree-map (lambda (pair-1 pair-2)
+                      (funcall compare (car pair-1) (car pair-2)))
+                    nil))
+
+(defun tree-map-insert (tree-map key value)
+  "Insert KEY=>VALUE into TREE-MAP, returning the new tree-map."
+  (%make-tree-map (tree-map-compare tree-map)
+                  (avl-tree-insert (tree-map-root tree-map)
+                                   (cons key value)
+                                   (tree-map-compare tree-map))))
+
+(defun tree-map-remove (tree-map key)
+  "Insert KEY from TREE-MAP, returning the new tree-map."
+  (%make-tree-map (tree-map-compare tree-map)
+                  (avl-tree-remove (tree-map-root tree-map)
+                                   (cons key nil)
+                                   (tree-map-compare tree-map))))
+
+(defun tree-map-find (tree-map key)
+  (let ((node (binary-tree-search-node (tree-map-root tree-map)
+                                       (cons key nil)
+                                       (tree-map-compare tree-map))))
+    (if node
+        (values (binary-tree-value node) t)
+        (values nil nil))))
+
+
+(defun map-tree-map (order result-type function tree-map)
+  "Apply FUNCTION to all elements in TREE-MAP.
+ORDER: (or :inorder :preorder :postorder
+RESULT-TYPE: (or nil 'list)
+FUNCTION: (lambda (key value))"
+  (%make-tree-map (tree-map-compare tree-map)
+  (map-binary-tree order result-type
+                   (lambda (pair) (funcall function (car pair) (cdr pair)))
+                   (tree-map-root tree-map))))
+
+;;;;;;;;;;;;;;;
+;; TREE-SET ;;
+;;;;;;;;;;;;;;;
+
+(defstruct (tree-set (:constructor %make-tree-set (compare root)))
+  compare
+  root)
+
+(defun make-tree-set (compare)
+  "Create a new tree-set."
+    (%make-tree-set compare nil))
+
+(defun tree-set (compare &rest args)
+  (%make-tree-set compare
+                  (fold (lambda (tree x) (avl-tree-insert tree x compare))
+                        nil
+                        args)))
+
+(defun map-tree-set (result-type function set)
+  (map-binary-tree :inorder result-type function (tree-set-root set)))
+
+(defmacro def-tree-set-item-op (name implementation-name)
+  `(defun ,name (set item)
+     (%make-tree-set (tree-set-compare set)
+                     (,implementation-name (tree-set-root set)
+                                           item
+                                           (tree-set-compare set)))))
+
+(def-tree-set-item-op tree-set-insert avl-tree-insert)
+(def-tree-set-item-op tree-set-remove avl-tree-remove)
+
+(defun tree-set-member-p (set item)
+  (binary-tree-member-p (tree-set-root set) item (tree-set-compare set)))
+
+(defmacro def-tree-set-binop (name implementation-name)
+  `(defun ,name (set-1 set-2)
+     (%make-tree-set (tree-set-compare set-1)
+                     (,implementation-name (tree-set-root set-1)
+                                           (tree-set-root set-2)
+                                           (tree-set-compare set-1)))))
+
+(def-tree-set-binop tree-set-union avl-tree-union)
+(def-tree-set-binop tree-set-intersection avl-tree-intersection)
+(def-tree-set-binop tree-set-difference avl-tree-difference)
 
 
 ;;;;;;;;;;;;;;;

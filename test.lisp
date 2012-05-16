@@ -598,9 +598,34 @@
         )))
 
 
-  )
+  (dotimes (i 100)
+    (let* ((list-1 (loop for i below 100 collect (random 100)))
+           (list-2 (loop for i below 100 collect (random 100)))
+           (set-1 (apply #'tree-set #'- list-1))
+           (set-2 (apply #'tree-set #'- list-2)))
+      ;; union
+      (lisp-unit:assert-equal (remove-duplicates (sort (copy-list (union list-1 list-2)) #'<))
+                              (map-tree-set 'list #'identity (tree-set-union set-1 set-2)))
+      ;; intersection
+      (lisp-unit:assert-equal (remove-duplicates (sort (copy-list (intersection list-1 list-2)) #'<))
+                              (map-tree-set 'list #'identity (tree-set-intersection set-1 set-2)))
+      ;; difference
+      (lisp-unit:assert-equal (remove-duplicates (sort (copy-list (set-difference list-1 list-2)) #'<))
+                              (map-tree-set 'list #'identity (tree-set-difference set-1 set-2)))
+      ;; member
+      (dolist (x list-1)
+        (lisp-unit:assert-true (tree-set-member-p set-1 x)))
+      (dolist (x list-2)
+        (lisp-unit:assert-true (tree-set-member-p set-2 x)))
+      (let ((set-i (tree-set-difference set-1 set-2)))
+        (dolist (x list-2)
+          (lisp-unit:assert-false (tree-set-member-p set-i x))))
+      ;; remove
+      (lisp-unit:assert-equal (remove-duplicates (sort (copy-list (set-difference list-1 list-2)) #'<))
+                              (map-tree-set 'list #'identity (fold #'tree-set-remove set-1 list-2)))
+      ))
 
-
+)
 
 ;; (lisp-unit:define-test red-black
 ;;   ;; red-black
