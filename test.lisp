@@ -137,7 +137,7 @@
                             (d 0 e) (d 1 f)
                             (e 0 e) (e 1 f)
                             (f 0 f) (f 1 f))
-                            'a '(c d e)))
+                          'a '(c d e)))
         (fig-3-4 (make-fa '((e 0 e) (e 1 1)
                             (1 0 1) (1 1 11)
                             (11 0 11) (11 1 11))
@@ -156,7 +156,7 @@
                                       (dfa-minimize-hopcroft fig-3-2)))
     (lisp-unit:assert-true (dfa-equal fig-3-4-min
                                       (fa-minimize-brzozowski fig-3-2)))
-    ; regex
+                                        ; regex
     (lisp-unit:assert-true
      (dfa-equal fig-3-4-min
                 (dfa-minimize-hopcroft (nfa->dfa (regex->nfa ex-3-7)))))
@@ -240,49 +240,49 @@
                       string)))
     (macrolet ((test (regex positive negative)
                  `(progn
-                   (lisp-unit:assert-true (equiv-hop-brz ',regex))
-                   ,@(mapcan
-                      (lambda (p)
-                        `((lisp-unit:assert-true (match-dfa ',regex ,p))
-                          (lisp-unit:assert-true (match-hop  ',regex,p))
-                          (lisp-unit:assert-true (match-brz  ',regex,p))))
-                      positive)
-                   ,@(mapcan
-                      (lambda (n)
-                        `((lisp-unit:assert-false (match-dfa ',regex ,n))
-                          (lisp-unit:assert-false (match-hop ',regex ,n))
-                          (lisp-unit:assert-false (match-brz ',regex ,n))))
-                      negative))))
-    (test (:closure #\a)
-          ("" "a" "aa" "aaa" "aaa")
-          ("b" "ba" "aab" "baaa" "aba"))
-    (test (:concatenation (:closure #\a) #\b)
-          ("b" "ab" "aab" "aaab" "aaaaaab")
-          ("" "a" "aba" "aaa" "baaa"))
-    ;; Sipser p. 65, some "interesting" regexes
-    (test (:concatenation (:closure #\a) #\b (:closure #\a))
-          ("b" "ab" "aab" "baa" "aba" "aaba" "aaaaaab")
-          ("" "a" "abba" "baaab" "bbaaa"))
-    (test (:concatenation (:closure (:union #\a #\b #\c))
-                          #\a #\a #\b
-                          (:closure (:union #\a #\b #\c)))
-          ("aab" "aaab" "aaba" "aabaa" "aabaaba")
-          ("" "a" "abba" "baaa" "bbaaa"))
-    (test (:closure (:concatenation (:union #\a #\b)
-                                    (:union #\a #\b)))
-          ("" "aa" "bb" "ab" "ba" "aaaa" "aaab" "aaba" "bbaa")
-          ("a" "a" "b" "aaa" "aba" "baa" "bbb"))
-    (test (:closure (:concatenation (:union #\a #\b)
-                                    (:union #\a #\b)
-                                    (:union #\a #\b)))
-          ("" "aaa" "bbb" "aab" "aba" "aaaaaa" "bbbbbb" "aaabbb")
-          ("a" "a" "b" "aa" "ab" "ba" "babb" "bbaaa"))
-    (test (:union (:concatenation #\a (:closure (:union #\a #\b)) #\a)
-                  (:concatenation #\b (:closure (:union #\a #\b)) #\b)
-                  #\a #\b)
-          ("a" "b" "aa" "bb" "aba" "bab" "abaa" "bababab")
-          ("ab" "ba" "abb" "bba" "ababab"))
-    t)))
+                    (lisp-unit:assert-true (equiv-hop-brz ',regex))
+                    ,@(mapcan
+                       (lambda (p)
+                         `((lisp-unit:assert-true (match-dfa ',regex ,p))
+                           (lisp-unit:assert-true (match-hop  ',regex,p))
+                           (lisp-unit:assert-true (match-brz  ',regex,p))))
+                       positive)
+                    ,@(mapcan
+                       (lambda (n)
+                         `((lisp-unit:assert-false (match-dfa ',regex ,n))
+                           (lisp-unit:assert-false (match-hop ',regex ,n))
+                           (lisp-unit:assert-false (match-brz ',regex ,n))))
+                       negative))))
+      (test (:closure #\a)
+            ("" "a" "aa" "aaa" "aaa")
+            ("b" "ba" "aab" "baaa" "aba"))
+      (test (:concatenation (:closure #\a) #\b)
+            ("b" "ab" "aab" "aaab" "aaaaaab")
+            ("" "a" "aba" "aaa" "baaa"))
+      ;; Sipser p. 65, some "interesting" regexes
+      (test (:concatenation (:closure #\a) #\b (:closure #\a))
+            ("b" "ab" "aab" "baa" "aba" "aaba" "aaaaaab")
+            ("" "a" "abba" "baaab" "bbaaa"))
+      (test (:concatenation (:closure (:union #\a #\b #\c))
+                            #\a #\a #\b
+                            (:closure (:union #\a #\b #\c)))
+            ("aab" "aaab" "aaba" "aabaa" "aabaaba")
+            ("" "a" "abba" "baaa" "bbaaa"))
+      (test (:closure (:concatenation (:union #\a #\b)
+                                      (:union #\a #\b)))
+            ("" "aa" "bb" "ab" "ba" "aaaa" "aaab" "aaba" "bbaa")
+            ("a" "a" "b" "aaa" "aba" "baa" "bbb"))
+      (test (:closure (:concatenation (:union #\a #\b)
+                                      (:union #\a #\b)
+                                      (:union #\a #\b)))
+            ("" "aaa" "bbb" "aab" "aba" "aaaaaa" "bbbbbb" "aaabbb")
+            ("a" "a" "b" "aa" "ab" "ba" "babb" "bbaaa"))
+      (test (:union (:concatenation #\a (:closure (:union #\a #\b)) #\a)
+                    (:concatenation #\b (:closure (:union #\a #\b)) #\b)
+                    #\a #\b)
+            ("a" "b" "aa" "bb" "aba" "bab" "abaa" "bababab")
+            ("ab" "ba" "abb" "bba" "ababab"))
+      t)))
 
 
 
@@ -492,8 +492,8 @@
   (let ((sipser-2-10 '((s a s a) (s x b) (a b) (a s) (b y) (b)))
         (no-epsilon '((s a s a) (s x b) (s x) (s s a) (s a s) (s s) (a b) (a s) (b y)))
         (no-epsilon-unit '((s a s a) (s x b) (s x) (s s a) (s a s)
-                     (a y) (a a s a) (a x b) (a x) (a s a) (a a s)
-                     (b y))))
+                           (a y) (a a s a) (a x b) (a x) (a s a) (a a s)
+                           (b y))))
     (lisp-unit:assert-true
      (finite-set-equal no-epsilon
                        (grammar-remove-epsilon sipser-2-10)))
@@ -520,116 +520,122 @@
                                  (list (gsymbol-gen 'd1 'b) 'a1))))
 
 
-)
+  )
 
 
 (lisp-unit:define-test tree
-  ;; red-black
-  (let ((bal (make-red-black t
-                             (make-red-black nil 'a 'x 'b)
-                             'y
-                             (make-red-black nil 'c 'z 'd))))
 
-    (lisp-unit:assert-equalp bal
-                             (balance-red-black nil (make-red-black t 'a
-                                                                    'x
-                                                                    (make-red-black t 'b 'y 'c))
-                                                'z 'd))
-    (lisp-unit:assert-equalp bal
-                             (balance-red-black t
-                                                (make-red-black nil 'a 'x 'b)
-                                                'y
-                                                (make-red-black nil 'c 'z 'd)))
+  ;; avl-tree
 
-    (lisp-unit:assert-equalp bal
-                             (balance-red-black nil
-                                                (make-red-black t (make-red-black t 'a 'x 'b)
-                                                                'y
-                                                                'c)
-                                                'z
-                                                'd))
-    (lisp-unit:assert-equalp bal
-                             (balance-red-black nil
-                                                'a
-                                                'x
-                                                (make-red-black t
-                                                                'b
-                                                                'y
-                                                                (make-red-black t 'c 'z 'd))))
-    (lisp-unit:assert-equalp bal
-                             (balance-red-black nil 'a 'x
-                                                (make-red-black t (make-red-black t 'b 'y 'c)
-                                                                'z 'd))))
-
-  ;; avl
-
-  (let ((left (make-avl (make-avl (make-avl nil 'a nil)
-                                  'p
-                                  (make-avl nil 'b nil))
-                        'q
-                        (make-avl nil 'c nil)))
-        (right (make-avl (make-avl nil 'a nil)
-                         'p
-                         (make-avl (make-avl nil 'b nil)
-                                   'q
-                                   (make-avl nil 'c nil)))))
-    (lisp-unit:assert-equalp (avl-rotate-right left)
+  (let ((left (make-avl-tree (make-avl-tree (make-avl-tree nil 'a nil)
+                                            'p
+                                            (make-avl-tree nil 'b nil))
+                             'q
+                             (make-avl-tree nil 'c nil)))
+        (right (make-avl-tree (make-avl-tree nil 'a nil)
+                              'p
+                              (make-avl-tree (make-avl-tree nil 'b nil)
+                                             'q
+                                             (make-avl-tree nil 'c nil)))))
+    (lisp-unit:assert-equalp (avl-tree-rotate-right left)
                              right)
-    (lisp-unit:assert-equalp (avl-rotate-left right)
+    (lisp-unit:assert-equalp (avl-tree-rotate-left right)
                              left))
 
 
   (dotimes (i 100)
-    (labels ((avl-list (tree)
-               (map-tree-inorder 'list #'identity tree)))
+    (labels ((avl-tree-list (tree)
+               (map-binary-tree :inorder 'list #'identity tree)))
       (let* ((list-1 (loop for i below 50 collect (random 100)))
              (list-2 (loop for i below 100 collect (+ 110 (random 100))))
              (sort-1 (remove-duplicates (sort (copy-list list-1) #'<)))
              (sort-2 (remove-duplicates (sort (copy-list list-2) #'<)))
-             (avl-1 (fold (lambda (a x) (avl-insert x a #'< #'=)) (make-avl nil (car list-1) nil) (cdr list-1)))
-             (avl-2 (fold (lambda (a x) (avl-insert x a #'< #'=)) (make-avl nil (car list-2) nil) (cdr list-2)))
-             (avl-12 (fold (lambda (a x) (avl-insert x a #'< #'=)) avl-1 list-2))
-             (avl-cat (avl-concatenate avl-1 avl-2)))
+             (avl-tree-1 (fold (lambda (a x) (avl-tree-insert a x #'-))
+                               (make-avl-tree nil (car list-1) nil) (cdr list-1)))
+             (avl-tree-2 (fold (lambda (a x) (avl-tree-insert a x #'-))
+                               (make-avl-tree nil (car list-2) nil) (cdr list-2)))
+             (avl-tree-12 (fold (lambda (a x) (avl-tree-insert a x #'-)) avl-tree-1 list-2))
+             (avl-tree-cat (avl-tree-concatenate avl-tree-1 avl-tree-2)))
 
         ;; construction
-        (lisp-unit:assert-equal (avl-list avl-1) sort-1)
-        (lisp-unit:assert-equal (avl-list avl-2) sort-2)
+        (lisp-unit:assert-equal (avl-tree-list avl-tree-1) sort-1)
+        (lisp-unit:assert-equal (avl-tree-list avl-tree-2) sort-2)
 
         ;; concatenate
-        (lisp-unit:assert-equal (avl-list avl-cat)
+        (lisp-unit:assert-equal (avl-tree-list avl-tree-cat)
                                 (append sort-1 sort-2))
-        (lisp-unit:assert-equal (avl-list avl-cat)
-                                (avl-list avl-12))
+        (lisp-unit:assert-equal (avl-tree-list avl-tree-cat)
+                                (avl-tree-list avl-tree-12))
 
         ;; min
-        (lisp-unit:assert-equal (binary-tree-min avl-1)
+        (lisp-unit:assert-equal (binary-tree-min avl-tree-1)
                                 (car sort-1))
-        (lisp-unit:assert-equal (binary-tree-min avl-2)
+        (lisp-unit:assert-equal (binary-tree-min avl-tree-2)
                                 (car sort-2))
 
         ;; remove-min
-        (lisp-unit:assert-equal (avl-list (avl-remove-min avl-1))
+        (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove-min avl-tree-1))
                                 (cdr sort-1))
-        (lisp-unit:assert-equal (avl-list (avl-remove-min avl-2))
+        (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove-min avl-tree-2))
                                 (cdr sort-2))
 
         ;; remove
         (let ((list (append sort-1 sort-2)))
           (dotimes (i 10)
             (let ((i (random (length list))))
-              (lisp-unit:assert-equal (avl-list (avl-remove avl-cat (elt list i) #'< #'=))
+              (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove avl-tree-cat (elt list i) #'-))
                                       (append (subseq list 0 i)
                                               (subseq list (1+ i)))))))
 
 
         ;; split
         (multiple-value-bind (left present right)
-            (avl-split avl-12 101 #'< #'=)
-          (lisp-unit:assert-equal (avl-list left) sort-1)
-          (lisp-unit:assert-equal (avl-list right) sort-2)
+            (avl-tree-split avl-tree-12 101 #'-)
+          (lisp-unit:assert-equal (avl-tree-list left) sort-1)
+          (lisp-unit:assert-equal (avl-tree-list right) sort-2)
           (lisp-unit:assert-false present)
           )
         )))
 
 
-)
+  )
+
+
+
+;; (lisp-unit:define-test red-black
+;;   ;; red-black
+;;   (let ((bal (make-red-black t
+;;                              (make-red-black nil 'a 'x 'b)
+;;                              'y
+;;                              (make-red-black nil 'c 'z 'd))))
+
+;;     (lisp-unit:assert-equalp bal
+;;                              (balance-red-black nil (make-red-black t 'a
+;;                                                                     'x
+;;                                                                     (make-red-black t 'b 'y 'c))
+;;                                                 'z 'd))
+;;     (lisp-unit:assert-equalp bal
+;;                              (balance-red-black t
+;;                                                 (make-red-black nil 'a 'x 'b)
+;;                                                 'y
+;;                                                 (make-red-black nil 'c 'z 'd)))
+
+;;     (lisp-unit:assert-equalp bal
+;;                              (balance-red-black nil
+;;                                                 (make-red-black t (make-red-black t 'a 'x 'b)
+;;                                                                 'y
+;;                                                                 'c)
+;;                                                 'z
+;;                                                 'd))
+;;     (lisp-unit:assert-equalp bal
+;;                              (balance-red-black nil
+;;                                                 'a
+;;                                                 'x
+;;                                                 (make-red-black t
+;;                                                                 'b
+;;                                                                 'y
+;;                                                                 (make-red-black t 'c 'z 'd))))
+;;     (lisp-unit:assert-equalp bal
+;;                              (balance-red-black nil 'a 'x
+;;                                                 (make-red-black t (make-red-black t 'b 'y 'c)
+;;                                                                 'z 'd)))))
