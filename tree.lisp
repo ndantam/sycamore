@@ -169,9 +169,84 @@ RESULT-TYPE: (or 'list nil)"
          (binary-tree-count (binary-tree-right tree)))
       0))
 
+(defun binary-tree-subset (tree-1 tree-2 compare)
+  (labels ((rec (tree-1 tree-2)
+             (cond
+               ((null tree-1) t)
+               ((null tree-2) nil)
+               (t
+                (let ((c (funcall compare (binary-tree-value tree-1) (binary-tree-value tree-2))))
+                  (cond
+                    ((< c 0) ; v1 < v2
+                     (and (rec (make-binary-tree (binary-tree-left tree-1)
+                                                 (binary-tree-value tree-1)
+                                                 nil)
+                               (binary-tree-left tree-2))
+                          (rec (binary-tree-right tree-1)
+                               tree-2)))
+                    ((> c 0) ; v1 > v2
+                     (and (rec (make-binary-tree nil
+                                                 (binary-tree-value tree-1)
+                                                 (binary-tree-right tree-1))
+                               (binary-tree-right tree-2))
+                          (rec (binary-tree-left tree-1)
+                               tree-2)))
+                    (t (and (rec (binary-tree-left tree-1)
+                                 (binary-tree-left tree-2))
+                            (rec (binary-tree-right tree-1)
+                                 (binary-tree-right tree-2))))))))))
+    (rec tree-1 tree-2)))
+
+
+
+(defun binary-tree-equal (tree-1 tree-2 compare)
+  ;; O(log(n)) space, O(min(m,n)) time
+  (let ((stack))
+    (labels ((push-left (k)
+               (do ((x k (binary-tree-left x)))
+                   ((null x))
+                 (push x stack))))
+      (push-left tree-1)
+      (map-binary-tree-inorder (lambda (x)
+                                 (if (or (null stack)
+                                         (not (zerop (funcall compare x (binary-tree-value (car stack))))))
+                                     (return-from binary-tree-equal
+                                       nil)
+                                     (push-left (binary-tree-right (pop stack)))))
+                               tree-2))
+    (not stack)))
+
+
+  ;;   (labels ((collect-left (k list)
+  ;;              (if k
+  ;;                  (collect-left (binary-tree-left k) (cons k list))
+  ;;                  list))
+  ;;            (rec (tree list)
+  ;;              (if (null tree)
+  ;;                  list
+  ;;                  (let ((list (rec (binary-tree-left tree) list))) ; left
+  ;;                    (if (and list
+  ;;                             (zerop (funcall compare (binary-tree-value tree)
+  ;;                                             (binary-tree-value (car list))))) ; root
+  ;;                        (rec (binary-tree-right tree) ;right
+  ;;                             (collect-left (binary-tree-right (car list)) (cdr list)))
+  ;;                        t)))))
+  ;;     (not (rec tree-1 (collect-left tree-2 nil))))
+
+
+(defun binary-tree-from-list (list)
+  (when list
+    (destructuring-bind (value &optional left right) list
+      (make-binary-tree (binary-tree-from-list left)
+                        value
+                        (binary-tree-from-list right)))))
+
+
 ;;;;;;;;;;;
 ;;  AVL  ;;
 ;;;;;;;;;;;
+
+;; SEE: Adams, Stephen. Implementing Sets Efficiantly in a Functional Language
 
 (defstruct (avl-tree
              (:include binary-tree)
@@ -191,17 +266,17 @@ RESULT-TYPE: (or 'list nil)"
                                 value
                                 right)))
 
-(defun avl-tree-rotate-right (tree)
-  (right-avl-tree (binary-tree-left tree)
-                  (binary-tree-value tree)
-                  (binary-tree-right tree)))
-
 (defun left-avl-tree (left value right)
   (make-avl-tree (make-avl-tree left
                                 value
                                 (binary-tree-left right))
                  (binary-tree-value right)
                  (binary-tree-right right)))
+
+(defun avl-tree-rotate-right (tree)
+  (right-avl-tree (binary-tree-left tree)
+                  (binary-tree-value tree)
+                  (binary-tree-right tree)))
 
 (defun avl-tree-rotate-left (tree)
   (left-avl-tree (binary-tree-left tree)
@@ -270,6 +345,7 @@ RESULT-TYPE: (or 'list nil)"
        (if (null ,tree-sym)
            ,null-case
            (let ((,c (funcall ,compare ,value (binary-tree-value ,tree-sym))))
+             (declare (type fixnum ,c))
              (cond
                ((< ,c 0) ,less-case)
                ((> ,c 0) ,greater-case)
@@ -485,6 +561,17 @@ FUNCTION: (lambda (key value))"
 (def-tree-set-binop tree-set-union avl-tree-union)
 (def-tree-set-binop tree-set-intersection avl-tree-intersection)
 (def-tree-set-binop tree-set-difference avl-tree-difference)
+
+(defun tree-set-equal (set-1 set-2)
+  (binary-tree-equal (tree-set-root set-1)
+                     (tree-set-root set-2)
+                     (tree-set-compare set-1)))
+
+(defun tree-set-subset (set-1 set-2)
+  (binary-tree-subset (tree-set-root set-1)
+                     (tree-set-root set-2)
+                     (tree-set-compare set-1)))
+
 
 
 ;;;;;;;;;;;;;;;

@@ -525,6 +525,29 @@
 
 (lisp-unit:define-test tree
 
+  ;; equal
+  (let ((a (binary-tree-from-list '(2 (1) (3)))))
+    (lisp-unit:assert-true (binary-tree-equal a
+                                              (binary-tree-from-list '(1 nil (3 (2))))
+                                              #'-))
+    (lisp-unit:assert-true (binary-tree-equal a
+                                              (binary-tree-from-list '(1 nil (2 nil (3))))
+                                              #'-))
+    (lisp-unit:assert-true (binary-tree-equal a
+                                              (binary-tree-from-list '(3 (2 (1))))
+                                              #'-))
+
+    (lisp-unit:assert-false (binary-tree-equal a
+                                              (binary-tree-from-list '(1 (0) (3 (2))))
+                                              #'-))
+    (lisp-unit:assert-false (binary-tree-equal a
+                                              (binary-tree-from-list '(1 nil (2 (1.5) (3))))
+                                              #'-))
+    (lisp-unit:assert-false (binary-tree-equal a
+                                              (binary-tree-from-list '(3 (2 (1 (0)))))
+                                              #'-))
+   )
+
   ;; avl-tree
 
   (let ((left (make-avl-tree (make-avl-tree (make-avl-tree nil 'a nil)
@@ -566,6 +589,20 @@
                                 (append sort-1 sort-2))
         (lisp-unit:assert-equal (avl-tree-list avl-tree-cat)
                                 (avl-tree-list avl-tree-12))
+
+        ;; equal
+        (lisp-unit:assert-true (binary-tree-equal avl-tree-cat avl-tree-12 #'-))
+
+        (lisp-unit:assert-true (not (binary-tree-equal avl-tree-1 avl-tree-2 #'-)))
+
+        ;; subset
+        (lisp-unit:assert-true (binary-tree-subset avl-tree-1 avl-tree-12 #'-))
+        (lisp-unit:assert-true (binary-tree-subset avl-tree-2 avl-tree-12 #'-))
+        (lisp-unit:assert-true (binary-tree-subset avl-tree-cat avl-tree-12 #'-))
+
+        (lisp-unit:assert-true (not (binary-tree-subset avl-tree-12 avl-tree-1 #'-)))
+        (lisp-unit:assert-true (not (binary-tree-subset avl-tree-12 avl-tree-2 #'-)))
+
 
         ;; min
         (lisp-unit:assert-equal (binary-tree-min avl-tree-1)
@@ -623,9 +660,17 @@
       ;; remove
       (lisp-unit:assert-equal (remove-duplicates (sort (copy-list (set-difference list-1 list-2)) #'<))
                               (map-tree-set 'list #'identity (fold #'tree-set-remove set-1 list-2)))
-      ))
 
-)
+      ;; subset
+      (lisp-unit::assert-true (tree-set-subset set-1 (tree-set-union set-1 set-2)))
+      (lisp-unit::assert-true (tree-set-subset set-2 (tree-set-union set-1 set-2)))
+
+      (lisp-unit::assert-true (or (subsetp list-1 list-2)
+                                  (not (tree-set-subset set-1 set-2))))
+      (lisp-unit::assert-true (or (subsetp list-2 list-1)
+                                  (not (tree-set-subset set-2 set-1))))
+      ))
+  )
 
 ;; (lisp-unit:define-test red-black
 ;;   ;; red-black
