@@ -260,6 +260,7 @@ RESULT-TYPE: (or 'list nil)"
 
 
 (defun right-avl-tree (left value right)
+  "Right rotation"
   (make-avl-tree (binary-tree-left left)
                  (binary-tree-value left)
                  (make-avl-tree (binary-tree-right left)
@@ -267,21 +268,31 @@ RESULT-TYPE: (or 'list nil)"
                                 right)))
 
 (defun left-avl-tree (left value right)
+  "Left rotation"
   (make-avl-tree (make-avl-tree left
                                 value
                                 (binary-tree-left right))
                  (binary-tree-value right)
                  (binary-tree-right right)))
 
-(defun avl-tree-rotate-right (tree)
-  (right-avl-tree (binary-tree-left tree)
-                  (binary-tree-value tree)
-                  (binary-tree-right tree)))
-
-(defun avl-tree-rotate-left (tree)
-  (left-avl-tree (binary-tree-left tree)
-                 (binary-tree-value tree)
-                 (binary-tree-right tree)))
+(defun left-right-avl-tree (left value right)
+  "Right rotation then left rotation"
+  (make-avl-tree (make-avl-tree left
+                                value
+                                (binary-tree-left-left right))
+                 (binary-tree-value-left right)
+                 (make-avl-tree (binary-tree-right-left right)
+                                (binary-tree-value right)
+                                (binary-tree-right right))))
+(defun right-left-avl-tree (left value right)
+  "Left rotation then right rotation"
+  (make-avl-tree (make-avl-tree (binary-tree-left left)
+                                (binary-tree-value left)
+                                (binary-tree-left-right left))
+                 (binary-tree-value-right left)
+                 (make-avl-tree (binary-tree-right-right left)
+                                value
+                                right)))
 
 (defun avl-tree-balance (tree)
   (balance-avl-tree (binary-tree-left tree)
@@ -304,9 +315,7 @@ RESULT-TYPE: (or 'list nil)"
                      (height (binary-tree-left left)))))
            (cond
              ((= 1 d)
-              (right-avl-tree (avl-tree-rotate-left left)
-                              value
-                              right))
+              (right-left-avl-tree left value right))
              ((= -1 d)
               (right-avl-tree left value right))
              (t
@@ -319,7 +328,7 @@ RESULT-TYPE: (or 'list nil)"
              ((= 1 d)
               (left-avl-tree left value right))
              ((= -1 d)
-              (left-avl-tree left value (avl-tree-rotate-right right)))
+              (left-right-avl-tree left value right))
              (t
               (avl-tree-balance (left-avl-tree left value right))))))
         ;; left much too tall
