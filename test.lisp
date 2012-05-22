@@ -626,6 +626,12 @@
         (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove-min avl-tree-2))
                                 (cdr sort-2))
 
+        ;; remove-max
+        (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove-max avl-tree-1))
+                                (subseq sort-1 0 (1- (length sort-1))))
+        (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove-max avl-tree-2))
+                                (subseq sort-2 0 (1- (length sort-2))))
+
         ;; remove
         (let ((list (append sort-1 sort-2)))
           (dotimes (i 10)

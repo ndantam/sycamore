@@ -37,6 +37,7 @@
 
 (in-package :motion-grammar)
 
+;;(declaim (optimize (speed 3) (safety 0)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;; BASIC BINARY TREES ;;
@@ -49,30 +50,35 @@
   right)
 
 (defun map-binary-tree-inorder (function tree)
+  (declare (type function function))
   (when tree
     (map-binary-tree-inorder function (binary-tree-left tree))
     (funcall function (binary-tree-value tree))
     (map-binary-tree-inorder function (binary-tree-right tree))))
 
 (defun map-binary-tree-preorder (function tree)
+  (declare (type function function))
   (when tree
     (funcall function (binary-tree-value tree))
     (map-binary-tree-preorder function (binary-tree-left tree))
     (map-binary-tree-preorder function (binary-tree-right tree))))
 
 (defun map-binary-tree-postorder (function tree)
+  (declare (type function function))
   (when tree
     (map-binary-tree-postorder function (binary-tree-left tree))
     (map-binary-tree-postorder function (binary-tree-right tree))
     (funcall function (binary-tree-value tree))))
 
 (defun map-binary-tree-nil (order function tree)
+  (declare (type function function))
   (ecase order
     (:inorder (map-binary-tree-inorder function tree))
     (:postorder (map-binary-tree-postorder function tree))
     (:preorder (map-binary-tree-preorder function tree))))
 
 (defun map-binary-tree-list (order function tree)
+  (declare (type function function))
   (let* ((c (cons nil nil))
          (k c))
     (map-binary-tree-nil order (lambda (x)
@@ -93,20 +99,29 @@ RESULT-TYPE: (or 'list nil)"
     (t (error "Unknown result-type: ~A" result-type))))
 
 (defun fold-binary-tree (order function initial-value tree)
+  (declare (type function function))
   (let ((v initial-value))
     (map-binary-tree-nil order
                          (lambda (x) (setq v (funcall function v x)))
                          tree)))
 
 (defun binary-tree-search-node (tree value compare)
+  (declare (type function compare))
   "Return the node of TREE containing VALUE or NIL of not present."
-  (when tree
-    (let ((c (funcall compare value (binary-tree-value tree))))
-      (cond ((< c 0)
-             (binary-tree-search-node (binary-tree-left tree) value compare))
-            ((> c 0)
-             (binary-tree-search-node (binary-tree-right tree) value compare))
-            (t tree)))))
+  (labels ((rec (tree)
+             (when tree
+               (let ((c (funcall compare value (binary-tree-value tree))))
+                 (cond ((< c 0) (rec (binary-tree-left tree)))
+                       ((> c 0) (rec (binary-tree-right tree)))
+                       (t tree))))))
+    (rec tree)))
+
+;; (do* ((c 1 (funcall compare value (binary-tree-value tree-1)))
+;;         (tree-1 tree
+;;                 (cond ((< c 0) (binary-tree-left tree-1))
+;;                       ((> c 0) (binary-tree-right tree-1))
+;;                       (t tree-1))))
+;;        ((or (zerop c) (null tree-1)) tree-1))
 
 (defun binary-tree-member-p (tree value compare)
   (when (binary-tree-search-node tree value compare)
@@ -170,12 +185,14 @@ RESULT-TYPE: (or 'list nil)"
       0))
 
 (defun binary-tree-subset (tree-1 tree-2 compare)
+  (declare (type function compare))
   (labels ((rec (tree-1 tree-2)
              (cond
                ((null tree-1) t)
                ((null tree-2) nil)
                (t
                 (let ((c (funcall compare (binary-tree-value tree-1) (binary-tree-value tree-2))))
+                  (declare (type fixnum c))
                   (cond
                     ((< c 0) ; v1 < v2
                      (and (rec (make-binary-tree (binary-tree-left tree-1)
@@ -200,6 +217,7 @@ RESULT-TYPE: (or 'list nil)"
 
 
 (defun binary-tree-equal (tree-1 tree-2 compare)
+  (declare (type function compare))
   ;; O(log(n)) space, O(min(m,n)) time
   (let ((stack))
     (labels ((push-left (k)
@@ -241,6 +259,19 @@ RESULT-TYPE: (or 'list nil)"
                         value
                         (binary-tree-from-list right)))))
 
+(defun binary-tree-every (predicate tree)
+  (declare (type function predicate))
+  (or (null tree)
+      (and (funcall predicate (binary-tree-value tree))
+           (binary-tree-every predicate (binary-tree-left tree))
+           (binary-tree-every predicate (binary-tree-left tree)))))
+
+(defun binary-tree-some (predicate tree)
+  (declare (type function predicate))
+  (and tree
+       (or (funcall predicate (binary-tree-value tree))
+           (binary-tree-some predicate (binary-tree-left tree))
+           (binary-tree-some predicate (binary-tree-right tree)))))
 
 ;;;;;;;;;;;
 ;;  AVL  ;;
@@ -254,8 +285,8 @@ RESULT-TYPE: (or 'list nil)"
   (height 0 :type fixnum))
 
 (defun make-avl-tree (left value right)
-  (%make-avl-tree (1+ (max (if left (avl-tree-height left) 0)
-                           (if right (avl-tree-height right) 0)))
+  (%make-avl-tree (the fixnum (1+ (max (if left (avl-tree-height left) 0)
+                                       (if right (avl-tree-height right) 0))))
                   left value right))
 
 
@@ -304,49 +335,54 @@ RESULT-TYPE: (or 'list nil)"
   (labels ((height (tree) (if tree (avl-tree-height tree) 0)))
     (let ((d (- (height right) (height left))))
       (cond
-        ;; just right
-        ((or (= 0 d)
-             (= -1 d)
-             (= 1 d))
-         (make-avl-tree left value right))
         ;; left too tall
-        ((= -2 d)
+        ((<= d -2 )
          (let ((d (- (height (binary-tree-right left))
                      (height (binary-tree-left left)))))
            (cond
-             ((= 1 d)
+             ((<= 1 d)
               (right-left-avl-tree left value right))
-             ((= -1 d)
+             ((>= -1 d)
               (right-avl-tree left value right))
              (t
               (avl-tree-balance (right-avl-tree left value right))))))
         ;; right too tall
-        ((= 2 d)
+        ((>= d 2 )
          (let ((d (- (height (binary-tree-right right))
                      (height (binary-tree-left right)))))
            (cond
-             ((= 1 d)
+             ((<= 1 d)
               (left-avl-tree left value right))
-             ((= -1 d)
+             ((>= -1 d)
               (left-right-avl-tree left value right))
              (t
               (avl-tree-balance (left-avl-tree left value right))))))
-        ;; left much too tall
-        ((> -2 d)
-         (balance-avl-tree (binary-tree-left left)
-                           (binary-tree-value left)
-                           (balance-avl-tree (binary-tree-right left)
-                                             value
-                                             right)))
-        ;; right much too tall
-        ((< 2 d)
-         (balance-avl-tree (balance-avl-tree left value (binary-tree-left right))
-                           (binary-tree-value right)
-                           (binary-tree-right right)))
-        (t (error "Unbalanceble tree: ~A ~A" left right))))))
+        (t
+         (make-avl-tree left value right))))))
+        ;; ;; left much too tall
+        ;; ((> -2 d)
+        ;;  (balance-avl-tree (binary-tree-left left)
+        ;;                    (binary-tree-value left)
+        ;;                    (balance-avl-tree (binary-tree-right left)
+        ;;                                      value
+        ;;                                      right)))
+        ;; ;; right much too tall
+        ;; ((< 2 d)
+        ;;  (balance-avl-tree (balance-avl-tree left value (binary-tree-left right))
+        ;;                    (binary-tree-value right)
+        ;;                    (binary-tree-right right)))
+        ;;(t (error "Unbalanceble tree: ~A ~A" left right))))))
 
 
-(defmacro with-avl-tree-compare ((value tree compare)
+(defmacro with-avl-tree(((left value right) tree) &body body)
+  (alexandria:with-gensyms (tree-sym)
+    `(let ((,tree-sym ,tree))
+       (let ((,left (binary-tree-left ,tree-sym))
+             (,value (binary-tree-value ,tree-sym))
+             (,right (binary-tree-right ,tree-sym)))
+         ,@body))))
+
+(defmacro cond-avl-tree-compare ((value tree compare)
                                  null-case less-case equal-case greater-case)
   "Compare VALUE to value of TREE and execute the corresponding case."
   (alexandria:with-gensyms (c tree-sym)
@@ -360,9 +396,28 @@ RESULT-TYPE: (or 'list nil)"
                ((> ,c 0) ,greater-case)
                (t ,equal-case)))))))
 
+(defmacro cond-avl-tree-heights ((left right)
+                                 null-left-case null-right-case left-short-case equiv-case right-short-case)
+  (alexandria:with-gensyms (left-sym right-sym)
+    `(let ((,left-sym ,left)
+           (,right-sym ,right))
+       (cond
+         ((null ,left-sym)
+          ,null-left-case)
+         ((null ,right-sym)
+          ,null-right-case)
+         ((< (avl-tree-height ,left-sym)
+             (+ 2 (avl-tree-height ,right-sym)))
+          ,left-short-case)
+         ((< (avl-tree-height ,right-sym)
+             (+ 2 (avl-tree-height ,left-sym)))
+          ,right-short-case)
+         (t ,equiv-case)))))
+
 (defun avl-tree-insert (tree value compare)
   "Insert VALUE into TREE, returning new tree."
-  (with-avl-tree-compare (value tree compare)
+  (declare (type function compare))
+  (cond-avl-tree-compare (value tree compare)
     (make-avl-tree nil value nil)
     (balance-avl-tree (avl-tree-insert (avl-tree-left tree) value compare)
                       (binary-tree-value tree)
@@ -371,7 +426,6 @@ RESULT-TYPE: (or 'list nil)"
     (balance-avl-tree (binary-tree-left tree)
                       (binary-tree-value tree)
                       (avl-tree-insert (avl-tree-right tree) value compare))))
-
 
 (defun avl-tree-remove-min (tree)
   "Insert minimum element of TREE, returning new tree."
@@ -382,33 +436,66 @@ RESULT-TYPE: (or 'list nil)"
                           (binary-tree-right tree))
         (binary-tree-right tree))))
 
+(defun avl-tree-remove-max (tree)
+  "Insert minimum element of TREE, returning new tree."
+  (let ((right (binary-tree-right tree)))
+    (if right
+        (balance-avl-tree (binary-tree-left tree)
+                          (binary-tree-value tree)
+                          (avl-tree-remove-max (binary-tree-right tree)))
+        (binary-tree-left tree))))
+
+
+(defun join-avl-tree (left value right compare)
+  (cond-avl-tree-heights (left right)
+                         (avl-tree-insert right value compare)
+                         (avl-tree-insert left value compare)
+                         (balance-avl-tree (join-avl-tree left value (binary-tree-left right) compare)
+                                           (binary-tree-value right)
+                                           (binary-tree-right right))
+                         (balance-avl-tree left value right)
+                         (balance-avl-tree (binary-tree-left left)
+                                           (binary-tree-value left)
+                                           (join-avl-tree (binary-tree-right left) value right compare))))
+
 (defun avl-tree-concatenate (tree-1 tree-2)
   "Concatenate TREE-1 and TREE-2."
-  (cond
-    ((null tree-1) tree-2)
-    ((null tree-2) tree-1)
-    (t (balance-avl-tree tree-1 (binary-tree-min tree-2) (avl-tree-remove-min tree-2)))))
+  (cond-avl-tree-heights (tree-1 tree-2)
+                         tree-2
+                         tree-1
+                         (balance-avl-tree (avl-tree-concatenate tree-1 (binary-tree-left tree-2))
+                           (binary-tree-value tree-2)
+                           (binary-tree-right tree-2))
+                         (balance-avl-tree tree-1 (binary-tree-min tree-2) (avl-tree-remove-min tree-2))
+                         (balance-avl-tree (binary-tree-left tree-1)
+                                           (binary-tree-value tree-1)
+                                           (avl-tree-concatenate (binary-tree-right tree-1) tree-2))))
 
 (defun avl-tree-split (tree x compare)
-  (with-avl-tree-compare (x tree compare)
+  (declare (type function compare))
+  (cond-avl-tree-compare (x tree compare)
     (values nil nil nil)
     (multiple-value-bind (left-left present right-left)
         (avl-tree-split (binary-tree-left tree) x compare)
-      (values left-left present (balance-avl-tree right-left
-                                                  (binary-tree-value tree)
-                                                  (binary-tree-right tree))))
+      (values left-left present (join-avl-tree right-left
+                                               (binary-tree-value tree)
+                                               (binary-tree-right tree)
+                                               compare)))
     (values (binary-tree-left tree) t (binary-tree-right tree))
     (multiple-value-bind (left-right present right-right)
         (avl-tree-split (binary-tree-right tree) x compare)
-      (values (balance-avl-tree (binary-tree-left tree)
-                                (binary-tree-value tree)
-                                left-right)
+      (values (join-avl-tree (binary-tree-left tree)
+                             (binary-tree-value tree)
+                             left-right
+                             compare)
               present
               right-right))))
 
+
 (defun avl-tree-remove (tree x compare)
   "Remove X from TREE, returning new tree."
-  (with-avl-tree-compare (x tree compare)
+  (declare (type function compare))
+  (cond-avl-tree-compare (x tree compare)
     nil
     (balance-avl-tree (avl-tree-remove (avl-tree-left tree) x compare)
                       (binary-tree-value tree)
@@ -418,6 +505,54 @@ RESULT-TYPE: (or 'list nil)"
     (balance-avl-tree (avl-tree-left tree)
                       (avl-tree-value tree)
                       (avl-tree-remove (avl-tree-right tree) x compare))))
+
+;; (defun avl-tree-split-less (tree x compare)
+;;   "Everything in tree before than x"
+;;   (cond-avl-tree-compare (x tree compare)
+;;     nil
+;;     (avl-tree-split-less (binary-tree-left tree) x compare)
+;;     (binary-tree-left tree)
+;;     (balance-avl-tree (binary-tree-left tree)
+;;                       (binary-tree-value tree)
+;;                       (avl-tree-split-less (binary-tree-right tree) x compare))))
+
+
+;; (defun avl-tree-split-greater (tree x compare)
+;;   "Everything in tree after than x"
+;;   (cond-avl-tree-compare (x tree compare)
+;;     nil
+;;     (balance-avl-tree (avl-tree-split-greater (binary-tree-left tree) x compare)
+;;                       (binary-tree-value tree)
+;;                       (binary-tree-right tree))
+;;     (binary-tree-right tree)
+;;     (avl-tree-split-greater (binary-tree-left tree) x compare)))
+
+
+;; (defun avl-tree-trim (tree lo hi compare)
+;;   "Gather all values of TREE between LO and HI."
+;;   (print tree)
+;;   (if (null tree)
+;;       nil
+;;       (with-avl-tree ((left value right) tree)
+;;         (if (< (funcall compare lo value) 0)
+;;             (if (< (funcall compare value hi) 0)
+;;                 tree
+;;                 (avl-tree-trim left lo hi compare))
+;;             (avl-tree-trim right lo hi compare)))))
+
+
+;; (defun avl-tree-uni-bd (tree-1 tree-2 lo hi compare)
+;;   (cond
+;;     ((null tree-1) tree-2)
+;;     ((null tree-2)
+;;      (multiple-value-bind (left p right) (avl-tree-split-greater
+;;                                           (
+
+
+;; (defun avl-tree-hedge-union (tree-1 tree-1)
+;;   (cond
+;;     ((null tree-1) tree-2)
+;;     ((null tree-2) tree-1)
 
 
 (defun avl-tree-union (tree-1 tree-2 compare)
@@ -432,15 +567,17 @@ RESULT-TYPE: (or 'list nil)"
          (avl-tree-height tree-1))
      (multiple-value-bind (left-2 p-2 right-2) (avl-tree-split tree-2 (avl-tree-value tree-1) compare)
        (declare (ignore p-2))
-       (balance-avl-tree (avl-tree-union (binary-tree-left tree-1) left-2 compare)
-                         (avl-tree-value tree-1)
-                         (avl-tree-union (binary-tree-right tree-1) right-2 compare))))
+       (join-avl-tree (avl-tree-union (binary-tree-left tree-1) left-2 compare)
+                      (avl-tree-value tree-1)
+                      (avl-tree-union (binary-tree-right tree-1) right-2 compare)
+                      compare)))
     (t
      (multiple-value-bind (left-1 p-1 right-1) (avl-tree-split tree-1 (avl-tree-value tree-2) compare)
        (declare (ignore p-1))
-       (balance-avl-tree (avl-tree-union left-1 (binary-tree-left tree-2) compare)
-                         (avl-tree-value tree-2)
-                         (avl-tree-union right-1 (binary-tree-right tree-2) compare))))))
+       (join-avl-tree (avl-tree-union left-1 (binary-tree-left tree-2) compare)
+                      (avl-tree-value tree-2)
+                      (avl-tree-union right-1 (binary-tree-right tree-2) compare)
+                      compare)))))
 
 (defun avl-tree-intersection (tree-1 tree-2 compare)
   (cond
@@ -460,7 +597,7 @@ RESULT-TYPE: (or 'list nil)"
          (let ((i-left (avl-tree-intersection (avl-tree-left tree-1) left-2 compare))
                (i-right (avl-tree-intersection (avl-tree-right tree-1) right-2 compare)))
            (if present
-               (balance-avl-tree i-left (avl-tree-value tree-1) i-right)
+               (join-avl-tree i-left (avl-tree-value tree-1) i-right compare)
                (avl-tree-concatenate i-left i-right)))))))
 
 (defun avl-tree-difference (tree-1 tree-2 compare)
@@ -477,7 +614,7 @@ RESULT-TYPE: (or 'list nil)"
                (right (avl-tree-difference (binary-tree-right tree-1) right-2 compare)))
            (if present
                (avl-tree-concatenate left right)
-               (balance-avl-tree left (binary-tree-value tree-1) right)))))))
+               (join-avl-tree left (binary-tree-value tree-1) right compare)))))))
 
 ;;;;;;;;;;;;;;;
 ;; TREE-MAPS ;;
@@ -489,9 +626,10 @@ RESULT-TYPE: (or 'list nil)"
 
 (defun make-tree-map (compare)
   "Create a new tree-map."
-    (%make-tree-map (lambda (pair-1 pair-2)
-                      (funcall compare (car pair-1) (car pair-2)))
-                    nil))
+  (declare (type function compare))
+  (%make-tree-map (lambda (pair-1 pair-2)
+                    (funcall compare (car pair-1) (car pair-2)))
+                  nil))
 
 (defun tree-map-insert (tree-map key value)
   "Insert KEY=>VALUE into TREE-MAP, returning the new tree-map."
@@ -521,6 +659,7 @@ RESULT-TYPE: (or 'list nil)"
 ORDER: (or :inorder :preorder :postorder
 RESULT-TYPE: (or nil 'list)
 FUNCTION: (lambda (key value))"
+  (declare (type function function))
   (%make-tree-map (tree-map-compare tree-map)
   (map-binary-tree order result-type
                    (lambda (pair) (funcall function (car pair) (cdr pair)))
