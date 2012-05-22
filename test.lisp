@@ -41,31 +41,31 @@
   `(lisp-unit:assert-true (finite-set-equal ,a ,b)))
 
 (lisp-unit:define-test dfa-equal-basic
-  (lisp-unit:assert-true (dfa-equal (make-fa '((0 a 1) (1 b 0)) 0 1)
-                                    (make-fa '((x a y) (y b x)) 'x 'y)))
-  (lisp-unit:assert-false (dfa-equal (make-fa '((0 a 1) (1 b 0)) 0 1)
-                                     (make-fa '((x a y) (y b x)) 'y 'x))))
+  (lisp-unit:assert-true (dfa-equal (make-fa '((0 a 1) (1 b 0)) 0 (finite-set 1))
+                                    (make-fa '((x a y) (y b x)) 'x (finite-set 'y))))
+  (lisp-unit:assert-false (dfa-equal (make-fa '((0 a 1) (1 b 0)) 0 (finite-set 1))
+                                     (make-fa '((x a y) (y b x)) 'y (finite-set 'x)))))
 
 
 
 (lisp-unit:define-test dfa-minimize
   (lisp-unit:assert-true
-   (dfa-equal (fa-minimize-brzozowski (make-fa '((0 a 1) (1 b 2) (2 a 1)) 0 1))
-              (make-fa '((0 a 1) (1 b 0)) 0 1)))
+   (dfa-equal (fa-minimize-brzozowski (make-fa '((0 a 1) (1 b 2) (2 a 1)) 0 (finite-set 1)))
+              (make-fa '((0 a 1) (1 b 0)) 0 (finite-set 1))))
   (flet ((min-cmp (dfa)
            (dfa-equal (fa-minimize-brzozowski dfa)
                       (dfa-minimize-hopcroft dfa))))
     (lisp-unit:assert-true
-     (min-cmp (make-fa '((0 a 1) (1 b 2) (2 a 1)) 0 1)))
+     (min-cmp (make-fa '((0 a 1) (1 b 2) (2 a 1)) 0 (finite-set 1))))
 
     (lisp-unit:assert-true
      (make-fa '((0 a 1) (1 b 0)
                 (0 e 2) (1 e 2))
-              0 2))
+              0 (finite-set 2)))
     (lisp-unit:assert-true
      (min-cmp (make-fa '((0 a 1) (1 b 0) (1 c 2) (2 a 1)
                          (0 e 3) (1 e 3) (2 e 3))
-                       0 3)
+                       0 (finite-set 3))
               ))))
 
 ;; examples from the dragon book
@@ -73,7 +73,7 @@
   (let* ((fig-3-56  '(:concatenation (:closure (:union a b)) a b b))
          (fig-3-63 (make-fa '((0 b 0) (0 a 1) (1 a 1) (1 b 2) (2 a 1) (2 b 3)
                               (3 a 1) (3 b 0))
-                            0 3))
+                            0 (finite-set 3)))
          (my-fig-3-36 (regex->nfa fig-3-56))
          (my-fig-3-63 (nfa->dfa my-fig-3-36)))
 
@@ -87,13 +87,13 @@
   (let ((fig-2-15-a (make-fa '((q7 :epsilon q5) (q7 :epsilon q8)
                                (q5 1 q6)
                                (q6 :epsilon q5) (q6 :epsilon q8))
-                             'q7 'q8))
+                             'q7 (finite-set 'q8)))
         (fig-2-15-b (make-fa '((q3 0 q4)
                                (q4 :epsilon q7)
                                (q7 :epsilon q5) (q7 :epsilon q8)
                                (q5 1 q6)
                                (q6 :epsilon q5) (q6 :epsilon q8))
-                             'q3 'q8))
+                             'q3 (finite-set 'q8)))
         (fig-2-15-c (make-fa '((q9 :epsilon q1) (q9 :epsilon q3)
                                (q1 1 q2)
                                (q2 :epsilon q10)
@@ -103,7 +103,7 @@
                                (q5 1 q6)
                                (q6 :epsilon q5) (q6 :epsilon q8)
                                (q8 :epsilon q10))
-                             'q9 'q10))
+                             'q9 (finite-set 'q10)))
         (regex-2-15-a '(:closure 1))
         (regex-2-15-b '(:concatenation 0 (:closure 1)))
         (regex-2-15-c '(:union (:concatenation 0 (:closure 1)) 1)))
@@ -141,10 +141,10 @@
         (fig-3-4 (make-fa '((e 0 e) (e 1 1)
                             (1 0 1) (1 1 11)
                             (11 0 11) (11 1 11))
-                          'e '1))
+                          'e (finite-set 1)))
         (fig-3-4-min (make-fa '((e 0 e) (e 1 1)
                                 (1 0 1))
-                              'e '1)))
+                              'e (finite-set 1))))
     ;; mostly-minimal
     (lisp-unit:assert-true (dfa-equal fig-3-4-min
                                       (dfa-minimize-hopcroft fig-3-4)))
@@ -172,13 +172,13 @@
                             (f 0 c) (f 1 g)
                             (g 0 g) (g 1 e)
                             (h 0 g) (h 1 c))
-                          'a 'c))
+                          'a (finite-set 'c)))
         (fig-3-7 (make-fa '((a-e 0 b-h) (a-e 1 d-f)
                             (b-h 0 g)   (b-h 1 c)
                             (g 0 g)     (g 1 a-e)
                             (c 0 a-e)   (c 1 c)
                             (d-f 0 c)   (d-f 1 g))
-                          'a-e 'c)))
+                          'a-e (finite-set 'c))))
     (lisp-unit:assert-true
      (dfa-equal fig-3-7
                 (dfa-minimize-hopcroft fig-3-5)))
@@ -195,7 +195,7 @@
   (let ((fig-1-42 (make-fa '((1 :epsilon 3) (1 b 2)
                              (2 a 2) (2 a 3) (2 b 3)
                              (3 a 1))
-                           1 1))
+                           1 (finite-set 1)))
         (fig-1-44 (make-fa '((2 a 23) (2 b 3)
                              (3 a 13)
                              (13 a 13) (13 b 2)
@@ -221,7 +221,6 @@
              (funcall (chain regex
                              #'regex->nfa
                              #'nfa->dfa
-                             #'dfa-sort
                              #'dfa->string-matcher)
                       string))
            (match-hop (regex string)
@@ -479,7 +478,7 @@
     (lisp-unit:assert-false (grammar-chain-rule-p '(1 2 3) '(a b c) '(a 1 c)))))
 
 (lisp-unit:define-test grammar-regular
-  (let ((fa (make-fa '((0 x 1) (1 y 0) (1 z 2)) 0 2))
+  (let ((fa (make-fa '((0 x 1) (1 y 0) (1 z 2)) 0 (finite-set 2)))
         (gram-1 '((a x b) (b y a)  (b z)))
         (gram-2 '((a x b) (b y a) (b y x b) (b z))))
     (lisp-unit:assert-true
