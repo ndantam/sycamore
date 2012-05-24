@@ -283,6 +283,27 @@
 
 
 
+(lisp-unit:define-test fa-convert
+  (let ((state-fa (make-fa '((eat hungry sleep)
+                             (eat thirsty drink)
+                             (sleep hungry eat)
+                             (sleep thirsty drink)
+                             (drink hungry eat)
+                             (drink tired sleep))
+                           'sleep '(sleep)))
+        (edge-fa (make-fa '((eat-1 hungry sleep-0)
+                            (eat-1 thirsty drink-0)
+                            (sleep-1 hungry eat-0)
+                            (sleep-1 thirsty drink-0)
+                            (drink-1 hungry eat-0)
+                            (drink-1 tired sleep-0)
+                            (eat-0 eat eat-1)
+                            (sleep-0 sleep sleep-1)
+                            (drink-0 drink drink-1))
+                          'sleep-0 '(sleep-1))))
+    (lisp-unit:assert-true (fa-equiv (fa-minimize-brzozowski (fa-state->edge state-fa))
+                                     (fa-minimize-hopcroft edge-fa)))))
+
 
 (lisp-unit:define-test grammar-basic
   (let ((g '((a b c) (b e f))))
