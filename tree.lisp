@@ -279,6 +279,9 @@ RESULT-TYPE: (or 'list nil)"
 
 ;; SEE: Adams, Stephen. Implementing Sets Efficiantly in a Functional Language
 
+;; TODO: use weights instead of heights.  More useful for indexing and
+;; balancing, and we're already paying the full slot for height anyway
+
 (defstruct (avl-tree
              (:include binary-tree)
              (:constructor %make-avl-tree (height left value right)))
@@ -373,6 +376,14 @@ RESULT-TYPE: (or 'list nil)"
         ;;                    (binary-tree-right right)))
         ;;(t (error "Unbalanceble tree: ~A ~A" left right))))))
 
+
+(defun avl-tree-smaller (tree-1 tree-2)
+  "Is `tree-1' shorter than `tree-2'?"
+  (cond
+    ((null tree-2) nil)
+    ((null tree-1) t)
+    (t (< (avl-tree-height tree-1)
+          (avl-tree-height tree-2)))))
 
 (defmacro with-avl-tree((left value right) tree &body body)
   (alexandria:with-gensyms (tree-sym)
@@ -682,6 +693,145 @@ RESULT-TYPE: (or 'list nil)"
                (avl-tree-concatenate left right)
                (join-avl-tree left (binary-tree-value tree-1) right compare)))))))
 
+
+;;;;;;;;;;;;;;;
+;;  T Trees  ;;
+;;;;;;;;;;;;;;;
+
+;; Reuse the AVL-Tree structure
+;; The binary-tree value slot now holds a sorted array of values
+
+(defconstant +t-tree-max-array-length+ 8)
+
+(defun map-t-tree-nil (function tree)
+  (when tree
+    (map-t-tree-nil function (binary-tree-left tree))
+    (map nil function (binary-tree-value tree))
+    (map-t-tree-nil function (binary-tree-right tree))))
+
+(defun map-t-tree (result-type function tree)
+  (cond
+    ((null result-type)
+     (map-t-tree-nil function tree))
+    ((eq 'list result-type)
+     (let* ((c (cons nil nil))
+            (k c))
+       (map-t-tree-nil (lambda (x)
+                         (rplacd k (cons (funcall function x) nil))
+                         (setq k (cdr k)))
+                       tree)
+       (cdr c)))
+    (t (error "Unknown result-type: ~A" result-type))))
+
+(defun vector-binary-search (vector value compare &optional (start 0) (end (length vector)))
+  (declare (type fixnum start end))
+  (if (>= start end)
+      (values nil nil)
+      (let* ((i (ash (+ start end) -1))
+             (c (funcall compare value (aref vector i))))
+        (cond
+          ((< c 0) (vector-binary-search vector value compare start i))
+          ((> c 0) (vector-binary-search vector value compare (1+ i) end))
+          (t (values (aref vector i) t))))))
+
+(defun find-t-tree (value tree compare)
+  (if (null tree)
+      nil
+      (let* ((d (binary-tree-value tree))
+             (len (1- (length d)))
+             (c0 (funcall compare value (aref d 0)))
+             (c1 (funcall compare value (aref d len))))
+        (cond
+          ((< c0 0) (find-t-tree (binary-tree-left tree) value compare))
+          ((> c1 0) (find-t-tree (binary-tree-right tree) value compare))
+          ((= c0 0) (aref d 0))
+          ((= c1 0) (aref d len))
+          (t (vector-binary-search d value compare 1 len))))))
+
+(defun t-tree-array-position (value array compare &optional (start 0) (end (length array)))
+  (position-if (lambda (x) (<= (funcall compare value x) 0))
+               array :start start :end end))
+
+(defun t-tree-array-insert (value original-array compare &optional
+                            (start 0) (end (length original-array))
+                            (position (t-tree-array-position value original-array compare start end)))
+  "Insert `value' in order into `original-array', nondestructive."
+  (let ((array (make-array (1+ (- end start)))))
+    (if position
+        (progn
+          (let ((k (- position start)))
+            (replace array original-array :end1 k :start2 start)
+            (setf (aref array k) value)
+            (replace array original-array :start1 (1+ k) :start2 position))
+          array)
+        (progn
+          (replace array original-array :start2 start :end2 end)
+          (setf (aref array (- end start)) value)
+          array))))
+
+(defun t-tree-array-set (value original-array i)
+  (let ((array (make-array (length original-array))))
+    (replace array original-array :end2 i)
+    (setf (aref array i) value)
+    (replace array original-array :start1 (1+ i) :start2 (1+ i))
+    array))
+
+(defun t-tree-array-split (array value compare)
+  (let* ((n (length array))
+         (n/2 (ash n -1))
+         (i (t-tree-array-position value array compare)))
+    (if (and i (< i n/2))
+        (values (t-tree-array-insert value array compare 0 n/2 i)
+                (subseq array n/2))
+        (values (subseq array 0 n/2)
+                (t-tree-array-insert value array compare n/2 n i)))))
+
+(defun t-tree-insert (tree value compare)
+  "Insert `value' into `tree' returning new tree."
+  (if (null tree)
+      (make-avl-tree nil (vector value) nil)
+      (with-avl-tree (l d r) tree
+        (let* ((len (length d))
+               (c0 (funcall compare value (aref d 0)))
+               (c1 (funcall compare value (aref d (1- len)))))
+          (cond
+            ;; recurse left
+            ((and l (< c0 0))
+             (balance-avl-tree (t-tree-insert l value compare) d r))
+            ;; recurse right
+            ((and r (> c1 0))
+             (balance-avl-tree l d (t-tree-insert r value compare)))
+            ;; insert here
+            (t
+             (let ((pos (position-if (lambda (x) (zerop (funcall compare value x))) d)))
+               (cond
+                 ;; replace element
+                 (pos
+                  (make-avl-tree l (t-tree-array-set value d pos) r))
+                 ;; insert into array
+                 ((< len +t-tree-max-array-length+)
+                  (make-avl-tree l (t-tree-array-insert value d compare) r))
+                 ;; split left
+                 ((null l)
+                  (multiple-value-bind (a0 a1) (t-tree-array-split d value compare)
+                    (balance-avl-tree (make-avl-tree nil a0 nil)
+                                      a1 r)))
+                 ;; split right
+                 ((null r)
+                  (multiple-value-bind (a0 a1) (t-tree-array-split d value compare)
+                    (balance-avl-tree l a0 (make-avl-tree nil a1 nil))))
+                 ;; insert min to left
+                 ((avl-tree-smaller l r)
+                  (balance-avl-tree (t-tree-insert l (aref d 0) compare)
+                                    (t-tree-array-insert value d compare 1)
+                                    r))
+                 ;; insert max to right
+                 (t
+                  (balance-avl-tree l
+                                    (t-tree-array-insert value d compare 0 (1- (length d)))
+                                    (t-tree-insert r (aref d (1- (length d))) compare)))))))))))
+
+
 ;;;;;;;;;;;;;;;
 ;; TREE-MAPS ;;
 ;;;;;;;;;;;;;;;
@@ -727,9 +877,9 @@ RESULT-TYPE: (or nil 'list)
 FUNCTION: (lambda (key value))"
   (declare (type function function))
   (%make-tree-map (tree-map-compare tree-map)
-  (map-binary-tree order result-type
-                   (lambda (pair) (funcall function (car pair) (cdr pair)))
-                   (tree-map-root tree-map))))
+                  (map-binary-tree order result-type
+                                   (lambda (pair) (funcall function (car pair) (cdr pair)))
+                                   (tree-map-root tree-map))))
 
 ;;;;;;;;;;;;;;;
 ;; TREE-SET ;;
@@ -741,7 +891,7 @@ FUNCTION: (lambda (key value))"
 
 (defun make-tree-set (compare)
   "Create a new tree-set."
-    (%make-tree-set compare nil))
+  (%make-tree-set compare nil))
 
 (defun tree-set (compare &rest args)
   (%make-tree-set compare
@@ -783,8 +933,8 @@ FUNCTION: (lambda (key value))"
 
 (defun tree-set-subset (set-1 set-2)
   (binary-tree-subset (tree-set-root set-1)
-                     (tree-set-root set-2)
-                     (tree-set-compare set-1)))
+                      (tree-set-root set-2)
+                      (tree-set-compare set-1)))
 
 
 

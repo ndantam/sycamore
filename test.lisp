@@ -706,6 +706,22 @@
       ))
   )
 
+
+(lisp-unit:define-test t-tree
+  (dotimes (i 20)
+    (let* ((list-1 (loop for i below 1000 collect (random 100000)))
+           (list-2 (loop for i below 1000 collect (random 1000000)))
+           (s-1 (remove-duplicates (sort (copy-list list-1) #'<)))
+           (s-2 (remove-duplicates (sort (copy-list list-2) #'<)))
+           (t-1 (fold (lambda (a x) (t-tree-insert a x #'-)) nil list-1))
+           (t-2 (fold (lambda (a x) (t-tree-insert a x #'-)) nil list-2)))
+      (lisp-unit:assert-equalp s-1
+                               (map-t-tree 'list #'identity t-1))
+      (lisp-unit:assert-equalp s-2
+                               (map-t-tree 'list #'identity t-2)))))
+
+
+
 ;; (lisp-unit:define-test red-black
 ;;   ;; red-black
 ;;   (let ((bal (make-red-black t
