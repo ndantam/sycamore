@@ -577,16 +577,20 @@
           (right-left (make-avl-tree a 2 (make-avl-tree (make-avl-tree b 4 c) 6 d)))
           (left-left (make-avl-tree (make-avl-tree (make-avl-tree a 2 b) 4 c) 6 d))
           (left-right (make-avl-tree (make-avl-tree a 2 (make-avl-tree b 4 c)) 6 d)) )
-      (let ((bal-right-right (left-avl-tree (binary-tree-left right-right)
+      (let ((bal-right-right (left-avl-tree #'make-avl-tree
+                                            (binary-tree-left right-right)
                                             (binary-tree-value right-right)
                                             (binary-tree-right right-right)))
-            (bal-right-left (left-right-avl-tree (binary-tree-left right-left)
+            (bal-right-left (left-right-avl-tree #'make-avl-tree
+                                                 (binary-tree-left right-left)
                                                  (binary-tree-value right-left)
                                                  (binary-tree-right right-left)))
-            (bal-left-left (right-avl-tree (binary-tree-left left-left)
+            (bal-left-left (right-avl-tree #'make-avl-tree
+                                           (binary-tree-left left-left)
                                            (binary-tree-value left-left)
                                            (binary-tree-right left-left)))
-            (bal-left-right (right-left-avl-tree (binary-tree-left left-right)
+            (bal-left-right (right-left-avl-tree #'make-avl-tree
+                                                 (binary-tree-left left-right)
                                                  (binary-tree-value left-right)
                                                  (binary-tree-right left-right))))
         (lisp-unit:assert-equalp bal bal-right-right)
@@ -630,7 +634,6 @@
 
         (lisp-unit:assert-true (not (binary-tree-subset avl-tree-12 avl-tree-1 #'-)))
         (lisp-unit:assert-true (not (binary-tree-subset avl-tree-12 avl-tree-2 #'-)))
-
 
         ;; min
         (lisp-unit:assert-equal (binary-tree-min avl-tree-1)
