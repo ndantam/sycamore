@@ -137,16 +137,26 @@
                                 (car sort-2))
 
         ;; remove-min
-        (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove-min avl-tree-1))
-                                (cdr sort-1))
-        (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove-min avl-tree-2))
-                                (cdr sort-2))
+        (multiple-value-bind (x tree) (avl-tree-remove-min avl-tree-1)
+          (lisp-unit:assert-equal (avl-tree-list tree)
+                                  (cdr sort-1))
+          (lisp-unit:assert-equal x (car sort-1)))
+
+        (multiple-value-bind (x tree)  (avl-tree-remove-min avl-tree-2)
+          (lisp-unit:assert-equal (avl-tree-list tree)
+                                  (cdr sort-2))
+          (lisp-unit:assert-equal x (car sort-2)))
 
         ;; remove-max
-        (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove-max avl-tree-1))
-                                (subseq sort-1 0 (1- (length sort-1))))
-        (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove-max avl-tree-2))
-                                (subseq sort-2 0 (1- (length sort-2))))
+        (multiple-value-bind (x tree) (avl-tree-remove-max avl-tree-1)
+          (lisp-unit:assert-equal (avl-tree-list tree)
+                                  (subseq sort-1 0 (1- (length sort-1))))
+          (lisp-unit:assert-equal x (car (last sort-1))))
+
+        (multiple-value-bind (x tree) (avl-tree-remove-max avl-tree-2)
+          (lisp-unit:assert-equal (avl-tree-list tree)
+                                  (subseq sort-2 0 (1- (length sort-2))))
+          (lisp-unit:assert-equal x (car (last sort-2))))
 
         ;; remove
         (let ((list (append sort-1 sort-2)))
