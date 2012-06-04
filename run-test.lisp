@@ -36,17 +36,35 @@
 
 
 
+;; Try to load quicklisp
+(unless (find-package :quicklisp)
+  (let ((ql0 (merge-pathnames "quicklisp/setup.lisp"
+                              (user-homedir-pathname)))
+        (ql1 (merge-pathnames ".quicklisp/setup.lisp"
+                              (user-homedir-pathname))))
+    (cond
+      ((probe-file ql0)
+       (load ql0))
+      ((probe-file ql1)
+       (load ql1)))))
 
-(asdf:defsystem sycamore
-  :version "0.0.20120604"
-  :description "Sycamore tree library"
-  :depends-on (:cl-ppcre :alexandria)
-  :weakly-depends-on (:lisp-unit)
-  :components ((:file "package")
-               (:file "util" :depends-on ("package"))
-               (:file "array" :depends-on ("util"))
-               (:file "binary" :depends-on ("util"))
-               (:file "avl" :depends-on ("binary"))
-               (:file "ttree" :depends-on ("avl"))
-               (:file "interfaces" :depends-on ("avl"))
-               ))
+;; Try to ASDF load this Package
+(require :asdf)
+
+(asdf:operate 'asdf:load-op :sycamore)
+(asdf:operate 'asdf:load-op :lisp-unit)
+
+(load "test.lisp")
+
+
+;; Run the tests
+(in-package :sycamore)
+
+(lisp-unit:run-tests)
+
+
+#+sbcl
+(sb-ext:quit)
+
+#+ccl
+(ccl:quit)

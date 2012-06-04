@@ -35,18 +35,12 @@
 ;;;;   EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+(in-package :sycamore)
 
-
-(asdf:defsystem sycamore
-  :version "0.0.20120604"
-  :description "Sycamore tree library"
-  :depends-on (:cl-ppcre :alexandria)
-  :weakly-depends-on (:lisp-unit)
-  :components ((:file "package")
-               (:file "util" :depends-on ("package"))
-               (:file "array" :depends-on ("util"))
-               (:file "binary" :depends-on ("util"))
-               (:file "avl" :depends-on ("binary"))
-               (:file "ttree" :depends-on ("avl"))
-               (:file "interfaces" :depends-on ("avl"))
-               ))
+(defun fold (function initial-value &rest lists)
+  (let ((value initial-value))
+    (apply #'map nil
+           (lambda (&rest args)
+             (setq value (apply function value args)))
+           lists)
+    value))
