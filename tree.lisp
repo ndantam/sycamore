@@ -35,7 +35,7 @@
 ;;;;   EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-(in-package :motion-grammar)
+(in-package :sycamore)
 
 ;;(declaim (optimize (speed 3) (safety 0)))
 
@@ -1141,6 +1141,22 @@ FUNCTION: (lambda (key value))"
                       (tree-set-compare set-1)))
 
 
+
+;;;;;;;;;;;;;;;
+;; Tree-Heap ;;
+;;;;;;;;;;;;;;;
+
+(defun tree-heap-compare-cost (a b)
+  (cond
+    ((> a b) 1)
+    ((< a b) -1)
+    (t 0)))
+
+(defstruct tree-heap
+  root
+  cost)
+
+(defun tree-heap-insert (heap value))
 
 ;;;;;;;;;;;;;;;
 ;; RED-BLACK ;;
