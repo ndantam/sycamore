@@ -1,6 +1,6 @@
 
 
-check: check-sbcl check-ccl check-clisp
+check: check-sbcl check-ccl check-clisp check-ecl
 
 
 check-sbcl:
@@ -11,3 +11,6 @@ check-clisp:
 
 check-ccl:
 	ccl --quiet --load run-test.lisp
+
+check-ecl:
+	ecl -load run-test.lisp -eval '(quit)'

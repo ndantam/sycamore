@@ -43,6 +43,14 @@
 (defvar *test-avl-1*)
 (defvar *test-avl-2*)
 
+;; number of fuzz test iterations
+#-(or clisp ecl)
+(defparameter *test-iterations* 1000)
+#+ecl
+(defparameter *test-iterations* 100)
+#+clisp
+(defparameter *test-iterations* 10)
+
 
 (defun make-test-vars (list1 list2)
   (setq *test-list-1*  list1
@@ -73,7 +81,7 @@
                              (array-tree-remove v 4 #'-)))
 
   ;; insert
-  (dotimes (i 1000)
+  (dotimes (i *test-iterations*)
     (let* ((list (loop for i below (random 100) collect (random 100)))
            (sort (remove-duplicates (sort (copy-list list) #'<)))
            (array (fold (array-tree-builder #'-) (vector) list)))
@@ -162,7 +170,7 @@
         (lisp-unit:assert-equalp bal bal-right-left)
         (lisp-unit:assert-equalp bal bal-left-left))))
 
-  (dotimes (i 100)
+  (dotimes (i *test-iterations*)
     (let* ((list-1 (loop for i below 50 collect (random 100)))
            (list-2 (loop for i below 100 collect (+ 110 (random 100))))
            (sort-1 (remove-duplicates (sort (copy-list list-1) #'<)))
@@ -237,12 +245,12 @@
         (lisp-unit:assert-equal sort-2 (avl-tree-list right))
         (lisp-unit:assert-false present)
         )
-      ))
+      )))
 
-
-  (dotimes (i 100)
-    (let* ((list-1 (loop for i below 100 collect (random 100)))
-           (list-2 (loop for i below 100 collect (random 100)))
+(lisp-unit:define-test set
+  (dotimes (i *test-iterations*)
+    (let* ((list-1 (loop for i below (random 100) collect (random 100)))
+           (list-2 (loop for i below (random 100) collect (random 100)))
            (set-1 (apply #'tree-set #'- list-1))
            (set-2 (apply #'tree-set #'- list-2)))
       ;; union
@@ -293,7 +301,7 @@
 
 
 (lisp-unit:define-test heap
-  (dotimes (i 20)
+  (dotimes (i (ash *test-iterations* -2))
     (let* ((list-1 (loop for i below 1000 collect (random 100000)))
            (list-2 (loop for i below 1000 collect (random 1000000)))
            (s-1 (remove-duplicates (sort (copy-list list-1) #'<)))
