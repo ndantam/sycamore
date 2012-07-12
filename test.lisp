@@ -36,6 +36,75 @@
 
 (in-package :sycamore)
 
+(defvar *test-list-1*)
+(defvar *test-list-2*)
+(defvar *test-sort-1*)
+(defvar *test-sort-2*)
+(defvar *test-avl-1*)
+(defvar *test-avl-2*)
+
+
+(defun make-test-vars (list1 list2)
+  (setq *test-list-1*  list1
+        *test-list-2*  list2
+        *test-sort-1* (remove-duplicates (sort (copy-list list1) #'<))
+        *test-sort-2* (remove-duplicates (sort (copy-list list2) #'<))
+        *test-avl-1* (fold (avl-tree-builder #'-) nil list1)
+        *test-avl-2* (fold (avl-tree-builder #'-) nil list2)))
+
+
+(lisp-unit:define-test array
+  ;; remove
+  (let ((v (vector 1 2 3 4 5)))
+    (lisp-unit:assert-equalp (vector 1 2 4 5)
+                             (array-tree-remove v 3 #'-))
+    (lisp-unit:assert-equalp (vector 2 3 4 5)
+                             (array-tree-remove v 1 #'-))
+    (lisp-unit:assert-equalp (vector 1 2 3 4)
+                             (array-tree-remove v 5 #'-)))
+  (let ((v (vector 1 2 3 4)))
+    (lisp-unit:assert-equalp (vector 2 3 4 )
+                             (array-tree-remove v 1 #'-))
+    (lisp-unit:assert-equalp (vector 1 3 4)
+                             (array-tree-remove v 2 #'-))
+    (lisp-unit:assert-equalp (vector 1 2 4)
+                             (array-tree-remove v 3 #'-))
+    (lisp-unit:assert-equalp (vector 1 2 3)
+                             (array-tree-remove v 4 #'-)))
+
+  ;; insert
+  (dotimes (i 1000)
+    (let* ((list (loop for i below (random 100) collect (random 100)))
+           (sort (remove-duplicates (sort (copy-list list) #'<)))
+           (array (fold (array-tree-builder #'-) (vector) list)))
+      (lisp-unit:assert-equal (map 'list #'identity array)
+                              sort)))
+
+  ;; split
+  (multiple-value-bind (l p r)
+      (array-tree-split (vector 1 2 4 5) 3 #'-)
+    (lisp-unit:assert-equalp (vector 1 2) l)
+    (lisp-unit:assert-equalp (vector 4 5) r)
+    (lisp-unit:assert-false p)
+  )
+
+  (multiple-value-bind (l p r)
+      (array-tree-split (vector 1 2 4 5) 4 #'-)
+    (lisp-unit:assert-equalp (vector 1 2) l)
+    (lisp-unit:assert-equalp (vector 5) r)
+    (lisp-unit:assert-true p))
+
+  (multiple-value-bind (l p r)
+      (array-tree-split (vector 94 96 97 99 111) 101 #'-)
+    (lisp-unit:assert-equalp (vector 94 96 97 99) l)
+    (lisp-unit:assert-equalp (vector 111) r)
+    (lisp-unit:assert-false p))
+
+
+  )
+
+
+
 (lisp-unit:define-test tree
 
   ;; equal
@@ -94,87 +163,81 @@
         (lisp-unit:assert-equalp bal bal-left-left))))
 
   (dotimes (i 100)
-    (labels ((avl-tree-list (tree)
-               (map-binary-tree :inorder 'list #'identity tree)))
-      (let* ((list-1 (loop for i below 50 collect (random 100)))
-             (list-2 (loop for i below 100 collect (+ 110 (random 100))))
-             (sort-1 (remove-duplicates (sort (copy-list list-1) #'<)))
-             (sort-2 (remove-duplicates (sort (copy-list list-2) #'<)))
-             (avl-tree-1 (fold (lambda (a x) (avl-tree-insert a x #'-))
-                               (make-avl-tree nil (car list-1) nil) (cdr list-1)))
-             (avl-tree-2 (fold (lambda (a x) (avl-tree-insert a x #'-))
-                               (make-avl-tree nil (car list-2) nil) (cdr list-2)))
-             (avl-tree-12 (fold (lambda (a x) (avl-tree-insert a x #'-)) avl-tree-1 list-2))
-             (avl-tree-cat (avl-tree-concatenate avl-tree-1 avl-tree-2)))
+    (let* ((list-1 (loop for i below 50 collect (random 100)))
+           (list-2 (loop for i below 100 collect (+ 110 (random 100))))
+           (sort-1 (remove-duplicates (sort (copy-list list-1) #'<)))
+           (sort-2 (remove-duplicates (sort (copy-list list-2) #'<)))
+           (avl-tree-1 (fold (avl-tree-builder #'-) nil list-1))
+           (avl-tree-2 (fold (avl-tree-builder #'-) nil list-2))
+           (avl-tree-12 (fold (lambda (a x) (avl-tree-insert a x #'-)) avl-tree-1 list-2))
+           (avl-tree-cat (avl-tree-concatenate avl-tree-1 avl-tree-2 #'-)))
+      (make-test-vars list-1 list-2)
+      ;; construction
+      (lisp-unit:assert-equal sort-1 (avl-tree-list avl-tree-1))
+      (lisp-unit:assert-equal sort-2 (avl-tree-list avl-tree-2))
 
-        ;; construction
-        (lisp-unit:assert-equal (avl-tree-list avl-tree-1) sort-1)
-        (lisp-unit:assert-equal (avl-tree-list avl-tree-2) sort-2)
+      ;; concatenate
+      (lisp-unit:assert-equal (avl-tree-list avl-tree-cat)
+                              (append sort-1 sort-2))
+      (lisp-unit:assert-equal (avl-tree-list avl-tree-cat)
+                              (avl-tree-list avl-tree-12))
 
-        ;; concatenate
-        (lisp-unit:assert-equal (avl-tree-list avl-tree-cat)
-                                (append sort-1 sort-2))
-        (lisp-unit:assert-equal (avl-tree-list avl-tree-cat)
-                                (avl-tree-list avl-tree-12))
+      ;; equal
+      (lisp-unit:assert-true (binary-tree-equal avl-tree-cat avl-tree-12 #'-))
 
-        ;; equal
-        (lisp-unit:assert-true (binary-tree-equal avl-tree-cat avl-tree-12 #'-))
+      (lisp-unit:assert-true (not (binary-tree-equal avl-tree-1 avl-tree-2 #'-)))
 
-        (lisp-unit:assert-true (not (binary-tree-equal avl-tree-1 avl-tree-2 #'-)))
+      ;; subset
+      (lisp-unit:assert-true (avl-tree-subset avl-tree-1 avl-tree-12 #'-))
+      (lisp-unit:assert-true (avl-tree-subset avl-tree-2 avl-tree-12 #'-))
+      (lisp-unit:assert-true (avl-tree-subset avl-tree-cat avl-tree-12 #'-))
 
-        ;; subset
-        (lisp-unit:assert-true (binary-tree-subset avl-tree-1 avl-tree-12 #'-))
-        (lisp-unit:assert-true (binary-tree-subset avl-tree-2 avl-tree-12 #'-))
-        (lisp-unit:assert-true (binary-tree-subset avl-tree-cat avl-tree-12 #'-))
+      (lisp-unit:assert-true (not (avl-tree-subset avl-tree-12 avl-tree-1 #'-)))
+      (lisp-unit:assert-true (not (avl-tree-subset avl-tree-12 avl-tree-2 #'-)))
 
-        (lisp-unit:assert-true (not (binary-tree-subset avl-tree-12 avl-tree-1 #'-)))
-        (lisp-unit:assert-true (not (binary-tree-subset avl-tree-12 avl-tree-2 #'-)))
+      ;; min
+      (lisp-unit:assert-equal (car sort-1)
+                              (binary-tree-min avl-tree-1))
+      (lisp-unit:assert-equal (car sort-2)
+                              (binary-tree-min avl-tree-2))
 
-        ;; min
-        (lisp-unit:assert-equal (binary-tree-min avl-tree-1)
-                                (car sort-1))
-        (lisp-unit:assert-equal (binary-tree-min avl-tree-2)
-                                (car sort-2))
+      ;; remove-min
+      (multiple-value-bind (tree x) (avl-tree-remove-min avl-tree-1)
+        (lisp-unit:assert-equal (cdr sort-1) (avl-tree-list tree))
+        (lisp-unit:assert-equal (car sort-1) x))
 
-        ;; remove-min
-        (multiple-value-bind (x tree) (avl-tree-remove-min avl-tree-1)
-          (lisp-unit:assert-equal (avl-tree-list tree)
-                                  (cdr sort-1))
-          (lisp-unit:assert-equal x (car sort-1)))
+      (multiple-value-bind (tree x)  (avl-tree-remove-min avl-tree-2)
+        (lisp-unit:assert-equal (cdr sort-2) (avl-tree-list tree))
+        (lisp-unit:assert-equal (car sort-2) x))
 
-        (multiple-value-bind (x tree)  (avl-tree-remove-min avl-tree-2)
-          (lisp-unit:assert-equal (avl-tree-list tree)
-                                  (cdr sort-2))
-          (lisp-unit:assert-equal x (car sort-2)))
+      ;; remove-max
+      (multiple-value-bind (tree x) (avl-tree-remove-max avl-tree-1)
+        (lisp-unit:assert-equal (avl-tree-list tree)
+                                (subseq sort-1 0 (1- (length sort-1))))
+        (lisp-unit:assert-equal x (car (last sort-1))))
 
-        ;; remove-max
-        (multiple-value-bind (x tree) (avl-tree-remove-max avl-tree-1)
-          (lisp-unit:assert-equal (avl-tree-list tree)
-                                  (subseq sort-1 0 (1- (length sort-1))))
-          (lisp-unit:assert-equal x (car (last sort-1))))
+      (multiple-value-bind (tree x) (avl-tree-remove-max avl-tree-2)
+        (lisp-unit:assert-equal (avl-tree-list tree)
+                                (subseq sort-2 0 (1- (length sort-2))))
+        (lisp-unit:assert-equal x (car (last sort-2))))
 
-        (multiple-value-bind (x tree) (avl-tree-remove-max avl-tree-2)
-          (lisp-unit:assert-equal (avl-tree-list tree)
-                                  (subseq sort-2 0 (1- (length sort-2))))
-          (lisp-unit:assert-equal x (car (last sort-2))))
-
-        ;; remove
-        (let ((list (append sort-1 sort-2)))
-          (dotimes (i 10)
-            (let ((i (random (length list))))
-              (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove avl-tree-cat (elt list i) #'-))
-                                      (append (subseq list 0 i)
-                                              (subseq list (1+ i)))))))
+      ;; remove
+      (let ((list (append sort-1 sort-2)))
+        (dotimes (i 10)
+          (let ((i (random (length list))))
+            (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove avl-tree-cat (elt list i) #'-))
+                                    (append (subseq list 0 i)
+                                            (subseq list (1+ i)))))))
 
 
-        ;; split
-        (multiple-value-bind (left present right)
-            (avl-tree-split avl-tree-12 101 #'-)
-          (lisp-unit:assert-equal (avl-tree-list left) sort-1)
-          (lisp-unit:assert-equal (avl-tree-list right) sort-2)
-          (lisp-unit:assert-false present)
-          )
-        )))
+      ;; split
+      (multiple-value-bind (left present right)
+          (avl-tree-split avl-tree-12 101 #'-)
+        (lisp-unit:assert-equal sort-1 (avl-tree-list left))
+        (lisp-unit:assert-equal sort-2 (avl-tree-list right))
+        (lisp-unit:assert-false present)
+        )
+      ))
 
 
   (dotimes (i 100)
@@ -215,18 +278,18 @@
   )
 
 
-(lisp-unit:define-test t-tree
-  (dotimes (i 20)
-    (let* ((list-1 (loop for i below 1000 collect (random 100000)))
-           (list-2 (loop for i below 1000 collect (random 1000000)))
-           (s-1 (remove-duplicates (sort (copy-list list-1) #'<)))
-           (s-2 (remove-duplicates (sort (copy-list list-2) #'<)))
-           (t-1 (fold (lambda (a x) (t-tree-insert a x #'-)) nil list-1))
-           (t-2 (fold (lambda (a x) (t-tree-insert a x #'-)) nil list-2)))
-      (lisp-unit:assert-equalp s-1
-                               (map-t-tree 'list #'identity t-1))
-      (lisp-unit:assert-equalp s-2
-                               (map-t-tree 'list #'identity t-2)))))
+;; (lisp-unit:define-test t-tree
+;;   (dotimes (i 20)
+;;     (let* ((list-1 (loop for i below 1000 collect (random 100000)))
+;;            (list-2 (loop for i below 1000 collect (random 1000000)))
+;;            (s-1 (remove-duplicates (sort (copy-list list-1) #'<)))
+;;            (s-2 (remove-duplicates (sort (copy-list list-2) #'<)))
+;;            (t-1 (fold (lambda (a x) (t-tree-insert a x #'-)) nil list-1))
+;;            (t-2 (fold (lambda (a x) (t-tree-insert a x #'-)) nil list-2)))
+;;       (lisp-unit:assert-equalp s-1
+;;                                (map-t-tree 'list #'identity t-1))
+;;       (lisp-unit:assert-equalp s-2
+;;                                (map-t-tree 'list #'identity t-2)))))
 
 
 (lisp-unit:define-test heap
@@ -251,13 +314,13 @@
         (lisp-unit:assert-equalp (car (last s-1)) (tree-heap-find-max t-1))
 
         ;; remove min
-        (multiple-value-bind (value tree) (tree-heap-remove-min t-1)
+        (multiple-value-bind (tree value) (tree-heap-remove-min t-1)
           (lisp-unit:assert-equalp (cdr s-1)
                                    (heap-list tree))
           (lisp-unit:assert-equalp (car s-1) value))
 
         ;; remove max
-        (multiple-value-bind (value tree) (tree-heap-remove-max t-1)
+        (multiple-value-bind (tree value) (tree-heap-remove-max t-1)
           (lisp-unit:assert-equalp (subseq s-1 0 (1- (length s-1)))
                                    (heap-list tree))
           (lisp-unit:assert-equalp (car (last s-1)) value))

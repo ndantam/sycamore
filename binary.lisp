@@ -51,12 +51,18 @@
   value
   right)
 
+
 (defun map-binary-tree-inorder (function tree)
   (declare (type function function))
-  (when tree
-    (map-binary-tree-inorder function (binary-tree-left tree))
-    (funcall function (binary-tree-value tree))
-    (map-binary-tree-inorder function (binary-tree-right tree))))
+  (etypecase tree
+    (binary-tree
+     (map-binary-tree-inorder function (binary-tree-left tree))
+     (funcall function (binary-tree-value tree))
+     (map-binary-tree-inorder function (binary-tree-right tree)))
+    (simple-vector
+     (dotimes (i (length tree))
+       (funcall function (aref tree i))))
+    (null nil)))
 
 (defun map-binary-tree-preorder (function tree)
   (declare (type function function))
@@ -111,11 +117,16 @@ RESULT-TYPE: (or 'list nil)"
   (declare (type function compare))
   "Return the node of TREE containing VALUE or NIL of not present."
   (labels ((rec (tree)
-             (when tree
-               (let ((c (funcall compare value (binary-tree-value tree))))
-                 (cond ((< c 0) (rec (binary-tree-left tree)))
-                       ((> c 0) (rec (binary-tree-right tree)))
-                       (t tree))))))
+             (etypecase tree
+               (binary-tree
+                (let ((c (funcall compare value (binary-tree-value tree))))
+                  (cond ((< c 0) (rec (binary-tree-left tree)))
+                        ((> c 0) (rec (binary-tree-right tree)))
+                       (t tree))))
+               (simple-vector
+                (when (array-tree-position tree value compare)
+                  tree))
+               (null nil))))
     (rec tree)))
 
 ;; (do* ((c 1 (funcall compare value (binary-tree-value tree-1)))
@@ -198,15 +209,17 @@ LANG: language output for dot, (or pdf ps eps png)"
                 (let ((i -1))
                   (labels ((helper (parent tree)
                              (let ((x (incf i)))
-                               (format s "~&  ~A[label=\"~A\"~:[shape=none~;~]];~&"
-                                       x (if tree
-                                             (binary-tree-value tree)
-                                             nil)
-                                       tree)
+                               (etypecase tree
+                                 (binary-tree (format s "~&  ~A[label=\"~A\"];~&"
+                                               x (binary-tree-value tree)))
+                                 (null (format s "~&  ~A[label=\"nil\" shape=none];~&" x))
+                                 (simple-vector
+                                  (format s "~&  ~A[label=\"~{~A~^, ~}\",shape=box];~&"
+                                          x (loop for k across tree collect k))))
                                (when parent
                                  (format s "~&  ~A -> ~A;~&"
                                          parent x))
-                               (when tree
+                               (when (binary-tree-p tree)
                                  (helper x (binary-tree-left tree))
                                  (helper x (binary-tree-right tree))))))
                     (format s "~&digraph {  ~&")
@@ -215,13 +228,20 @@ LANG: language output for dot, (or pdf ps eps png)"
 
 (defun binary-tree-min (tree)
   "Return minimum (leftmost) value of TREE."
-  (do ((tree tree (binary-tree-left tree)))
-      ((null (binary-tree-left tree)) (binary-tree-value tree))))
+  (etypecase tree
+    (binary-tree
+     (binary-tree-min (binary-tree-left tree)))
+    (simple-vector (svref tree 0))
+    (null nil)))
 
 (defun binary-tree-max (tree)
   "Return maximum (rightmost) value of TREE."
-  (do ((tree tree (binary-tree-right tree)))
-      ((null (binary-tree-right tree)) (binary-tree-value tree))))
+  (etypecase tree
+    (binary-tree
+     (binary-tree-max (binary-tree-right tree)))
+    (simple-vector (svref tree (1- (length tree))))
+    (null nil)))
+
 
 (defun binary-tree-count (tree)
   "Number of elements in TREE."
@@ -231,53 +251,38 @@ LANG: language output for dot, (or pdf ps eps png)"
          (binary-tree-count (binary-tree-right tree)))
       0))
 
-(defun binary-tree-subset (tree-1 tree-2 compare)
-  (declare (type function compare))
-  (labels ((rec (tree-1 tree-2)
-             (cond
-               ((null tree-1) t)
-               ((null tree-2) nil)
-               (t
-                (let ((c (funcall compare (binary-tree-value tree-1) (binary-tree-value tree-2))))
-                  (declare (type fixnum c))
-                  (cond
-                    ((< c 0) ; v1 < v2
-                     (and (rec (make-binary-tree (binary-tree-left tree-1)
-                                                 (binary-tree-value tree-1)
-                                                 nil)
-                               (binary-tree-left tree-2))
-                          (rec (binary-tree-right tree-1)
-                               tree-2)))
-                    ((> c 0) ; v1 > v2
-                     (and (rec (make-binary-tree nil
-                                                 (binary-tree-value tree-1)
-                                                 (binary-tree-right tree-1))
-                               (binary-tree-right tree-2))
-                          (rec (binary-tree-left tree-1)
-                               tree-2)))
-                    (t (and (rec (binary-tree-left tree-1)
-                                 (binary-tree-left tree-2))
-                            (rec (binary-tree-right tree-1)
-                                 (binary-tree-right tree-2))))))))))
-    (rec tree-1 tree-2)))
-
-
 
 (defun binary-tree-equal (tree-1 tree-2 compare)
   (declare (type function compare))
   ;; O(log(n)) space, O(min(m,n)) time
-  (let ((stack))
+  (let ((stack)
+        (i 0))
     (labels ((push-left (k)
-               (do ((x k (binary-tree-left x)))
-                   ((null x))
-                 (push x stack))))
+               (etypecase k
+                 (binary-tree
+                  (push k stack)
+                  (push-left (binary-tree-left k)))
+                 (simple-vector
+                  (push k stack))
+                 (null)))
+             (pop-val ()
+               (etypecase (car stack)
+                 (binary-tree
+                  (let ((tree (pop stack)))
+                    (push-left (binary-tree-right tree))
+                    (binary-tree-value tree)))
+                 (simple-vector
+                  (prog1 (aref (car stack) i)
+                    (incf i)
+                    (when (>= i (length (car stack)))
+                      (setq i 0)
+                      (pop stack)))))))
       (push-left tree-1)
-      (map-binary-tree-inorder (lambda (x)
-                                 (if (or (null stack)
-                                         (not (zerop (funcall compare x (binary-tree-value (car stack))))))
-                                     (return-from binary-tree-equal
-                                       nil)
-                                     (push-left (binary-tree-right (pop stack)))))
+      (map-binary-tree-inorder (lambda (y)
+                                 (when (or (null stack)
+                                           (not (zerop (funcall compare y (pop-val)))))
+                                   (return-from binary-tree-equal
+                                     nil)))
                                tree-2))
     (not stack)))
 

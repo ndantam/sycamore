@@ -137,9 +137,9 @@ FUNCTION: (lambda (key value))"
                      (tree-set-compare set-1)))
 
 (defun tree-set-subset (set-1 set-2)
-  (binary-tree-subset (tree-set-root set-1)
-                      (tree-set-root set-2)
-                      (tree-set-compare set-1)))
+  (avl-tree-subset (tree-set-root set-1)
+                  (tree-set-root set-2)
+                  (tree-set-compare set-1)))
 
 
 
@@ -180,9 +180,9 @@ FUNCTION: (lambda (key value))"
   (cdr (binary-tree-max (tree-heap-root heap))))
 
 (defun tree-heap-remove-min (heap)
-  (multiple-value-bind (value root) (avl-tree-remove-min (tree-heap-root heap))
-    (values (cdr value) (new-tree-heap heap root))))
+  (multiple-value-bind (root value) (avl-tree-remove-min (tree-heap-root heap))
+    (values (new-tree-heap heap root) (cdr value))))
 
 (defun tree-heap-remove-max (heap)
-  (multiple-value-bind (value root) (avl-tree-remove-max (tree-heap-root heap))
-    (values (cdr value) (new-tree-heap heap root))))
+  (multiple-value-bind (root value ) (avl-tree-remove-max (tree-heap-root heap))
+    (values (new-tree-heap heap root) (cdr value))))

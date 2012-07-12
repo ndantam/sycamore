@@ -106,6 +106,21 @@
         (array-tree-set vector value position)
         (array-tree-insert-at vector value position))))
 
+(defun array-tree-builder (compare)
+  (lambda (array value)
+    (array-tree-insert array value compare)))
+
+(defun array-tree-remove (vector value compare)
+  (let ((i (array-tree-position vector value compare)))
+    (if i
+        (let ((new-vector (make-array (1- (length vector)))))
+          (when (> i 0)
+            (replace new-vector vector :start2 0 :end2 i))
+          (when (< i (1- (length vector)))
+            (replace new-vector vector :start1 i :start2 (1+ i)))
+          new-vector)
+        vector)))
+
 (defun array-tree-count-unique (vector-1 vector-2 compare)
   (declare (type simple-vector vector-1 vector-2)
            (type function compare))
@@ -125,6 +140,35 @@
                     ((> c 0) (rec  i (1+ j) (1+ count)))
                     (t (rec (1+ i) (1+ j) count))))))))
     (rec 0 0 0)))
+
+
+(defun array-tree-split (tree x compare)
+  (let ((n (length tree)))
+    (multiple-value-bind (position present) (array-tree-insert-position tree x compare)
+      (values (when (> position 0) (subseq tree 0 position))
+              present
+              (when (< position n)
+                (subseq tree (if present
+                                 (1+ position)
+                                 position)))))))
+
+(defun array-tree-intersection (tree1 tree2 compare)
+  (let ((array (make-array 0 :adjustable t :fill-pointer t)))
+    (labels ((rec (i j)
+               (when (and (< i (length tree1))
+                          (< j (length tree2)))
+                 (let ((c (funcall compare (aref tree1 i) (aref tree2 j))))
+                   (cond ((< c 0)
+                          (rec (1+ i) j))
+                         ((> c 0)
+                          (rec i (1+ j)))
+                         (t
+                          (vector-push-extend (aref tree1 i) array)
+                          (rec (1+ i) (1+ j))))))))
+      (rec 0 0)
+      ;; make it a simple array
+      (replace (make-array (length array)) array))))
+
 
 
 ;; (defun array-tree-insert-split (array value compare)
