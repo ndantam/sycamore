@@ -110,15 +110,24 @@
   (lambda (array value)
     (array-tree-insert array value compare)))
 
+(defun array-tree-remove-position (vector i)
+  "Remove I'th element of VECTOR."
+  (let ((n (length vector)))
+    (if (and (= n 1) (= i 0))
+        nil
+        (let* ((n1 (1- n))
+               (new-array (make-array n1)))
+          (when (> i 0)
+            (replace new-array vector :end1 i))
+          (when (< i n1)
+            (replace new-array vector :start1 i :start2 (1+ i)))
+          new-array))))
+
 (defun array-tree-remove (vector value compare)
+  "Remove VALUE from VECTOR."
   (let ((i (array-tree-position vector value compare)))
     (if i
-        (let ((new-vector (make-array (1- (length vector)))))
-          (when (> i 0)
-            (replace new-vector vector :start2 0 :end2 i))
-          (when (< i (1- (length vector)))
-            (replace new-vector vector :start1 i :start2 (1+ i)))
-          new-vector)
+        (array-tree-remove-position vector i)
         vector)))
 
 (defun array-tree-count-unique (vector-1 vector-2 compare)

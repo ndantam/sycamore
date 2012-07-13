@@ -498,6 +498,20 @@
                      (avl-tree-remove (avl-tree-right tree) x compare))))
 
 
+(defun avl-tree-remove-position (tree i compare)
+  "Remove I'th element of TREE and return (values new-tree element)."
+  (etypecase tree
+    (simple-vector (values (array-tree-remove-position tree i) (aref tree i)))
+    (avl-tree
+     (with-avl-tree (l v r) tree
+       (let ((w-l (avl-tree-count l)))
+         (cond
+           ((< i w-l) (balance-avl-tree (avl-tree-remove-position l i compare )
+                                        v r))
+           ((> i w-l) (balance-avl-tree l v
+                                        (avl-tree-remove-position r (- i w-l 1) compare )))
+           (t (avl-tree-concatenate l r compare))))))))
+
 
 (defun avl-tree-trim (tree lo hi compare)
   "Return subtree rooted between `lo' and `hi'."
