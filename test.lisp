@@ -61,6 +61,12 @@
         *test-avl-2* (fold (avl-tree-builder #'-) nil list2)))
 
 
+(defun test-list (count &optional (max 100))
+  (loop for i below count collect (random max)))
+
+(defun test-avl (count &optional (max 100))
+  (fold (avl-tree-builder #'-) nil (test-list count max)))
+
 (lisp-unit:define-test array
   ;; remove
   (let ((v (vector 1 2 3 4 5)))

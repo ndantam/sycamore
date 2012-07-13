@@ -141,16 +141,20 @@
                     (t (rec (1+ i) (1+ j) count))))))))
     (rec 0 0 0)))
 
+(defun array-tree-split-at (tree position)
+  (values (when (> position 0) (subseq tree 0 position))
+          (aref tree position)
+          (when (< position (1- (length tree)))
+            (subseq tree (1+ position)))))
 
 (defun array-tree-split (tree x compare)
   (let ((n (length tree)))
     (multiple-value-bind (position present) (array-tree-insert-position tree x compare)
       (values (when (> position 0) (subseq tree 0 position))
               present
-              (when (< position n)
-                (subseq tree (if present
-                                 (1+ position)
-                                 position)))))))
+              (let ((i (if present (1+ position) position)))
+                (when (< i n)
+                  (subseq tree i)))))))
 
 (defun array-tree-intersection (tree1 tree2 compare)
   (let ((array (make-array 0 :adjustable t :fill-pointer t)))
@@ -167,7 +171,10 @@
                           (rec (1+ i) (1+ j))))))))
       (rec 0 0)
       ;; make it a simple array
-      (replace (make-array (length array)) array))))
+      (let ((n (length array)))
+        (if (> n 0)
+            (replace (make-array n) array)
+            nil)))))
 
 
 

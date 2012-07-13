@@ -67,15 +67,24 @@
                                  (avl-tree-count right)))
                   left value right))
 
-(defmacro with-avl-tree((left value right &optional weight) tree &body body)
+(defmacro with-avl-tree ((left value right) tree &body body)
   (alexandria:with-gensyms (tree-sym)
     `(let ((,tree-sym ,tree))
-       (let ((,left (binary-tree-left ,tree-sym))
-             (,value (binary-tree-value ,tree-sym))
-             (,right (binary-tree-right ,tree-sym))
-             ,@(when weight `(,weight (avl-tree-weight ,tree-sym))))
+       (multiple-value-bind (,left ,value ,right)
+           (etypecase ,tree-sym
+             (binary-tree (values (binary-tree-left ,tree-sym)
+                                  (binary-tree-value ,tree-sym)
+                                  (binary-tree-right ,tree-sym)))
+             (simple-vector (array-tree-split-at ,tree-sym (ash (length ,tree-sym) -1))))
          ,@body))))
 
+
+(defmacro with-avl-trees ((left1 value1 right1) tree1
+                          (left2 value2 right2) tree2
+                          &body body)
+  `(with-avl-tree (,left1 ,value1 ,right1) ,tree1
+     (with-avl-tree (,left2 ,value2 ,right2) ,tree2
+         ,@body)))
 
 (defun avl-tree-list (tree) (map-binary-tree :inorder 'list #'identity tree))
 
@@ -248,11 +257,10 @@
          (make-avl-tree (subseq tree 0 n/2)
                         (aref tree n/2)
                         (array-tree-insert-at tree value i (1+ n/2))))
-        ((= i n/2)
+        (t ;; (= i n/2)
          (make-avl-tree (subseq tree 0 n/2)
                         value
-                        (subseq tree  n/2)))
-        (t tree)))))
+                        (subseq tree  n/2)))))))
 
 
 (defun avl-tree-insert (tree value compare)
@@ -600,46 +608,61 @@
   (cond
     ((null tree-1) tree-2)
     ((null tree-2) tree-1)
+    ;; special-casing the vector gives big speedup
     ((simple-vector-p tree-1)
      (reduce (avl-tree-builder compare) tree-1 :initial-value tree-2))
     ((simple-vector-p tree-2)
      (reduce (avl-tree-builder compare) tree-2 :initial-value tree-1))
-    ((>= (avl-tree-count tree-2)
-         (avl-tree-count tree-1))
-     (multiple-value-bind (left-2 p-2 right-2) (avl-tree-split tree-2 (avl-tree-value tree-1) compare)
-       (declare (ignore p-2))
-       (join-avl-tree (avl-tree-union (binary-tree-left tree-1) left-2 compare)
-                      (avl-tree-value tree-1)
-                      (avl-tree-union (binary-tree-right tree-1) right-2 compare)
-                      compare)))
     (t
-     (multiple-value-bind (left-1 p-1 right-1) (avl-tree-split tree-1 (avl-tree-value tree-2) compare)
-       (declare (ignore p-1))
-       (join-avl-tree (avl-tree-union left-1 (binary-tree-left tree-2) compare)
-                      (avl-tree-value tree-2)
-                      (avl-tree-union right-1 (binary-tree-right tree-2) compare)
-                      compare)))))
+     (multiple-value-bind (tree-1 tree-2) ;; normalize sizes, faster to split the smaller tree
+         (if (<= (avl-tree-count tree-2)
+                 (avl-tree-count tree-1))
+             (values tree-1 tree-2)
+             (values tree-2 tree-1))
+       (with-avl-tree (l1 v1 r1) tree-1
+         (multiple-value-bind (l2 p-2 r2) (avl-tree-split tree-2 v1 compare)
+           (declare (ignore p-2))
+           (join-avl-tree (avl-tree-union l1 l2 compare)
+                          v1
+                          (avl-tree-union r1 r2 compare)
+                          compare)))))))
 
 (defun avl-tree-intersection (tree-1 tree-2 compare)
-  (cond
-    ((or (null tree-1)
-         (null tree-2))
-     nil)
-    ((simple-vector-p tree-1)
-     (if (simple-vector-p tree-2)
-         ;; base intersection
-         (array-tree-intersection tree-1 tree-2 compare)
-         ;; swap args so tree-1 is the real tree
-         (avl-tree-intersection tree-2 tree-1 compare)))
-    ;; TODO: consider reording if would improve performance
-    ;; general case
-    (t (multiple-value-bind (left-2 present right-2)
-           (avl-tree-split tree-2 (avl-tree-value tree-1) compare)
-         (let ((i-left (avl-tree-intersection (avl-tree-left tree-1) left-2 compare))
-               (i-right (avl-tree-intersection (avl-tree-right tree-1) right-2 compare)))
-           (if present
-               (join-avl-tree i-left (avl-tree-value tree-1) i-right compare)
-               (avl-tree-concatenate i-left i-right compare)))))))
+  (labels ((fold-keep (vector tree)
+             (fold (lambda (new-tree x)
+                     (if (binary-tree-member-p tree x compare)
+                         (avl-tree-insert new-tree x compare)
+                         new-tree))
+                   nil vector)))
+    (cond
+      ((or (null tree-1)
+           (null tree-2))
+       nil)
+      ;; base intersection
+      ((and (simple-vector-p tree-1)
+            (simple-vector-p tree-2))
+       (array-tree-intersection tree-1 tree-2 compare))
+      ;; keep all in tree-1 that are in tree-2
+      ((simple-vector-p tree-1)
+       (fold-keep tree-1 tree-2))
+      ;; keep all in tree-2 that are in tree-1
+      ((simple-vector-p tree-2)
+       (fold-keep tree-2 tree-1))
+      ;; general case
+      (t
+       (multiple-value-bind (tree-1 tree-2) ;; normalize sizes, faster to split the smaller tree
+           (if (<= (avl-tree-count tree-2)
+                   (avl-tree-count tree-1))
+               (values tree-1 tree-2)
+               (values tree-2 tree-1))
+         (with-avl-tree (l1 v1 r1) tree-1
+           (multiple-value-bind (l2 present r2)
+               (avl-tree-split tree-2 v1 compare)
+             (let ((l-i (avl-tree-intersection l1 l2 compare))
+                   (r-i (avl-tree-intersection r1 r2 compare)))
+               (if present
+                   (join-avl-tree l-i v1 r-i compare)
+                   (avl-tree-concatenate l-i r-i compare))))))))))
 
 (defun avl-tree-difference (tree-1 tree-2 compare)
   (declare (type function compare))
@@ -647,11 +670,11 @@
     ((null tree-1) nil)
     ((null tree-2) tree-1)
     ((simple-vector-p tree-1)
-     (reduce (lambda (tree x)
-               (if (binary-tree-member-p tree-2 x compare)
-                   tree
-                   (array-tree-insert tree x #'-)))
-              tree-1 :initial-value (vector)))
+     (fold (lambda (tree x)
+             (if (binary-tree-member-p tree-2 x compare)
+                 tree
+                 (array-tree-insert tree x compare)))
+           (vector) tree-1))
     ;; general case
     (t (multiple-value-bind (left-2 present right-2)
            (avl-tree-split tree-2 (binary-tree-value tree-1) compare)
@@ -672,36 +695,31 @@
                 nil)
                ((null tree-1) t)
                ((null tree-2) nil)
-               ((simple-vector-p tree-1)
-                (every (lambda (x) (binary-tree-member-p tree-2 x compare)) tree-1))
-               ((simple-vector-p tree-2)
-                (map-binary-tree :inorder nil
-                                 (lambda (x) (unless (array-tree-position tree-2 x compare)
-                                          (return-from rec nil)))
-                                 tree-1)
-                t)
+               ;; ((simple-vector-p tree-1)
+               ;;  (every (lambda (x) (binary-tree-member-p tree-2 x compare)) tree-1))
+               ;; ((simple-vector-p tree-2)
+               ;;  (map-binary-tree :inorder nil
+               ;;                   (lambda (x) (unless (array-tree-position tree-2 x compare)
+               ;;                            (return-from rec nil)))
+               ;;                   tree-1)
+               ;;  t)
                (t
-                (let ((c (funcall compare (binary-tree-value tree-1) (binary-tree-value tree-2))))
-                  (declare (type fixnum c))
-                  (cond
-                    ((< c 0) ; v1 < v2
-                     (and (rec (make-avl-tree (binary-tree-left tree-1)
-                                              (binary-tree-value tree-1)
-                                               nil)
-                               (binary-tree-left tree-2))
-                          (rec (binary-tree-right tree-1)
-                               tree-2)))
-                    ((> c 0) ; v1 > v2
-                     (and (rec (make-avl-tree nil
-                                              (binary-tree-value tree-1)
-                                              (binary-tree-right tree-1))
-                               (binary-tree-right tree-2))
-                          (rec (binary-tree-left tree-1)
-                               tree-2)))
-                    (t (and (rec (binary-tree-left tree-1)
-                                 (binary-tree-left tree-2))
-                            (rec (binary-tree-right tree-1)
-                                 (binary-tree-right tree-2))))))))))
+                (with-avl-trees
+                    (l1 v1 r1) tree-1
+                    (l2 v2 r2) tree-2
+                  (let ((c (funcall compare v1 v2)))
+                    (declare (type fixnum c))
+                    (cond
+                      ((< c 0) ; v1 < v2
+                       (and (rec (make-avl-tree l1 v1 nil)
+                                 l2)
+                            (rec r1 tree-2)))
+                      ((> c 0) ; v1 > v2
+                       (and (rec (make-avl-tree nil v1 r1)
+                                 r2)
+                            (rec l1 tree-2)))
+                      (t (and (rec l1 l2)
+                              (rec r1 r2))))))))))
     (rec tree-1 tree-2)))
 
 
