@@ -122,9 +122,9 @@
         vector)))
 
 (defun array-tree-count-unique (vector-1 vector-2 compare)
+  "Count number of unique elements between VECTOR-1 and VECTOR-2"
   (declare (type simple-vector vector-1 vector-2)
            (type function compare))
-  "Count number of unique elements between vector-1 and vector-2"
   (labels ((rec (i j count)
              (declare (type fixnum i j count))
              (cond
@@ -140,6 +140,18 @@
                     ((> c 0) (rec  i (1+ j) (1+ count)))
                     (t (rec (1+ i) (1+ j) count))))))))
     (rec 0 0 0)))
+
+(defmacro with-array-tree ((left value right) tree &body body)
+  (alexandria:with-gensyms (tree-sym n i)
+    `(multiple-value-bind (,left ,value ,right)
+         (let* ((,tree-sym ,tree)
+                (,n (length ,tree-sym))
+                (,i (ash (length ,tree-sym) -1)))
+           (values (when (> ,i 0) (subseq ,tree-sym 0 ,i))
+                   (aref ,tree-sym ,i)
+                   (when (< ,i (1- ,n))
+                     (subseq ,tree-sym (1+ ,i)))))
+       ,@body)))
 
 (defun array-tree-split-at (tree position)
   (values (when (> position 0) (subseq tree 0 position))

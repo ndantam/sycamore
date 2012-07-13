@@ -203,7 +203,7 @@ LANG: language output for dot, (or pdf ps eps png)"
     (t (error "Unknown output: ~A" output))))
 
 
-(defun binary-tree-dot (tree &key output)
+(defun binary-tree-dot (tree &key output (node-label-function #'binary-tree-value))
   (output-dot output
               (lambda (s)
                 (let ((i -1))
@@ -211,7 +211,7 @@ LANG: language output for dot, (or pdf ps eps png)"
                              (let ((x (incf i)))
                                (etypecase tree
                                  (binary-tree (format s "~&  ~A[label=\"~A\"];~&"
-                                               x (binary-tree-value tree)))
+                                               x (funcall node-label-function tree)))
                                  (null (format s "~&  ~A[label=\"nil\" shape=none];~&" x))
                                  (simple-vector
                                   (format s "~&  ~A[label=\"~{~A~^, ~}\",shape=box];~&"

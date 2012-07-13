@@ -67,23 +67,26 @@
                                  (avl-tree-count right)))
                   left value right))
 
-(defmacro with-avl-tree ((left value right) tree &body body)
+(defmacro with-avl-tree ((left value right &optional count) tree &body body)
   (alexandria:with-gensyms (tree-sym)
     `(let ((,tree-sym ,tree))
-       (multiple-value-bind (,left ,value ,right)
+       (multiple-value-bind (,left ,value ,right ,@(when count (list count)))
            (etypecase ,tree-sym
              (binary-tree (values (binary-tree-left ,tree-sym)
                                   (binary-tree-value ,tree-sym)
-                                  (binary-tree-right ,tree-sym)))
-             (simple-vector (array-tree-split-at ,tree-sym (ash (length ,tree-sym) -1))))
+                                  (binary-tree-right ,tree-sym)
+                                  ,@(when count `((avl-tree-weight ,tree-sym)))))
+             (simple-vector (with-array-tree (,left ,value ,right) ,tree-sym
+                              (values ,left ,value ,right
+                                      ,@(when count `((length ,tree-sym)))))))
          ,@body))))
 
 
-(defmacro with-avl-trees ((left1 value1 right1) tree1
-                          (left2 value2 right2) tree2
+(defmacro with-avl-trees ((left1 value1 right1 &optional count1) tree1
+                          (left2 value2 right2 &optional count2) tree2
                           &body body)
-  `(with-avl-tree (,left1 ,value1 ,right1) ,tree1
-     (with-avl-tree (,left2 ,value2 ,right2) ,tree2
+  `(with-avl-tree (,left1 ,value1 ,right1 ,count1) ,tree1
+     (with-avl-tree (,left2 ,value2 ,right2 ,count2) ,tree2
          ,@body)))
 
 (defun avl-tree-list (tree) (map-binary-tree :inorder 'list #'identity tree))
@@ -368,15 +371,20 @@
     ((simple-vector-p right)
      (avl-tree-insert (reduce (avl-tree-builder compare) right :initial-value left)
                       value compare))
-    ((< (avl-tree-weight left) (avl-tree-weight right))
-     (balance-avl-tree (join-avl-tree left value (binary-tree-left right) compare)
-                       (binary-tree-value right)
-                       (binary-tree-right right)))
-    ((< (avl-tree-weight right) (avl-tree-weight left))
-     (balance-avl-tree (binary-tree-left left)
-                       (binary-tree-value left)
-                       (join-avl-tree (binary-tree-right left) value right compare)))
-    (t (balance-avl-tree left value right))))
+    (t
+     (with-avl-trees
+         (l1 v1 r1 c1) left
+         (l2 v2 r2 c2) right
+       (cond
+         ((> c2 (ash c1 +avl-tree-rebalance-log+))
+          (balance-avl-tree (join-avl-tree left value l2 compare)
+                            v2
+                            r2))
+         ((> c1 (ash c2 +avl-tree-rebalance-log+))
+          (balance-avl-tree l1
+                            v1
+                            (join-avl-tree r1 value right compare)))
+         (t (balance-avl-tree left value right)))))))
 
 ;; (defun avl-tree-concatenate (tree-1 tree-2)
 ;;   "Concatenate TREE-1 and TREE-2."
@@ -723,24 +731,11 @@
     (rec tree-1 tree-2)))
 
 
+
 (defun avl-tree-dot (tree &key output)
-  (output-dot output
-              (lambda (s)
-                (let ((i -1))
-                  (labels ((helper (parent tree)
-                             (let ((x (incf i)))
-                               (format s "~&  ~A[label=\"~A (~D)\"~:[shape=none~;~]];~&"
-                                       x (if tree
-                                             (binary-tree-value tree)
-                                             "")
-                                       (avl-tree-count tree)
-                                       tree)
-                               (when parent
-                                 (format s "~&  ~A -> ~A;~&"
-                                         parent x))
-                               (when tree
-                                 (helper x (binary-tree-left tree))
-                                 (helper x (binary-tree-right tree))))))
-                    (format s "~&digraph {  ~&")
-                    (helper nil tree)
-                    (format s "~&}~&"))))))
+  (binary-tree-dot tree
+                   :output output
+                   :node-label-function (lambda (node)
+                                          (format nil "~A (~D)"
+                                                  (binary-tree-value node)
+                                                  (avl-tree-weight node)))))
