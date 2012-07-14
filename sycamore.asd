@@ -46,7 +46,7 @@
                (:file "util" :depends-on ("package"))
                (:file "array" :depends-on ("util"))
                (:file "binary" :depends-on ("util"))
-               (:file "avl" :depends-on ("binary"))
+               (:file "avl" :depends-on ("binary" "array"))
                ;;(:file "ttree" :depends-on ("avl"))
                (:file "interfaces" :depends-on ("avl"))
                ))

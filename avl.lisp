@@ -68,7 +68,7 @@
                   left value right))
 
 (defmacro with-avl-tree ((left value right &optional count) tree &body body)
-  (alexandria:with-gensyms (tree-sym)
+  (alexandria:with-gensyms (tree-sym l-sym v-sym r-sym)
     `(let ((,tree-sym ,tree))
        (multiple-value-bind (,left ,value ,right ,@(when count (list count)))
            (etypecase ,tree-sym
@@ -76,8 +76,8 @@
                                   (binary-tree-value ,tree-sym)
                                   (binary-tree-right ,tree-sym)
                                   ,@(when count `((avl-tree-weight ,tree-sym)))))
-             (simple-vector (with-array-tree (,left ,value ,right) ,tree-sym
-                              (values ,left ,value ,right
+             (simple-vector (with-array-tree (,l-sym ,v-sym ,r-sym) ,tree-sym
+                              (values ,l-sym ,v-sym ,r-sym
                                       ,@(when count `((length ,tree-sym)))))))
          ,@body))))
 
