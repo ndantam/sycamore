@@ -131,12 +131,12 @@ FUNCTION: (lambda (key value))"
 (def-tree-set-binop tree-set-intersection avl-tree-intersection)
 (def-tree-set-binop tree-set-difference avl-tree-difference)
 
-(defun tree-set-equal (set-1 set-2)
+(defun tree-set-equal-p (set-1 set-2)
   (binary-tree-equal (tree-set-root set-1)
                      (tree-set-root set-2)
                      (tree-set-compare set-1)))
 
-(defun tree-set-subset (set-1 set-2)
+(defun tree-set-subset-p (set-1 set-2)
   (avl-tree-subset (tree-set-root set-1)
                   (tree-set-root set-2)
                   (tree-set-compare set-1)))

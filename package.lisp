@@ -37,4 +37,7 @@
 
 (defpackage :sycamore
   (:use :cl)
-  (:export))
+  (:export make-tree-set tree-set map-tree-set
+           tree-set-insert tree-set-remove
+           tree-set-union tree-set-intersection tree-set-difference
+           tree-set-member-p tree-set-equal-p tree-set-subset-p))

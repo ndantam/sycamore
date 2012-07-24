@@ -281,13 +281,13 @@
                               (map-tree-set 'list #'identity (fold #'tree-set-remove set-1 list-2)))
 
       ;; subset
-      (lisp-unit::assert-true (tree-set-subset set-1 (tree-set-union set-1 set-2)))
-      (lisp-unit::assert-true (tree-set-subset set-2 (tree-set-union set-1 set-2)))
+      (lisp-unit::assert-true (tree-set-subset-p set-1 (tree-set-union set-1 set-2)))
+      (lisp-unit::assert-true (tree-set-subset-p set-2 (tree-set-union set-1 set-2)))
 
       (lisp-unit::assert-true (or (subsetp list-1 list-2)
-                                  (not (tree-set-subset set-1 set-2))))
+                                  (not (tree-set-subset-p set-1 set-2))))
       (lisp-unit::assert-true (or (subsetp list-2 list-1)
-                                  (not (tree-set-subset set-2 set-1))))
+                                  (not (tree-set-subset-p set-2 set-1))))
       ))
   )
 
