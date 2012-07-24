@@ -37,10 +37,13 @@
 
 (in-package :sycamore)
 
-(defun fold (function initial-value &rest lists)
-  (let ((value initial-value))
-    (apply #'map nil
-           (lambda (&rest args)
-             (setq value (apply function value args)))
-           lists)
-    value))
+;; (defun fold (function initial-value &rest lists)
+;;   (let ((value initial-value))
+;;     (apply #'map nil
+;;            (lambda (&rest args)
+;;              (setq value (apply function value args)))
+;;            lists)
+;;     value))
+
+(defun fold (function initial-value sequence)
+  (reduce function sequence :initial-value initial-value))

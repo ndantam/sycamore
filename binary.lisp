@@ -111,7 +111,8 @@ RESULT-TYPE: (or 'list nil)"
   (let ((v initial-value))
     (map-binary-tree-nil order
                          (lambda (x) (setq v (funcall function v x)))
-                         tree)))
+                         tree)
+    v))
 
 (defun binary-tree-search-node (tree value compare)
   (declare (type function compare))
@@ -263,7 +264,7 @@ LANG: language output for dot, (or pdf ps eps png)"
                   (push k stack)
                   (push-left (binary-tree-left k)))
                  (simple-vector
-                  (push k stack))
+                  (when (< 0 (length k)) (push k stack)))
                  (null)))
              (pop-val ()
                (etypecase (car stack)
