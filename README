@@ -1,0 +1,14 @@
+************
+* SYCAMORE *
+************
+
+A Common Lisp functional tree structure libary.
+
+
+- Functional weight-balanced binary tree implementation.  Leaf nodes
+  are simple-vectors, greatly reducing tree height.
+
+- Interfaces for Sets, Heaps, and Maps (dictionaries).
+
+
+http://en.wikipedia.org/wiki/Platanus_occidentalis
