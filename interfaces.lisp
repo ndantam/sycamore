@@ -104,8 +104,14 @@ FUNCTION: (lambda (key value))"
                         nil
                         args)))
 
+(defun tree-set-count (set)
+  (avl-tree-count (tree-set-root set)))
+
 (defun map-tree-set (result-type function set)
   (map-binary-tree :inorder result-type function (tree-set-root set)))
+
+(defun fold-tree-set (function initial-value set)
+  (fold-binary-tree :inorder function initial-value (tree-set-root set)))
 
 (defmacro def-tree-set-item-op (name implementation-name)
   `(defun ,name (set item)
