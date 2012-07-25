@@ -37,7 +37,6 @@
 
 (in-package :sycamore)
 
-
 ;;;;;;;;;;;;
 ;; Arrays ;;
 ;;;;;;;;;;;
@@ -58,6 +57,7 @@
           (t i)))))
 
 (defun array-tree-search (vector value compare &optional (start 0) (end (length vector)))
+  (declare (type simple-vector vector))
   (let ((i (array-tree-position vector value compare start end)))
     (if i
         (values (aref vector i) t)
@@ -112,6 +112,8 @@
 
 (defun array-tree-remove-position (vector i)
   "Remove I'th element of VECTOR."
+  (declare (type simple-vector vector)
+           (type fixnum i))
   (let ((n (length vector)))
     (if (and (= n 1) (= i 0))
         nil
@@ -163,14 +165,19 @@
        ,@body)))
 
 (defun array-tree-split-at (tree position)
+  (declare (type simple-vector tree)
+           (type fixnum position))
   (values (when (> position 0) (subseq tree 0 position))
           (aref tree position)
           (when (< position (1- (length tree)))
             (subseq tree (1+ position)))))
 
 (defun array-tree-split (tree x compare)
+  (declare (type simple-vector tree)
+           (type function compare))
   (let ((n (length tree)))
     (multiple-value-bind (position present) (array-tree-insert-position tree x compare)
+      (declare (type fixnum position))
       (values (when (> position 0) (subseq tree 0 position))
               present
               (let ((i (if present (1+ position) position)))
@@ -178,17 +185,21 @@
                   (subseq tree i)))))))
 
 (defun array-tree-intersection (tree1 tree2 compare)
-  (let ((array (make-array 0 :adjustable t :fill-pointer t)))
+  (declare (type simple-vector tree1 tree2)
+           (type function compare))
+  (let ((array (make-array (min (length tree1) (length tree2))
+                           :fill-pointer 0)))
     (labels ((rec (i j)
                (when (and (< i (length tree1))
                           (< j (length tree2)))
                  (let ((c (funcall compare (aref tree1 i) (aref tree2 j))))
+                   (declare (fixnum c))
                    (cond ((< c 0)
                           (rec (1+ i) j))
                          ((> c 0)
                           (rec i (1+ j)))
                          (t
-                          (vector-push-extend (aref tree1 i) array)
+                          (vector-push (aref tree1 i) array)
                           (rec (1+ i) (1+ j))))))))
       (rec 0 0)
       ;; make it a simple array
