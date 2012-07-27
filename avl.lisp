@@ -303,6 +303,8 @@
 (defun avl-tree-builder (compare)
   (lambda (tree value) (avl-tree-insert tree value compare)))
 
+(defun avl-tree (compare &rest elements)
+  (fold (avl-tree-builder compare) nil elements))
 
 ;; (defun avl-tree-remove-min (tree)
 ;;   "Insert minimum element of TREE, returning new tree."
@@ -745,6 +747,20 @@
     (rec tree-1 tree-2)))
 
 
+(defun avl-tree-compare (tree-1 tree-2 compare)
+  (declare (type function compare))
+  ;; O(log(n)) space, O(min(m,n)) time
+  (cond
+    ((and tree-1 tree-2)
+     (let ((n1 (avl-tree-count tree-1))
+           (n2 (avl-tree-count tree-2)))
+       (cond  ;; first, order by count since that's O(1)
+         ((< n1 n2) -1)
+         ((> n1 n2) 1)
+         (t (binary-tree-compare tree-1 tree-2 compare)))))
+    (tree-1 1)
+    (tree-2 -2)
+    (t 0)))
 
 (defun avl-tree-dot (tree &key output)
   (binary-tree-dot tree

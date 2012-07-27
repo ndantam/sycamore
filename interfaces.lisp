@@ -90,8 +90,8 @@ FUNCTION: (lambda (key value))"
 ;; TREE-SET ;;
 ;;;;;;;;;;;;;;;
 
-(defstruct (tree-set (:constructor %make-tree-set (compare root)))
-  compare
+(defstruct (tree-set (:constructor %make-tree-set (%compare root)))
+  %compare
   root)
 
 (defun make-tree-set (compare)
@@ -113,25 +113,26 @@ FUNCTION: (lambda (key value))"
 (defun fold-tree-set (function initial-value set)
   (fold-binary-tree :inorder function initial-value (tree-set-root set)))
 
+
 (defmacro def-tree-set-item-op (name implementation-name)
   `(defun ,name (set item)
-     (%make-tree-set (tree-set-compare set)
+     (%make-tree-set (tree-set-%compare set)
                      (,implementation-name (tree-set-root set)
                                            item
-                                           (tree-set-compare set)))))
+                                           (tree-set-%compare set)))))
 
 (def-tree-set-item-op tree-set-insert avl-tree-insert)
 (def-tree-set-item-op tree-set-remove avl-tree-remove)
 
 (defun tree-set-member-p (set item)
-  (binary-tree-member-p (tree-set-root set) item (tree-set-compare set)))
+  (binary-tree-member-p (tree-set-root set) item (tree-set-%compare set)))
 
 (defmacro def-tree-set-binop (name implementation-name)
   `(defun ,name (set-1 set-2)
-     (%make-tree-set (tree-set-compare set-1)
+     (%make-tree-set (tree-set-%compare set-1)
                      (,implementation-name (tree-set-root set-1)
                                            (tree-set-root set-2)
-                                           (tree-set-compare set-1)))))
+                                           (tree-set-%compare set-1)))))
 
 (def-tree-set-binop tree-set-union avl-tree-union)
 (def-tree-set-binop tree-set-intersection avl-tree-intersection)
@@ -140,14 +141,15 @@ FUNCTION: (lambda (key value))"
 (defun tree-set-equal-p (set-1 set-2)
   (binary-tree-equal (tree-set-root set-1)
                      (tree-set-root set-2)
-                     (tree-set-compare set-1)))
+                     (tree-set-%compare set-1)))
 
 (defun tree-set-subset-p (set-1 set-2)
   (avl-tree-subset (tree-set-root set-1)
                   (tree-set-root set-2)
-                  (tree-set-compare set-1)))
+                  (tree-set-%compare set-1)))
 
-
+(defun tree-set-compare (tree-1 tree-2)
+  (avl-tree-compare tree-1 tree-2 (tree-set-%compare tree-1)))
 
 ;;;;;;;;;;;;;;;
 ;; Tree-Heap ;;

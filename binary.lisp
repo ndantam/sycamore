@@ -253,39 +253,53 @@ LANG: language output for dot, (or pdf ps eps png)"
       0))
 
 
-(defun binary-tree-equal (tree-1 tree-2 compare)
+(defun binary-tree-compare (tree-1 tree-2 compare)
   (declare (type function compare))
   ;; O(log(n)) space, O(min(m,n)) time
-  (let ((stack)
+  ;;(declare (optimize (speed 3) (safety 0)))
+  (let ((stack (make-array 0;(ash (avl-tree-count tree-1) (- 0 +avl-tree-max-array-length+ 1))
+                           :fill-pointer 0 :adjustable t))
         (i 0))
+    (declare (type fixnum i))
     (labels ((push-left (k)
                (etypecase k
                  (binary-tree
-                  (push k stack)
+                  (vector-push-extend k stack)
                   (push-left (binary-tree-left k)))
                  (simple-vector
-                  (when (< 0 (length k)) (push k stack)))
+                  (when (< 0 (length k)) (vector-push-extend k stack )))
                  (null)))
              (pop-val ()
-               (etypecase (car stack)
-                 (binary-tree
-                  (let ((tree (pop stack)))
-                    (push-left (binary-tree-right tree))
-                    (binary-tree-value tree)))
-                 (simple-vector
-                  (prog1 (aref (car stack) i)
-                    (incf i)
-                    (when (>= i (length (car stack)))
-                      (setq i 0)
-                      (pop stack)))))))
+               (let ((val (aref stack (1- (length stack)))))
+                 (etypecase val
+                   (binary-tree
+                    (let ((tree (vector-pop stack)))
+                      (push-left (binary-tree-right tree))
+                      (binary-tree-value tree)))
+                   (simple-vector
+                    (prog1 (aref val i)
+                      (incf i)
+                      (when (>= i (length val))
+                        (setq i 0)
+                        (vector-pop stack))))))))
       (push-left tree-1)
       (map-binary-tree-inorder (lambda (y)
-                                 (when (or (null stack)
-                                           (not (zerop (funcall compare y (pop-val)))))
-                                   (return-from binary-tree-equal
-                                     nil)))
+                                 (when (zerop (length stack)) ;; tree-1 was shorter
+                                   (return-from binary-tree-compare 1))
+                                 (let ((c (funcall compare (pop-val) y)))
+                                   (unless (zerop c)
+                                     (return-from binary-tree-compare c))))
                                tree-2))
-    (not stack)))
+    (if (zerop (length stack))
+        ;; equal sizes
+        0
+        ;; tree-1 taller
+        -1)))
+
+
+(defun binary-tree-equal (tree-1 tree-2 compare)
+  (zerop (binary-tree-compare tree-1 tree-2 compare)))
+
 
 
   ;;   (labels ((collect-left (k list)

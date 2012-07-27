@@ -253,6 +253,43 @@
         )
       )))
 
+(lisp-unit:define-test avl-tree-compare
+  ;; divide and conquer
+  (lisp-unit:assert-true (= 0
+                            (avl-tree-compare (avl-tree #'- 1 3 5 7)
+                                              (avl-tree #'- 1 3 5 7) #'-)))
+  (lisp-unit:assert-true (> 0
+                            (avl-tree-compare (avl-tree #'- 1 3 5 7)
+                                              (avl-tree #'- 1 3 5 7 9) #'-)))
+  (lisp-unit:assert-true (< 0
+                            (avl-tree-compare (avl-tree #'- 1 3 5 7 9)
+                                              (avl-tree #'- 1 3 5 7) #'-)))
+
+  (lisp-unit:assert-true (< 0
+                            (avl-tree-compare (avl-tree #'- 2 3 5 7)
+                                              (avl-tree #'- 1 3 5 7) #'-)))
+  (lisp-unit:assert-true (> 0
+                            (avl-tree-compare (avl-tree #'- 1 3 5 7)
+                                              (avl-tree #'- 2 3 5 7) #'-)))
+
+  (lisp-unit:assert-true (< 0
+                            (avl-tree-compare (avl-tree #'- 1 3 5 9)
+                                              (avl-tree #'- 1 3 5 7) #'-)))
+  (lisp-unit:assert-true (> 0
+                            (avl-tree-compare (avl-tree #'- 1 3 5 7)
+                                              (avl-tree #'- 1 3 5 9) #'-)))
+  (lisp-unit:assert-true (< 0
+                            (avl-tree-compare (avl-tree #'- 1 3 6 7 9)
+                                              (avl-tree #'- 1 3 5 7 9) #'-)))
+  (lisp-unit:assert-true (> 0
+                            (avl-tree-compare (avl-tree #'- 1 3 5 7 9)
+                                              (avl-tree #'- 1 3 6 7 9) #'-)))
+
+
+  )
+
+
+
 (lisp-unit:define-test set
   (dotimes (i *test-iterations*)
     (let* ((list-1 (loop for i below (random 100) collect (random 100)))

@@ -41,4 +41,4 @@
            map-tree-set fold-tree-set tree-set-count
            tree-set-insert tree-set-remove
            tree-set-union tree-set-intersection tree-set-difference
-           tree-set-member-p tree-set-equal-p tree-set-subset-p))
+           tree-set-member-p tree-set-equal-p tree-set-subset-p tree-set-compare))
