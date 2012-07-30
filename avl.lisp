@@ -37,6 +37,8 @@
 
 (in-package :sycamore)
 
+;;(declaim (optimize (speed 3) (safety 0)))
+
 ;;;;;;;;;;;
 ;;  AVL  ;;
 ;;;;;;;;;;;
@@ -48,12 +50,14 @@
 
 (defconstant +avl-tree-max-array-length+ 8)
 (defparameter +avl-tree-rebalance-log+ 2)  ;; power two difference for rebalancing
+(declaim (type (integer 2 2) +avl-tree-rebalance-log+))
 
 (defstruct (avl-tree
              (:include binary-tree)
              (:constructor %make-avl-tree (weight left value right)))
-  (weight 0 :type fixnum))
+  (weight 0 :type (integer 0 #.most-positive-fixnum)))
 
+(declaim (ftype (function (t) (integer 0 #.most-positive-fixnum)) avl-tree-count))
 (defun avl-tree-count (tree)
   (etypecase tree
     (avl-tree (avl-tree-weight tree))
@@ -142,17 +146,19 @@
 
 
 ;; TODO: specialize this function based on adding/subtracting from left/right
-(defun balance-general-avl-tree (constructor rebalance-log left value right)
+(defun balance-general-avl-tree (constructor left value right)
   (declare (type function constructor))
   ;;(format t "~&Balance-avl-tree~&")
   (let* ((w-l (avl-tree-count left))
          (w-r (avl-tree-count right))
          (w-t (+ w-l w-r 1)))
+    (declare (type fixnum w-t))
     (cond
       ;; condense to one vector
       ((<= w-t +avl-tree-max-array-length+)
        (let ((i -1)
              (array (make-array w-t)))
+         (declare (type fixnum i))
          (labels ((gather (x) (setf (aref array (incf i)) x)))
            (map-binary-tree :inorder nil #'gather left)
            (gather value)
@@ -160,7 +166,7 @@
          array))
       ;; TODO: maybe combine two vectors
       ;; left too tall
-      ((and (> w-l (ash w-r rebalance-log))
+      ((and (> w-l (ash w-r +avl-tree-rebalance-log+))
             (avl-tree-p left))
        (if (and (> (avl-tree-count (binary-tree-right left))
                    (avl-tree-count (binary-tree-left left)))
@@ -168,7 +174,7 @@
            (right-left-avl-tree constructor left value right)
            (right-avl-tree constructor left value right)))
       ;; right too tall
-      ((and (> w-r (ash w-l rebalance-log))
+      ((and (> w-r (ash w-l +avl-tree-rebalance-log+))
             (avl-tree-p right))
        (if (and (< (avl-tree-count (binary-tree-right right))
                    (avl-tree-count (binary-tree-left right)))
@@ -180,7 +186,7 @@
        (funcall constructor left value right)))))
 
 (defun balance-avl-tree (left value right)
-  (balance-general-avl-tree #'make-avl-tree +avl-tree-rebalance-log+ left value right))
+  (balance-general-avl-tree #'make-avl-tree left value right))
 
 (defun avl-tree-smaller (tree-1 tree-2)
   "Is `tree-1' shorter than `tree-2'?"
@@ -248,8 +254,7 @@
            (n/2 (ash n -1)))
       (declare (type fixnum n n/2))
       (cond
-        (present
-         (array-tree-set tree value i))
+        (present tree)
         ((< n +avl-tree-max-array-length+)
          (array-tree-insert-at tree value i))
         ((< i n/2)
@@ -282,9 +287,60 @@
            ((> c 0)
             (balance-avl-tree l v
                               (avl-tree-insert r value compare)))
-           (t (make-avl-tree l value r))))))
+           (t tree)))))
     (simple-vector (avl-tree-insert-vector tree value compare))
     (null (vector value))))
+
+
+
+(defun avl-tree-replace-vector (tree value compare)
+  (declare (type simple-vector tree))
+  (multiple-value-bind (i present)
+      (array-tree-insert-position tree value compare)
+    (declare (type fixnum i))
+    (let* ((n (length tree))
+           (n/2 (ash n -1)))
+      (declare (type fixnum n n/2))
+      (cond
+        (present
+         (array-tree-set tree value i))
+        ((< n +avl-tree-max-array-length+)
+         (array-tree-insert-at tree value i))
+        ((< i n/2)
+         (make-avl-tree (array-tree-insert-at tree value i 0 (1- n/2))
+                        (aref tree (1- n/2))
+                        (subseq tree  n/2)))
+        ((> i n/2)
+         (make-avl-tree (subseq tree 0 n/2)
+                        (aref tree n/2)
+                        (array-tree-insert-at tree value i (1+ n/2))))
+        (t ;; (= i n/2)
+         (make-avl-tree (subseq tree 0 n/2)
+                        value
+                        (subseq tree  n/2)))))))
+
+
+(defun avl-tree-replace (tree value compare)
+  "Insert VALUE into TREE, returning new tree."
+  (declare (type function compare))
+  ;;(declare (optimize (speed 3) (safety 0)))
+  (etypecase tree
+    (avl-tree
+     (with-avl-tree (l v r) tree
+       (let ((c (funcall compare value v)))
+         (declare (type fixnum c))
+         (cond
+           ((< c 0)
+            (balance-avl-tree (avl-tree-replace l value compare)
+                              v r))
+           ((> c 0)
+            (balance-avl-tree l v
+                              (avl-tree-replace r value compare)))
+           (t (make-avl-tree l value r))))))
+    (simple-vector (avl-tree-replace-vector tree value compare))
+    (null (vector value))))
+
+
 
 ;; (defun avl-tree-insert (tree value compare)
 ;;   "Insert VALUE into TREE, returning new tree."
@@ -338,7 +394,7 @@
                      (0 (values nil nil))
                      (1 (values nil (aref tree 0)))
                      (otherwise (values (subseq tree 1) (aref tree 0)))))
-    (null nil)))
+    (null (values nil nil))))
 
 (defun avl-tree-remove-max (tree)
   "Remove maximum element of TREE, returning element and tree."
@@ -354,7 +410,7 @@
                        (-1 (values nil nil))
                        (0 (values nil (aref tree 0)))
                        (otherwise (values (subseq tree 0 n) (aref tree n))))))
-    (null nil)))
+    (null (values nil nil))))
 
 
 ;; (defun join-avl-tree (left value right compare)
@@ -455,6 +511,7 @@
     (avl-tree
      (with-avl-tree (l v r) tree
        (let ((c (funcall compare x v)))
+         (declare (fixnum c))
          (cond
            ((< c 0)
             (multiple-value-bind (left-left present right-left)
@@ -508,11 +565,13 @@
 
 (defun avl-tree-remove-position (tree i compare)
   "Remove I'th element of TREE and return (values new-tree element)."
+  (declare (type fixnum i))
   (etypecase tree
     (simple-vector (values (array-tree-remove-position tree i) (aref tree i)))
     (avl-tree
      (with-avl-tree (l v r) tree
        (let ((w-l (avl-tree-count l)))
+         (declare (type fixnum w-l))
          (cond
            ((< i w-l) (balance-avl-tree (avl-tree-remove-position l i compare )
                                         v r))

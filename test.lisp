@@ -137,7 +137,7 @@
                                               (binary-tree-from-list '(1 (0) (3 (2))))
                                               #'-))
     (lisp-unit:assert-false (binary-tree-equal a
-                                              (binary-tree-from-list '(1 nil (2 (1.5) (3))))
+                                              (binary-tree-from-list '(1 nil (3 (2) (4))))
                                               #'-))
     (lisp-unit:assert-false (binary-tree-equal a
                                               (binary-tree-from-list '(3 (2 (1 (0)))))

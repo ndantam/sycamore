@@ -103,6 +103,13 @@
   "Insert `value' in order into `original-array', nondestructive."
   (multiple-value-bind (position present) (array-tree-insert-position vector value compare)
     (if present
+        vector
+        (array-tree-insert-at vector value position))))
+
+(defun array-tree-replace (vector value compare)
+  "Insert `value' in order into `original-array', nondestructive."
+  (multiple-value-bind (position present) (array-tree-insert-position vector value compare)
+    (if present
         (array-tree-set vector value position)
         (array-tree-insert-at vector value position))))
 

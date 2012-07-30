@@ -55,9 +55,9 @@
 (defun tree-map-insert (tree-map key value)
   "Insert KEY=>VALUE into TREE-MAP, returning the new tree-map."
   (%make-tree-map (tree-map-compare tree-map)
-                  (avl-tree-insert (tree-map-root tree-map)
-                                   (cons key value)
-                                   (tree-map-compare tree-map))))
+                  (avl-tree-replace (tree-map-root tree-map)
+                                    (cons key value)
+                                    (tree-map-compare tree-map))))
 
 (defun tree-map-remove (tree-map key)
   "Insert KEY from TREE-MAP, returning the new tree-map."

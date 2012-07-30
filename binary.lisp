@@ -121,6 +121,7 @@ RESULT-TYPE: (or 'list nil)"
              (etypecase tree
                (binary-tree
                 (let ((c (funcall compare value (binary-tree-value tree))))
+                  (declare (type fixnum c))
                   (cond ((< c 0) (rec (binary-tree-left tree)))
                         ((> c 0) (rec (binary-tree-right tree)))
                        (t tree))))
@@ -287,6 +288,7 @@ LANG: language output for dot, (or pdf ps eps png)"
                                  (when (zerop (length stack)) ;; tree-1 was shorter
                                    (return-from binary-tree-compare 1))
                                  (let ((c (funcall compare (pop-val) y)))
+                                   (declare (type fixnum c))
                                    (unless (zerop c)
                                      (return-from binary-tree-compare c))))
                                tree-2))
@@ -298,7 +300,7 @@ LANG: language output for dot, (or pdf ps eps png)"
 
 
 (defun binary-tree-equal (tree-1 tree-2 compare)
-  (zerop (binary-tree-compare tree-1 tree-2 compare)))
+  (zerop (the fixnum (binary-tree-compare tree-1 tree-2 compare))))
 
 
 
