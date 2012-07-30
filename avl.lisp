@@ -46,7 +46,7 @@
 ;; All leaf nodes are simple vectors.
 ;; We can assume a binary tree node will never have NULL left/right values
 
-(defconstant +avl-tree-max-array-length+ 32)
+(defconstant +avl-tree-max-array-length+ 8)
 (defparameter +avl-tree-rebalance-log+ 2)  ;; power two difference for rebalancing
 
 (defstruct (avl-tree
