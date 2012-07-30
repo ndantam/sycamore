@@ -114,6 +114,17 @@ FUNCTION: (lambda (key value))"
   (fold-binary-tree :inorder function initial-value (tree-set-root set)))
 
 
+(defun tree-set-remove-min (set)
+  (multiple-value-bind (tree item) (avl-tree-remove-min (tree-set-root set))
+    (values (%make-tree-set (tree-set-%compare set) tree)
+            item)))
+
+(defun tree-set-remove-max (set)
+  (multiple-value-bind (tree item) (avl-tree-remove-max (tree-set-root set))
+    (values (%make-tree-set (tree-set-%compare set) tree)
+            item)))
+
+
 (defmacro def-tree-set-item-op (name implementation-name)
   `(defun ,name (set item)
      (%make-tree-set (tree-set-%compare set)
@@ -149,7 +160,8 @@ FUNCTION: (lambda (key value))"
                   (tree-set-%compare set-1)))
 
 (defun tree-set-compare (tree-1 tree-2)
-  (avl-tree-compare tree-1 tree-2 (tree-set-%compare tree-1)))
+  (avl-tree-compare (tree-set-root tree-1) (tree-set-root tree-2)
+                    (tree-set-%compare tree-1)))
 
 ;;;;;;;;;;;;;;;
 ;; Tree-Heap ;;

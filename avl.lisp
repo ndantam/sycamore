@@ -334,7 +334,10 @@
                                  (binary-tree-value tree)
                                  (binary-tree-right tree))
                x)))
-    (simple-vector (values (subseq tree 1) (aref tree 0)))
+    (simple-vector (case (length tree)
+                     (0 (values nil nil))
+                     (1 (values nil (aref tree 0)))
+                     (otherwise (values (subseq tree 1) (aref tree 0)))))
     (null nil)))
 
 (defun avl-tree-remove-max (tree)
@@ -347,7 +350,10 @@
                                  new-right)
                x)))
     (simple-vector (let ((n (1- (length tree))))
-                     (values (subseq tree 0 n) (aref tree n))))
+                     (case n
+                       (-1 (values nil nil))
+                       (0 (values nil (aref tree 0)))
+                       (otherwise (values (subseq tree 0 n) (aref tree n))))))
     (null nil)))
 
 

@@ -40,5 +40,6 @@
   (:export make-tree-set tree-set tree-set-p
            map-tree-set fold-tree-set tree-set-count
            tree-set-insert tree-set-remove
+           tree-set-remove-min tree-set-remove-max
            tree-set-union tree-set-intersection tree-set-difference
            tree-set-member-p tree-set-equal-p tree-set-subset-p tree-set-compare))
