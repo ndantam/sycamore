@@ -144,10 +144,36 @@
                     value
                     right)))
 
+(defun balance-avl-tree-array-pair (left value right)
+  (let* ((w-l (length left))
+         (w-r (length right))
+         (w-lr (+ w-l w-r))
+         (n-a (ash w-lr -1))
+         (new-left (make-array n-a))
+         (new-value)
+         (new-right (make-array (- w-lr n-a))))
+    (replace new-left left)
+    (cond
+      ((< w-l n-a) ;; left smaller
+       (setf (aref new-left w-l) value)                 ;; fill value into new-left
+       (replace new-left right :start1 (+ w-l 1))       ;; fill right into new-left
+       (let ((start (- n-a 1 w-l)))
+         (setq new-value (aref right start))            ;; set new-value
+         (replace new-right right :start2 (1+ start)))) ;; fill right
+      ((> w-l n-a) ;; left bigger
+       (setq new-value (aref left n-a))                 ;; set new-value
+       (replace new-right left :start2 (+ n-a 1))       ;; fill new-right with rest of left
+       (let ((start (- w-l n-a 1)))
+         (setf (aref new-right start) value)
+         (replace new-right right :start1 (1+ start)))) ;; fill rest of new-right with right
+      (t ;equal, shouldn't actually happen
+       (error "Why balance equal arrays?")))
+    (make-avl-tree new-left new-value new-right)))
 
 ;; TODO: specialize this function based on adding/subtracting from left/right
 (defun balance-general-avl-tree (constructor left value right)
   (declare (type function constructor))
+  ;;(declare (optimize (speed 3) (safety 0)))
   ;;(format t "~&Balance-avl-tree~&")
   (let* ((w-l (avl-tree-count left))
          (w-r (avl-tree-count right))
@@ -164,23 +190,24 @@
            (gather value)
            (map-binary-tree :inorder nil #'gather right))
          array))
-      ;; TODO: maybe combine two vectors
       ;; left too tall
-      ((and (> w-l (ash w-r +avl-tree-rebalance-log+))
-            (avl-tree-p left))
-       (if (and (> (avl-tree-count (binary-tree-right left))
-                   (avl-tree-count (binary-tree-left left)))
-                (avl-tree-p (binary-tree-right left)))
-           (right-left-avl-tree constructor left value right)
-           (right-avl-tree constructor left value right)))
+      ((> w-l (ash w-r +avl-tree-rebalance-log+))
+       (etypecase left
+         (avl-tree (if (and (> (avl-tree-count (binary-tree-right left))
+                               (avl-tree-count (binary-tree-left left)))
+                            (avl-tree-p (binary-tree-right left)))
+                       (right-left-avl-tree constructor left value right)
+                       (right-avl-tree constructor left value right)))
+         (simple-vector (balance-avl-tree-array-pair left value right))))
       ;; right too tall
-      ((and (> w-r (ash w-l +avl-tree-rebalance-log+))
-            (avl-tree-p right))
-       (if (and (< (avl-tree-count (binary-tree-right right))
-                   (avl-tree-count (binary-tree-left right)))
-                (avl-tree-p (binary-tree-left right)))
-           (left-right-avl-tree constructor left value right)
-           (left-avl-tree constructor left value right)))
+      ((> w-r (ash w-l +avl-tree-rebalance-log+))
+       (etypecase right
+         (avl-tree (if (and (< (avl-tree-count (binary-tree-right right))
+                               (avl-tree-count (binary-tree-left right)))
+                            (avl-tree-p (binary-tree-left right)))
+                       (left-right-avl-tree constructor left value right)
+                       (left-avl-tree constructor left value right)))
+         (simple-vector (balance-avl-tree-array-pair left value right))))
       ;; close enough
       (t
        (funcall constructor left value right)))))
@@ -362,55 +389,81 @@
 (defun avl-tree (compare &rest elements)
   (fold (avl-tree-builder compare) nil elements))
 
-;; (defun avl-tree-remove-min (tree)
-;;   "Insert minimum element of TREE, returning new tree."
-;;   (with-avl-tree (l v r) tree
-;;     (if l
-;;         (multiple-value-bind (min tree) (avl-tree-remove-min l)
-;;           (values min
-;;                   (balance-avl-tree tree v r)))
-;;         (values v r))))
-
-;; (defun avl-tree-remove-max (tree)
-;;   "Insert minimum element of TREE, returning new tree."
-;;   (with-avl-tree (l v r) tree
-;;     (if r
-;;         (multiple-value-bind (max tree) (avl-tree-remove-max r)
-;;           (values max
-;;                   (balance-avl-tree l v tree)))
-;;         (values v l))))
-
-
 (defun avl-tree-remove-min (tree)
   "Remove minimum element of TREE, returning element and tree."
-  (etypecase tree
-    (avl-tree
-     (multiple-value-bind (new-left x) (avl-tree-remove-min (binary-tree-left tree))
-       (values (balance-avl-tree new-left
-                                 (binary-tree-value tree)
-                                 (binary-tree-right tree))
-               x)))
-    (simple-vector (case (length tree)
-                     (0 (values nil nil))
-                     (1 (values nil (aref tree 0)))
-                     (otherwise (values (subseq tree 1) (aref tree 0)))))
-    (null (values nil nil))))
+  (labels ((rec-tree (tree)
+             (with-avl-tree (l v r) tree
+               (if l
+                   (multiple-value-bind (new-left min)
+                       (etypecase l
+                         (binary-tree (rec-tree l))
+                         (simple-vector (min-vector l)))
+                     (values (balance-avl-tree new-left v r)
+                             min))
+                   (values r v))))
+           (min-vector (tree)
+             (case (length tree)
+               (0 (values nil nil))
+               (1 (values nil (aref tree 0)))
+               (otherwise (values (subseq tree 1) (aref tree 0))))))
+    (etypecase tree
+      (binary-tree (rec-tree tree))
+      (simple-vector (min-vector tree))
+      (null (values nil nil)))))
 
 (defun avl-tree-remove-max (tree)
-  "Remove maximum element of TREE, returning element and tree."
-  (etypecase tree
-    (avl-tree
-     (multiple-value-bind (new-right x) (avl-tree-remove-max (binary-tree-right tree))
-       (values (balance-avl-tree (binary-tree-left tree)
-                                 (binary-tree-value tree)
-                                 new-right)
-               x)))
-    (simple-vector (let ((n (1- (length tree))))
-                     (case n
-                       (-1 (values nil nil))
-                       (0 (values nil (aref tree 0)))
-                       (otherwise (values (subseq tree 0 n) (aref tree n))))))
-    (null (values nil nil))))
+  "Remove minimum element of TREE, returning element and tree."
+  (labels ((rec-tree (tree)
+             (with-avl-tree (l v r) tree
+               (if r
+                   (multiple-value-bind (new-right max)
+                       (etypecase r
+                         (binary-tree (rec-tree r))
+                         (simple-vector (max-vector r)))
+                     (values (balance-avl-tree l v new-right)
+                             max))
+                   (values l v))))
+           (max-vector (tree)
+             (let ((n (1- (length tree))))
+               (case n
+                 (-1 (values nil nil))
+                 (0 (values nil (aref tree 0)))
+                 (otherwise (values (subseq tree 0 n) (aref tree n)))))))
+    (etypecase tree
+      (binary-tree (rec-tree tree))
+      (simple-vector (max-vector tree))
+      (null (values nil nil)))))
+
+
+  ;;     (values nil nil)))
+  ;; (etypecase tree
+  ;;   (avl-tree
+  ;;    (multiple-value-bind (new-left x) (avl-tree-remove-min (binary-tree-left tree))
+  ;;      (values (balance-avl-tree new-left
+  ;;                                (binary-tree-value tree)
+  ;;                                (binary-tree-right tree))
+  ;;              x)))
+  ;;   (simple-vector (case (length tree)
+  ;;                    (0 (values nil nil))
+  ;;                    (1 (values nil (aref tree 0)))
+  ;;                    (otherwise (values (subseq tree 1) (aref tree 0)))))
+  ;;   (null (values nil nil))))
+
+;; (defun avl-tree-remove-max (tree)
+;;   "Remove maximum element of TREE, returning element and tree."
+;;   (etypecase tree
+;;     (avl-tree
+;;      (multiple-value-bind (new-right x) (avl-tree-remove-max (binary-tree-right tree))
+;;        (values (balance-avl-tree (binary-tree-left tree)
+;;                                  (binary-tree-value tree)
+;;                                  new-right)
+;;                x)))
+;;     (simple-vector (let ((n (1- (length tree))))
+;;                      (case n
+;;                        (-1 (values nil nil))
+;;                        (0 (values nil (aref tree 0)))
+;;                        (otherwise (values (subseq tree 0 n) (aref tree n))))))
+;;     (null (values nil nil))))
 
 
 ;; (defun join-avl-tree (left value right compare)

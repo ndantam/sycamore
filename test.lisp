@@ -216,6 +216,16 @@
                               (binary-tree-min avl-tree-2))
 
       ;; remove-min
+      (loop
+         with tree = avl-tree-1
+         for sort on sort-1
+         do (multiple-value-bind (tree-x min) (avl-tree-remove-min tree)
+              (lisp-unit:assert-equal (cdr sort)
+                                      (avl-tree-list tree-x))
+              (lisp-unit:assert-equal (car sort)
+                                      min)
+              (setq tree tree-x)))
+
       (multiple-value-bind (tree x) (avl-tree-remove-min avl-tree-1)
         (lisp-unit:assert-equal (cdr sort-1) (avl-tree-list tree))
         (lisp-unit:assert-equal (car sort-1) x))
@@ -225,6 +235,16 @@
         (lisp-unit:assert-equal (car sort-2) x))
 
       ;; remove-max
+      (loop
+         with tree = avl-tree-1
+         for sort on (reverse sort-1)
+         do (multiple-value-bind (tree-x max) (avl-tree-remove-max tree)
+              (lisp-unit:assert-equal (reverse (cdr sort))
+                                      (avl-tree-list tree-x))
+              (lisp-unit:assert-equal (car sort)
+                                      max)
+              (setq tree tree-x)))
+
       (multiple-value-bind (tree x) (avl-tree-remove-max avl-tree-1)
         (lisp-unit:assert-equal (avl-tree-list tree)
                                 (subseq sort-1 0 (1- (length sort-1))))
@@ -378,6 +398,18 @@
 
         ))))
 
+
+(lisp-unit:define-test regression
+  ;; remove min/max with null
+  (lisp-unit:assert-equal '((2 3 4 5) 1)
+                          (multiple-value-bind (tree min)
+                              (avl-tree-remove-min (make-avl-tree nil 1 (vector 2 3 4 5)))
+                            (list (avl-tree-list tree) min)))
+
+  (lisp-unit:assert-equal '((1 2 3 4) 5)
+                          (multiple-value-bind (tree min)
+                              (avl-tree-remove-max (make-avl-tree (vector 1 2 3 4) 5 nil))
+                            (list (avl-tree-list tree) min))))
 
 ;; (lisp-unit:define-test red-black
 ;;   ;; red-black
