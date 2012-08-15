@@ -35,19 +35,39 @@
 ;;;;   EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+(in-package :sycamore)
 
 
-(asdf:defsystem sycamore
-  :version "0.0.20120604"
-  :description "Sycamore tree library"
-  :depends-on (:cl-ppcre :alexandria)
-  :weakly-depends-on (:lisp-unit)
-  :components ((:file "package")
-               (:file "queue" :depends-on ("package"))
-               (:file "util" :depends-on ("package"))
-               (:file "array" :depends-on ("util"))
-               (:file "binary" :depends-on ("util"))
-               (:file "avl" :depends-on ("binary" "array"))
-               ;;(:file "ttree" :depends-on ("avl"))
-               (:file "interfaces" :depends-on ("avl"))
-               ))
+
+;; From Okasaki "Purely Functional Data Structures"
+
+(defstruct (amortized-queue
+             (:constructor %make-amortized-queue (forward reverse)))
+  (forward nil :type list)
+  (reverse nil :type list))
+
+(defun amortized-queue (&rest args)
+  "Create an amortized queue of ARGS."
+  (%make-amortized-queue args nil))
+
+(defun amortized-queue-empty-p (queue)
+  "Is the queue empty?"
+  (not (or (amortized-queue-forward queue)
+           (amortized-queue-reverse queue))))
+
+(defun amortized-enqueue (queue element)
+  "Add ELEMENT to QUEUE.
+RETURNS: new-queue"
+  (%make-amortized-queue (amortized-queue-forward queue)
+                         (cons element (amortized-queue-reverse queue))))
+
+(defun amortized-dequeue (queue)
+  "Remove first element of QUEUE.
+RETURNS: (VALUES new-queue element)"
+  (let ((original-forward (amortized-queue-forward queue)))
+    (multiple-value-bind (forward reverse)
+        (if original-forward
+            (values original-forward (amortized-queue-reverse queue))
+            (values (reverse (amortized-queue-reverse queue)) nil))
+      (values (%make-amortized-queue (cdr forward) reverse)
+              (car forward)))))
