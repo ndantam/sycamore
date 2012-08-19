@@ -370,7 +370,9 @@
            (s-1 (remove-duplicates (sort (copy-list list-1) #'<)))
            (s-2 (remove-duplicates (sort (copy-list list-2) #'<)))
            (t-1 (fold #'tree-heap-insert (make-tree-heap #'identity) list-1))
-           (t-2 (fold #'tree-heap-insert (make-tree-heap #'identity) list-2)))
+           (t-2 (fold #'tree-heap-insert (make-tree-heap #'identity) list-2))
+           (p-1 (fold (pairing-heap-builder #'-) nil list-1))
+           (p-2 (fold (pairing-heap-builder #'-) nil list-2)))
       (labels ((heap-list (heap)
                  (map 'list #'cdr (avl-tree-list (tree-heap-root heap)))))
         (lisp-unit:assert-equalp s-1
@@ -396,6 +398,10 @@
                                    (heap-list tree))
           (lisp-unit:assert-equalp (car (last s-1)) value))
 
+        (lisp-unit:assert-equalp (pairing-heap-list p-1 #'-)
+                                 (sort (copy-list list-1) #'<))
+        (lisp-unit:assert-equalp (pairing-heap-list p-2 #'-)
+                                 (sort (copy-list list-2) #'<))
         ))))
 
 

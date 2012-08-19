@@ -47,3 +47,9 @@
 
 (defun fold (function initial-value sequence)
   (reduce function sequence :initial-value initial-value))
+
+
+(defmacro if-less-eq-compare ((value1 value2 compare) lt-eq-case gt-case)
+  `(if (<= (funcall ,compare ,value1 ,value2) 0)
+       (progn ,lt-eq-case)
+       (progn ,gt-case)))
