@@ -1,5 +1,15 @@
 
 
+
+default:
+
+stlbench: stlbench.cpp
+	$(CXX) stlbench.cpp -O2 -o stlbench
+
+
+clean:
+	rm -f stlbench
+
 check: check-sbcl check-ccl check-clisp check-ecl
 
 
