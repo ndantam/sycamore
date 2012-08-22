@@ -46,6 +46,9 @@
   (forward nil :type list)
   (reverse nil :type list))
 
+(defun make-amortized-queue ()
+  (%make-amortized-queue nil nil))
+
 (defun amortized-queue (&rest args)
   "Create an amortized queue of ARGS."
   (%make-amortized-queue args nil))

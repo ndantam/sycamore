@@ -46,4 +46,4 @@
    tree-set-union tree-set-intersection tree-set-difference
    tree-set-member-p tree-set-equal-p tree-set-subset-p tree-set-compare
    ;; queues
-   amortized-queue amortized-enqueue amortized-dequeue amortized-queue-empty-p))
+   make-amortized-queue amortized-queue amortized-enqueue amortized-dequeue amortized-queue-empty-p))
