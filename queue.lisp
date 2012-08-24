@@ -51,7 +51,7 @@
 
 (defun amortized-queue (&rest args)
   "Create an amortized queue of ARGS."
-  (%make-amortized-queue args nil))
+  (%make-amortized-queue (copy-list args) nil))
 
 (defun amortized-queue-empty-p (queue)
   "Is the queue empty?"
@@ -74,3 +74,14 @@ RETURNS: (VALUES new-queue element)"
             (values (reverse (amortized-queue-reverse queue)) nil))
       (values (%make-amortized-queue (cdr forward) reverse)
               (car forward)))))
+
+(defun amortized-queue-push (queue element)
+  (%make-amortized-queue (cons element (amortized-queue-forward queue))
+                         (amortized-queue-reverse queue)))
+
+(defun amortized-queue-list (queue)
+  (let (v)
+    (loop until (amortized-queue-empty-p queue)
+       do (multiple-value-setq (queue v)
+            (amortized-dequeue queue))
+       collect v)))
