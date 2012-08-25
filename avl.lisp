@@ -305,16 +305,12 @@
   (etypecase tree
     (avl-tree
      (with-avl-tree (l v r) tree
-       (let ((c (funcall compare value v)))
-         (declare (type fixnum c))
-         (cond
-           ((< c 0)
-            (balance-avl-tree (avl-tree-insert l value compare)
-                              v r))
-           ((> c 0)
-            (balance-avl-tree l v
-                              (avl-tree-insert r value compare)))
-           (t tree)))))
+       (cond-compare (value v compare)
+                     (balance-avl-tree (avl-tree-insert l value compare)
+                                       v r)
+                     tree
+                     (balance-avl-tree l v
+                                       (avl-tree-insert r value compare)))))
     (simple-vector (avl-tree-insert-vector tree value compare))
     (null (vector value))))
 
@@ -354,16 +350,12 @@
   (etypecase tree
     (avl-tree
      (with-avl-tree (l v r) tree
-       (let ((c (funcall compare value v)))
-         (declare (type fixnum c))
-         (cond
-           ((< c 0)
-            (balance-avl-tree (avl-tree-replace l value compare)
-                              v r))
-           ((> c 0)
-            (balance-avl-tree l v
-                              (avl-tree-replace r value compare)))
-           (t (make-avl-tree l value r))))))
+       (cond-compare (value v compare)
+                     (balance-avl-tree (avl-tree-replace l value compare)
+                                       v r)
+                     (make-avl-tree l value r)
+                     (balance-avl-tree l v
+                                       (avl-tree-replace r value compare)))))
     (simple-vector (avl-tree-replace-vector tree value compare))
     (null (vector value))))
 
@@ -563,20 +555,16 @@
   (etypecase tree
     (avl-tree
      (with-avl-tree (l v r) tree
-       (let ((c (funcall compare x v)))
-         (declare (fixnum c))
-         (cond
-           ((< c 0)
-            (multiple-value-bind (left-left present right-left)
-                (avl-tree-split l x compare)
-              (values left-left present (join-avl-tree right-left
-                                                       v r compare))))
-           ((> c 0)
-            (multiple-value-bind (left-right present right-right)
-                (avl-tree-split r x compare)
-              (values (join-avl-tree l v left-right compare)
-                      present right-right)))
-           (t (values (binary-tree-left tree) t (binary-tree-right tree)))))))
+       (cond-compare (x v compare)
+                     (multiple-value-bind (left-left present right-left)
+                         (avl-tree-split l x compare)
+                       (values left-left present (join-avl-tree right-left
+                                                                v r compare)))
+                     (values (binary-tree-left tree) t (binary-tree-right tree))
+                     (multiple-value-bind (left-right present right-right)
+                         (avl-tree-split r x compare)
+                       (values (join-avl-tree l v left-right compare)
+                               present right-right)))))
     (simple-vector
      (array-tree-split tree x compare))
     (null
@@ -849,19 +837,18 @@
                 (with-avl-trees
                     (l1 v1 r1) tree-1
                     (l2 v2 r2) tree-2
-                  (let ((c (funcall compare v1 v2)))
-                    (declare (type fixnum c))
-                    (cond
-                      ((< c 0) ; v1 < v2
-                       (and (rec (make-avl-tree l1 v1 nil)
-                                 l2)
-                            (rec r1 tree-2)))
-                      ((> c 0) ; v1 > v2
-                       (and (rec (make-avl-tree nil v1 r1)
-                                 r2)
-                            (rec l1 tree-2)))
-                      (t (and (rec l1 l2)
-                              (rec r1 r2))))))))))
+                  (cond-compare (v1 v2 compare)
+                                ;; v1 < v2
+                                (and (rec (make-avl-tree l1 v1 nil)
+                                          l2)
+                                     (rec r1 tree-2))
+                                ;; v1 = v2
+                                (and (rec l1 l2)
+                                     (rec r1 r2))
+                                ;; v1 > v2
+                                (and (rec (make-avl-tree nil v1 r1)
+                                          r2)
+                                     (rec l1 tree-2))))))))
     (rec tree-1 tree-2)))
 
 

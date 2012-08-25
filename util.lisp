@@ -48,6 +48,16 @@
 (defun fold (function initial-value sequence)
   (reduce function sequence :initial-value initial-value))
 
+(defmacro cond-compare ((value1 value2 compare) lt-case eq-case gt-case)
+  (alexandria:with-gensyms (c)
+    `(let ((,c (funcall ,compare ,value1 ,value2)))
+       (declare (type fixnum ,c))
+       (cond
+         ((< ,c 0)
+          ,lt-case)
+         ((> ,c 0)
+          ,gt-case)
+         (t ,eq-case)))))
 
 (defmacro if-less-eq-compare ((value1 value2 compare) lt-eq-case gt-case)
   `(if (<= (funcall ,compare ,value1 ,value2) 0)
