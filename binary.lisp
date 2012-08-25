@@ -138,9 +138,30 @@ RESULT-TYPE: (or 'list nil)"
 ;;                       (t tree-1))))
 ;;        ((or (zerop c) (null tree-1)) tree-1))
 
+(defun binary-tree-find (tree value compare)
+  (declare (type function compare))
+  "Return the node of TREE containing VALUE or NIL of not present."
+  (labels ((rec (tree)
+             (etypecase tree
+               (binary-tree
+                (cond-compare (value (binary-tree-value tree) compare)
+                   (rec (binary-tree-left tree))
+                   (values (binary-tree-value tree) t)
+                   (rec (binary-tree-right tree))))
+               (simple-vector
+                (let ((i (array-tree-position tree value compare)))
+                  (if i
+                      (values (aref tree i) t)
+                      (values nil nil))))
+               (null (values nil nil)))))
+    (rec tree)))
+
+
 (defun binary-tree-member-p (tree value compare)
-  (when (binary-tree-search-node tree value compare)
-    t))
+  (multiple-value-bind (value present)
+      (binary-tree-find tree value compare)
+    (declare (ignore value))
+    present))
 
 (defun binary-tree-left-left (tree)
   (binary-tree-left (binary-tree-left tree)))

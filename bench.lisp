@@ -71,7 +71,7 @@
     (format t "~&SEARCH~&")
     (format t "~&-----~&")
     (time (loop for k in data
-             do (binary-tree-search-node tree k compare)))
+             do (binary-tree-find tree k compare)))
 
     (let ((data-0 (loop with len = (length data)
                      for i below (/ len 2)

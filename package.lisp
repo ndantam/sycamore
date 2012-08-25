@@ -45,6 +45,9 @@
    tree-set-remove-min tree-set-remove-max tree-set-remove-position
    tree-set-union tree-set-intersection tree-set-difference
    tree-set-member-p tree-set-equal-p tree-set-subset-p tree-set-compare
+   ;; tree map
+   make-tree-map tree-map-insert tree-map-remove tree-map-find
+   map-tree-map
    ;; queues
    make-amortized-queue amortized-queue amortized-queue-empty-p
    amortized-enqueue amortized-dequeue amortized-queue-push

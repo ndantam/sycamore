@@ -67,11 +67,12 @@
                                    (tree-map-compare tree-map))))
 
 (defun tree-map-find (tree-map key)
-  (let ((node (binary-tree-search-node (tree-map-root tree-map)
-                                       (cons key nil)
-                                       (tree-map-compare tree-map))))
-    (if node
-        (values (binary-tree-value node) t)
+  (multiple-value-bind (cons present)
+      (binary-tree-find (tree-map-root tree-map)
+                        (cons key nil)
+                        (tree-map-compare tree-map))
+    (if present
+        (values (cdr cons) t)
         (values nil nil))))
 
 
@@ -121,6 +122,12 @@ FUNCTION: (lambda (key value))"
 
 (defun tree-set-remove-max (set)
   (multiple-value-bind (tree item) (avl-tree-remove-max (tree-set-root set))
+    (values (%make-tree-set (tree-set-%compare set) tree)
+            item)))
+
+(defun tree-set-remove-position (set i)
+  (multiple-value-bind (tree item)
+      (avl-tree-remove-position (tree-set-root set) i (tree-set-%compare set))
     (values (%make-tree-set (tree-set-%compare set) tree)
             item)))
 

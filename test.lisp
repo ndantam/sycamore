@@ -405,6 +405,16 @@
         ))))
 
 
+
+(lisp-unit:define-test map
+  (let ((data '((1 . a) (2 . b) (3 . c) (4 . d)))
+        (map (make-tree-map #'-)))
+    (loop for (key . value) in data
+         do (setq map (tree-map-insert map key value)))
+    (loop for (key . value) in data
+       do (lisp-unit:assert-true (eq value (tree-map-find map key))))))
+
+
 (lisp-unit:define-test regression
   ;; remove min/max with null
   (lisp-unit:assert-equal '((2 3 4 5) 1)
