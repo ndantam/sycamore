@@ -1,0 +1,490 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <title>SYCAMORE - Common Lisp Trees</title>
+  <style type="text/css">
+  pre { padding:5px; background-color:#e0e0e0 }
+  h3, h4 { text-decoration: underline; }
+  a { text-decoration: none; padding: 1px 2px 1px 2px; }
+  a:visited { text-decoration: none; padding: 1px 2px 1px 2px; }
+  a:hover { text-decoration: none; padding: 1px 1px 1px 1px; border: 1px solid #000000; }
+  a:focus { text-decoration: none; padding: 1px 2px 1px 2px; border: none; }
+  a.none { text-decoration: none; padding: 0; }
+  a.none:visited { text-decoration: none; padding: 0; }
+  a.none:hover { text-decoration: none; border: none; padding: 0; }
+  a.none:focus { text-decoration: none; border: none; padding: 0; }
+  a.noborder { text-decoration: none; padding: 0; }
+  a.noborder:visited { text-decoration: none; padding: 0; }
+  a.noborder:hover { text-decoration: none; border: none; padding: 0; }
+  a.noborder:focus { text-decoration: none; border: none; padding: 0; }
+  pre.none { padding:5px; background-color:#ffffff }
+  </style>
+</head>
+
+<body bgcolor=white>
+
+<h2> SYCAMORE - Common Lisp Trees</h2>
+
+<blockquote>
+<br>&nbsp;<br><h3><a name=abstract class=none>Abstract</a></h3>
+
+Sycamore is a
+<a href="http://en.wikipedia.org/wiki/Functional_programming">functional</a>
+tree library in Common Lisp.  This code comes with
+a <a href="http://www.opensource.org/licenses/bsd-license.php">BSD-style
+license</a> so you can basically do with it whatever you want.
+
+<p>
+<font color=red>Download shortcut:</font> git
+clone <a href="https://github.com/ndantam/sycamore">https://github.com/ndantam/sycamore</a>
+</blockquote>
+
+<br>&nbsp;<br><h3><a class=none name="contents">Contents</a></h3>
+<ol>
+  <li><a href="#download">Download</a>
+  <li><a href="#dictionary">The SYCAMORE dictionary</a>
+    <ol>
+      <li><a href="#amortized-dequeue"><code>amortized-dequeue</code></a>
+      <li><a href="#amortized-enqueue"><code>amortized-enqueue</code></a>
+      <li><a href="#amortized-queue"><code>amortized-queue</code></a>
+      <li><a href="#amortized-queue"><code>amortized-queue</code></a>
+      <li><a href="#amortized-queue-empty-p"><code>amortized-queue-empty-p</code></a>
+      <li><a href="#amortized-queue-list"><code>amortized-queue-list</code></a>
+      <li><a href="#amortized-queue-push"><code>amortized-queue-push</code></a>
+      <li><a href="#fold-tree-set"><code>fold-tree-set</code></a>
+      <li><a href="#make-amortized-queue"><code>make-amortized-queue</code></a>
+      <li><a href="#make-tree-map"><code>make-tree-map</code></a>
+      <li><a href="#make-tree-set"><code>make-tree-set</code></a>
+      <li><a href="#map-tree-map"><code>map-tree-map</code></a>
+      <li><a href="#map-tree-set"><code>map-tree-set</code></a>
+      <li><a href="#tree-map-find"><code>tree-map-find</code></a>
+      <li><a href="#tree-map-insert"><code>tree-map-insert</code></a>
+      <li><a href="#tree-map-remove"><code>tree-map-remove</code></a>
+      <li><a href="#tree-set"><code>tree-set</code></a>
+      <li><a href="#tree-set"><code>tree-set</code></a>
+      <li><a href="#tree-set-compare"><code>tree-set-compare</code></a>
+      <li><a href="#tree-set-count"><code>tree-set-count</code></a>
+      <li><a href="#tree-set-difference"><code>tree-set-difference</code></a>
+      <li><a href="#tree-set-equal-p"><code>tree-set-equal-p</code></a>
+      <li><a href="#tree-set-insert"><code>tree-set-insert</code></a>
+      <li><a href="#tree-set-intersection"><code>tree-set-intersection</code></a>
+      <li><a href="#tree-set-member-p"><code>tree-set-member-p</code></a>
+      <li><a href="#tree-set-p"><code>tree-set-p</code></a>
+      <li><a href="#tree-set-remove"><code>tree-set-remove</code></a>
+      <li><a href="#tree-set-remove-max"><code>tree-set-remove-max</code></a>
+      <li><a href="#tree-set-remove-min"><code>tree-set-remove-min</code></a>
+      <li><a href="#tree-set-remove-position"><code>tree-set-remove-position</code></a>
+      <li><a href="#tree-set-subset-p"><code>tree-set-subset-p</code></a>
+      <li><a href="#tree-set-union"><code>tree-set-union</code></a>
+    </ol>
+  <li><a href="#ack">Acknowledgements</a>
+</ol>
+
+<br>&nbsp;<br><h3><a class=none name="download">Download</a></h3>
+
+SYCAMORE together with this documentation can be downloaded from
+<a href="https://github.com/ndantam/sycamore">https://github.com/ndantam/sycamore</a>
+
+<br>&nbsp;<br><h3><a class=none name="dictionary">The SYCAMORE dictionary</a></h3>
+
+
+
+<!-- Entry for AMORTIZED-DEQUEUE -->
+
+<p><br>[Function]<br><a class=none name='amortized-dequeue'><b>amortized-dequeue</b> <i>queue</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Remove first element of QUEUE.
+RETURNS: (VALUES new-queue element)
+
+</blockquote>
+
+<!-- End of entry for AMORTIZED-DEQUEUE -->
+
+
+<!-- Entry for AMORTIZED-ENQUEUE -->
+
+<p><br>[Function]<br><a class=none name='amortized-enqueue'><b>amortized-enqueue</b> <i>queue element</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Add ELEMENT to QUEUE.
+RETURNS: new-queue
+
+</blockquote>
+
+<!-- End of entry for AMORTIZED-ENQUEUE -->
+
+
+<!-- Entry for AMORTIZED-QUEUE -->
+
+<p><br>[Standard class]<br><a class=none name='amortized-queue'><b>amortized-queue</b></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for AMORTIZED-QUEUE -->
+
+
+<!-- Entry for AMORTIZED-QUEUE -->
+
+<p><br>[Function]<br><a class=none name='amortized-queue'><b>amortized-queue</b> <i><tt>&amp;rest</tt> args</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Create an amortized queue of ARGS.
+
+</blockquote>
+
+<!-- End of entry for AMORTIZED-QUEUE -->
+
+
+<!-- Entry for AMORTIZED-QUEUE-EMPTY-P -->
+
+<p><br>[Function]<br><a class=none name='amortized-queue-empty-p'><b>amortized-queue-empty-p</b> <i>queue</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Is the queue empty?
+
+</blockquote>
+
+<!-- End of entry for AMORTIZED-QUEUE-EMPTY-P -->
+
+
+<!-- Entry for AMORTIZED-QUEUE-LIST -->
+
+<p><br>[Function]<br><a class=none name='amortized-queue-list'><b>amortized-queue-list</b> <i>queue</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Return an inorder list of elements in QUEUE.
+
+</blockquote>
+
+<!-- End of entry for AMORTIZED-QUEUE-LIST -->
+
+
+<!-- Entry for AMORTIZED-QUEUE-PUSH -->
+
+<p><br>[Function]<br><a class=none name='amortized-queue-push'><b>amortized-queue-push</b> <i>queue element</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Add ELEMENT to the front of QUEUE.
+
+</blockquote>
+
+<!-- End of entry for AMORTIZED-QUEUE-PUSH -->
+
+
+<!-- Entry for FOLD-TREE-SET -->
+
+<p><br>[Function]<br><a class=none name='fold-tree-set'><b>fold-tree-set</b> <i>function initial-value set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Fold FUNCTION over every element of SET.
+
+</blockquote>
+
+<!-- End of entry for FOLD-TREE-SET -->
+
+
+<!-- Entry for MAKE-AMORTIZED-QUEUE -->
+
+<p><br>[Function]<br><a class=none name='make-amortized-queue'><b>make-amortized-queue</b> <i></i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Make a new queue.
+
+</blockquote>
+
+<!-- End of entry for MAKE-AMORTIZED-QUEUE -->
+
+
+<!-- Entry for MAKE-TREE-MAP -->
+
+<p><br>[Function]<br><a class=none name='make-tree-map'><b>make-tree-map</b> <i>compare</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Create a new tree-map.
+
+</blockquote>
+
+<!-- End of entry for MAKE-TREE-MAP -->
+
+
+<!-- Entry for MAKE-TREE-SET -->
+
+<p><br>[Function]<br><a class=none name='make-tree-set'><b>make-tree-set</b> <i>compare</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Create a new tree-set.
+
+</blockquote>
+
+<!-- End of entry for MAKE-TREE-SET -->
+
+
+<!-- Entry for MAP-TREE-MAP -->
+
+<p><br>[Function]<br><a class=none name='map-tree-map'><b>map-tree-map</b> <i>order result-type function tree-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Apply FUNCTION to all elements in TREE-MAP.
+ORDER: (or :inorder :preorder :postorder).
+RESULT-TYPE: (or nil &#039;list).
+FUNCTION: (lambda (key value)).
+
+</blockquote>
+
+<!-- End of entry for MAP-TREE-MAP -->
+
+
+<!-- Entry for MAP-TREE-SET -->
+
+<p><br>[Function]<br><a class=none name='map-tree-set'><b>map-tree-set</b> <i>result-type function set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Apply FUNCTION to every element of SET.
+
+</blockquote>
+
+<!-- End of entry for MAP-TREE-SET -->
+
+
+<!-- Entry for TREE-MAP-FIND -->
+
+<p><br>[Function]<br><a class=none name='tree-map-find'><b>tree-map-find</b> <i>tree-map key</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Find value indexed by KEY in TREE-MAP.
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-FIND -->
+
+
+<!-- Entry for TREE-MAP-INSERT -->
+
+<p><br>[Function]<br><a class=none name='tree-map-insert'><b>tree-map-insert</b> <i>tree-map key value</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Insert KEY=&gt;VALUE into TREE-MAP, returning the new tree-map.
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-INSERT -->
+
+
+<!-- Entry for TREE-MAP-REMOVE -->
+
+<p><br>[Function]<br><a class=none name='tree-map-remove'><b>tree-map-remove</b> <i>tree-map key</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Insert KEY from TREE-MAP, returning the new tree-map.
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-REMOVE -->
+
+
+<!-- Entry for TREE-SET -->
+
+<p><br>[Standard class]<br><a class=none name='tree-set'><b>tree-set</b></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for TREE-SET -->
+
+
+<!-- Entry for TREE-SET -->
+
+<p><br>[Function]<br><a class=none name='tree-set'><b>tree-set</b> <i>compare <tt>&amp;rest</tt> args</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Create a new tree-set containing all items in ARGS.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET -->
+
+
+<!-- Entry for TREE-SET-COMPARE -->
+
+<p><br>[Function]<br><a class=none name='tree-set-compare'><b>tree-set-compare</b> <i>tree-1 tree-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Order relation on sets.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-COMPARE -->
+
+
+<!-- Entry for TREE-SET-COUNT -->
+
+<p><br>[Function]<br><a class=none name='tree-set-count'><b>tree-set-count</b> <i>set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Number of elements in SET.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-COUNT -->
+
+
+<!-- Entry for TREE-SET-DIFFERENCE -->
+
+<p><br>[Function]<br><a class=none name='tree-set-difference'><b>tree-set-difference</b> <i>set-1 set-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Difference of SET-1 and SET-2.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-DIFFERENCE -->
+
+
+<!-- Entry for TREE-SET-EQUAL-P -->
+
+<p><br>[Function]<br><a class=none name='tree-set-equal-p'><b>tree-set-equal-p</b> <i>set-1 set-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Do SET-1 and SET-2 contain the same elements?
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-EQUAL-P -->
+
+
+<!-- Entry for TREE-SET-INSERT -->
+
+<p><br>[Function]<br><a class=none name='tree-set-insert'><b>tree-set-insert</b> <i>set item</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Insert ITEM into SET.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-INSERT -->
+
+
+<!-- Entry for TREE-SET-INTERSECTION -->
+
+<p><br>[Function]<br><a class=none name='tree-set-intersection'><b>tree-set-intersection</b> <i>set-1 set-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Intersection of SET-1 and SET-2.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-INTERSECTION -->
+
+
+<!-- Entry for TREE-SET-MEMBER-P -->
+
+<p><br>[Function]<br><a class=none name='tree-set-member-p'><b>tree-set-member-p</b> <i>set item</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Is ITEM a member of SET?
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-MEMBER-P -->
+
+
+<!-- Entry for TREE-SET-P -->
+
+<p><br>[Function]<br><a class=none name='tree-set-p'><b>tree-set-p</b> <i>object</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-P -->
+
+
+<!-- Entry for TREE-SET-REMOVE -->
+
+<p><br>[Function]<br><a class=none name='tree-set-remove'><b>tree-set-remove</b> <i>set item</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Remove ITEM from SET.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-REMOVE -->
+
+
+<!-- Entry for TREE-SET-REMOVE-MAX -->
+
+<p><br>[Function]<br><a class=none name='tree-set-remove-max'><b>tree-set-remove-max</b> <i>set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Remove maximum element of SET.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-REMOVE-MAX -->
+
+
+<!-- Entry for TREE-SET-REMOVE-MIN -->
+
+<p><br>[Function]<br><a class=none name='tree-set-remove-min'><b>tree-set-remove-min</b> <i>set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Remove minimum element of SET.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-REMOVE-MIN -->
+
+
+<!-- Entry for TREE-SET-REMOVE-POSITION -->
+
+<p><br>[Function]<br><a class=none name='tree-set-remove-position'><b>tree-set-remove-position</b> <i>set i</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Remove element of SET and position I.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-REMOVE-POSITION -->
+
+
+<!-- Entry for TREE-SET-SUBSET-P -->
+
+<p><br>[Function]<br><a class=none name='tree-set-subset-p'><b>tree-set-subset-p</b> <i>set-1 set-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Is SET-1 as subset of SET-2?
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-SUBSET-P -->
+
+
+<!-- Entry for TREE-SET-UNION -->
+
+<p><br>[Function]<br><a class=none name='tree-set-union'><b>tree-set-union</b> <i>set-1 set-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Union of SET-1 and SET-2.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-UNION -->
+
+
+<br>&nbsp;<br><h3><a class=none name="ack">Acknowledgements</a></h3>
+
+<p>
+This documentation was prepared with <a href="http://weitz.de/documentation-template/">DOCUMENTATION-TEMPLATE</a>.
+</p>
+
+</body>
+</html>
