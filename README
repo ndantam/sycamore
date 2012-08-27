@@ -1,18 +1,18 @@
-************
-* SYCAMORE *
-************
+SYCAMORE
+========
 
-A Common Lisp functional tree structure libary.
+A Common Lisp functional tree libary.
 
+API Documentation: http://ndantam.github.com/sycamore
 
-- Functional weight-balanced binary tree implementation.  Leaf nodes
+Features
+========
+* Functional weight-balanced binary tree implementation.  Leaf nodes
   are simple-vectors, greatly reducing tree height.
+* Pairing heaps
+* Functional amortized queue
+* Interfaces for Sets, Heaps, and Maps (dictionaries).
 
-- Pairing heaps
-
-- Functional amortized queue
-
-- Interfaces for Sets, Heaps, and Maps (dictionaries).
-
-
+Name
+====
 http://en.wikipedia.org/wiki/Platanus_occidentalis
