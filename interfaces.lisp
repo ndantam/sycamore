@@ -174,7 +174,6 @@ FUNCTION: (lambda (key value))"
 ;; Tree-Heap ;;
 ;;;;;;;;;;;;;;;
 
-
 (defstruct (tree-heap (:constructor %make-tree-heap (root cost)))
   root
   cost)
@@ -194,11 +193,14 @@ FUNCTION: (lambda (key value))"
       ((equalp (cdr a) (cdr b)) 0)
       (t -1))))
 
+(defun tree-heap-empty-p (heap)
+  (null (tree-heap-root heap)))
+
 (defun tree-heap-insert (heap value &optional (cost (funcall (tree-heap-cost heap) value)))
   (new-tree-heap heap
-                 (avl-tree-insert (tree-heap-root heap)
-                                  (cons cost value)
-                                  #'tree-heap-compare)))
+                 (avl-tree-reinsert (tree-heap-root heap)
+                                    (cons cost value)
+                                    #'tree-heap-compare)))
 
 (defun tree-heap-find-min (heap)
   (cdr (binary-tree-min (tree-heap-root heap))))

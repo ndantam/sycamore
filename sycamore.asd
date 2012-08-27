@@ -41,7 +41,7 @@
   :version "0.0.20120604"
   :description "Sycamore tree library"
   :depends-on (:cl-ppcre :alexandria)
-  :weakly-depends-on (:lisp-unit)
+  :weakly-depends-on (:lisp-unit :cl-fuzz)
   :components ((:file "package")
                (:file "util" :depends-on ("package"))
                (:file "heap" :depends-on ("util"))

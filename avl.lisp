@@ -360,19 +360,47 @@
     (null (vector value))))
 
 
+(defun avl-tree-reinsert-vector (tree value compare)
+  (declare (type simple-vector tree))
+  (let ((i (array-tree-insert-position tree value compare)))
+    (declare (type fixnum i))
+    (let* ((n (length tree))
+           (n/2 (ash n -1)))
+      (declare (type fixnum n n/2))
+      (cond
+        ((< n +avl-tree-max-array-length+)
+         (array-tree-insert-at tree value i))
+        ((< i n/2)
+         (make-avl-tree (array-tree-insert-at tree value i 0 (1- n/2))
+                        (aref tree (1- n/2))
+                        (subseq tree  n/2)))
+        ((> i n/2)
+         (make-avl-tree (subseq tree 0 n/2)
+                        (aref tree n/2)
+                        (array-tree-insert-at tree value i (1+ n/2))))
+        (t ;; (= i n/2)
+         (make-avl-tree (subseq tree 0 n/2)
+                        value
+                        (subseq tree  n/2)))))))
 
-;; (defun avl-tree-insert (tree value compare)
-;;   "Insert VALUE into TREE, returning new tree."
-;;   (declare (type function compare))
-;;   (cond-avl-tree-compare (value tree compare)
-;;     (make-avl-tree nil value nil)
-;;     (balance-avl-tree (avl-tree-insert (avl-tree-left tree) value compare)
-;;                       (binary-tree-value tree)
-;;                       (binary-tree-right tree))
-;;     tree
-;;     (balance-avl-tree (binary-tree-left tree)
-;;                       (binary-tree-value tree)
-;;                       (avl-tree-insert (avl-tree-right tree) value compare))))
+
+(defun avl-tree-reinsert (tree value compare)
+  "Insert VALUE into TREE, returning new tree."
+  (declare (type function compare))
+  ;;(declare (optimize (speed 3) (safety 0)))
+  (etypecase tree
+    (avl-tree
+     (with-avl-tree (l v r) tree
+       (cond-compare (value v compare)
+                     (balance-avl-tree (avl-tree-reinsert l value compare)
+                                       v r)
+                     (if (< (avl-tree-count l) (avl-tree-count r))
+                         (balance-avl-tree (avl-tree-reinsert l value compare) v r)
+                         (balance-avl-tree l v (avl-tree-reinsert r value compare)))
+                     (balance-avl-tree l v
+                                       (avl-tree-reinsert r value compare)))))
+    (simple-vector (avl-tree-reinsert-vector tree value compare))
+    (null (vector value))))
 
 
 (defun avl-tree-builder (compare)
