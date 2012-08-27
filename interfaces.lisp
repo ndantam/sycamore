@@ -67,6 +67,7 @@
                                    (tree-map-compare tree-map))))
 
 (defun tree-map-find (tree-map key)
+  "Find value indexed by KEY in TREE-MAP."
   (multiple-value-bind (cons present)
       (binary-tree-find (tree-map-root tree-map)
                         (cons key nil)
@@ -78,9 +79,9 @@
 
 (defun map-tree-map (order result-type function tree-map)
   "Apply FUNCTION to all elements in TREE-MAP.
-ORDER: (or :inorder :preorder :postorder
-RESULT-TYPE: (or nil 'list)
-FUNCTION: (lambda (key value))"
+ORDER: (or :inorder :preorder :postorder).
+RESULT-TYPE: (or nil 'list).
+FUNCTION: (lambda (key value))."
   (declare (type function function))
   (%make-tree-map (tree-map-compare tree-map)
                   (map-binary-tree order result-type
@@ -100,73 +101,92 @@ FUNCTION: (lambda (key value))"
   (%make-tree-set compare nil))
 
 (defun tree-set (compare &rest args)
+  "Create a new tree-set containing all items in ARGS."
   (%make-tree-set compare
                   (fold (lambda (tree x) (avl-tree-insert tree x compare))
                         nil
                         args)))
 
 (defun tree-set-count (set)
+  "Number of elements in SET."
   (avl-tree-count (tree-set-root set)))
 
 (defun map-tree-set (result-type function set)
+  "Apply FUNCTION to every element of SET."
   (map-binary-tree :inorder result-type function (tree-set-root set)))
 
 (defun fold-tree-set (function initial-value set)
+  "Fold FUNCTION over every element of SET."
   (fold-binary-tree :inorder function initial-value (tree-set-root set)))
 
 
 (defun tree-set-remove-min (set)
+"Remove minimum element of SET."
   (multiple-value-bind (tree item) (avl-tree-remove-min (tree-set-root set))
     (values (%make-tree-set (tree-set-%compare set) tree)
             item)))
 
 (defun tree-set-remove-max (set)
+"Remove maximum element of SET."
   (multiple-value-bind (tree item) (avl-tree-remove-max (tree-set-root set))
     (values (%make-tree-set (tree-set-%compare set) tree)
             item)))
 
 (defun tree-set-remove-position (set i)
+"Remove element of SET and position I."
   (multiple-value-bind (tree item)
       (avl-tree-remove-position (tree-set-root set) i (tree-set-%compare set))
     (values (%make-tree-set (tree-set-%compare set) tree)
             item)))
 
 
-(defmacro def-tree-set-item-op (name implementation-name)
+(defmacro def-tree-set-item-op (name implementation-name doc)
   `(defun ,name (set item)
+     ,doc
      (%make-tree-set (tree-set-%compare set)
                      (,implementation-name (tree-set-root set)
                                            item
                                            (tree-set-%compare set)))))
 
-(def-tree-set-item-op tree-set-insert avl-tree-insert)
-(def-tree-set-item-op tree-set-remove avl-tree-remove)
+(def-tree-set-item-op tree-set-insert avl-tree-insert
+  "Insert ITEM into SET.")
+
+(def-tree-set-item-op tree-set-remove avl-tree-remove
+  "Remove ITEM from SET.")
 
 (defun tree-set-member-p (set item)
+  "Is ITEM a member of SET?"
   (binary-tree-member-p (tree-set-root set) item (tree-set-%compare set)))
 
-(defmacro def-tree-set-binop (name implementation-name)
+(defmacro def-tree-set-binop (name implementation-name doc)
   `(defun ,name (set-1 set-2)
+     ,doc
      (%make-tree-set (tree-set-%compare set-1)
                      (,implementation-name (tree-set-root set-1)
                                            (tree-set-root set-2)
                                            (tree-set-%compare set-1)))))
 
-(def-tree-set-binop tree-set-union avl-tree-union)
-(def-tree-set-binop tree-set-intersection avl-tree-intersection)
-(def-tree-set-binop tree-set-difference avl-tree-difference)
+(def-tree-set-binop tree-set-union avl-tree-union
+  "Union of SET-1 and SET-2.")
+(def-tree-set-binop tree-set-intersection avl-tree-intersection
+  "Intersection of SET-1 and SET-2.")
+(def-tree-set-binop tree-set-difference avl-tree-difference
+  "Difference of SET-1 and SET-2.")
 
 (defun tree-set-equal-p (set-1 set-2)
+  "Do SET-1 and SET-2 contain the same elements?"
   (binary-tree-equal (tree-set-root set-1)
                      (tree-set-root set-2)
                      (tree-set-%compare set-1)))
 
 (defun tree-set-subset-p (set-1 set-2)
+  "Is SET-1 as subset of SET-2?"
   (avl-tree-subset (tree-set-root set-1)
                   (tree-set-root set-2)
                   (tree-set-%compare set-1)))
 
 (defun tree-set-compare (tree-1 tree-2)
+  "Order relation on sets."
   (avl-tree-compare (tree-set-root tree-1) (tree-set-root tree-2)
                     (tree-set-%compare tree-1)))
 
@@ -194,9 +214,11 @@ FUNCTION: (lambda (key value))"
       (t -1))))
 
 (defun tree-heap-empty-p (heap)
+  "Is HEAP empty?"
   (null (tree-heap-root heap)))
 
 (defun tree-heap-insert (heap value &optional (cost (funcall (tree-heap-cost heap) value)))
+  "Insert VALUE into HEAP."
   (new-tree-heap heap
                  (avl-tree-reinsert (tree-heap-root heap)
                                     (cons cost value)

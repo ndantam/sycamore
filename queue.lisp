@@ -47,6 +47,7 @@
   (reverse nil :type list))
 
 (defun make-amortized-queue ()
+  "Make a new queue."
   (%make-amortized-queue nil nil))
 
 (defun amortized-queue (&rest args)
@@ -76,10 +77,12 @@ RETURNS: (VALUES new-queue element)"
               (car forward)))))
 
 (defun amortized-queue-push (queue element)
+  "Add ELEMENT to the front of QUEUE."
   (%make-amortized-queue (cons element (amortized-queue-forward queue))
                          (amortized-queue-reverse queue)))
 
 (defun amortized-queue-list (queue)
+  "Return an inorder list of elements in QUEUE."
   (let (v)
     (loop until (amortized-queue-empty-p queue)
        do (multiple-value-setq (queue v)
