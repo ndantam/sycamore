@@ -158,6 +158,11 @@ FUNCTION: (lambda (key value))."
   "Is ITEM a member of SET?"
   (binary-tree-member-p (tree-set-root set) item (tree-set-%compare set)))
 
+
+(defun tree-set-find (set item)
+  "Find ITEM in SET"
+  (binary-tree-find (tree-set-root set) item (tree-set-%compare set)))
+
 (defmacro def-tree-set-binop (name implementation-name doc)
   `(defun ,name (set-1 set-2)
      ,doc

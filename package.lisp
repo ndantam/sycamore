@@ -44,7 +44,8 @@
    tree-set-insert tree-set-remove
    tree-set-remove-min tree-set-remove-max tree-set-remove-position
    tree-set-union tree-set-intersection tree-set-difference
-   tree-set-member-p tree-set-equal-p tree-set-subset-p tree-set-compare
+   tree-set-member-p tree-set-find
+   tree-set-equal-p tree-set-subset-p tree-set-compare
    ;; tree map
    make-tree-map tree-map-insert tree-map-remove tree-map-find
    map-tree-map
