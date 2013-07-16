@@ -275,6 +275,7 @@ LANG: language output for dot, (or pdf ps eps png)"
       0))
 
 
+(declaim (ftype (function ((or array binary-tree) (or array binary-tree) function) fixnum) binary-tree-compare))
 (defun binary-tree-compare (tree-1 tree-2 compare)
   (declare (type function compare))
   ;; O(log(n)) space, O(min(m,n)) time

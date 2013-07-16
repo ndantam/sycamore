@@ -880,6 +880,7 @@
     (rec tree-1 tree-2)))
 
 
+(declaim (ftype (function ((or avl-tree array) (or avl-tree array) function) fixnum) avl-tree-compare))
 (defun avl-tree-compare (tree-1 tree-2 compare)
   (declare (type function compare))
   ;; O(log(n)) space, O(min(m,n)) time

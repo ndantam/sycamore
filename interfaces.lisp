@@ -190,6 +190,7 @@ FUNCTION: (lambda (key value))."
                   (tree-set-root set-2)
                   (tree-set-%compare set-1)))
 
+;(declaim (ftype (function (tree-set tree-set) fixnum) tree-set-compare))
 (defun tree-set-compare (tree-1 tree-2)
   "Order relation on sets."
   (avl-tree-compare (tree-set-root tree-1) (tree-set-root tree-2)
