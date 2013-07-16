@@ -199,46 +199,51 @@ FUNCTION: (lambda (key value))."
 ;; Tree-Heap ;;
 ;;;;;;;;;;;;;;;
 
-(defstruct (tree-heap (:constructor %make-tree-heap (root cost)))
-  root
-  cost)
+;;; This was a bad idea
 
-(defun new-tree-heap (heap root)
-  (%make-tree-heap root (tree-heap-cost heap)))
+;; (defstruct (tree-heap (:constructor %make-tree-heap (root cost)))
+;;   root
+;;   cost)
 
-(defun make-tree-heap (cost-function)
-  (%make-tree-heap nil cost-function))
+;; (defun new-tree-heap (heap root)
+;;   (%make-tree-heap root (tree-heap-cost heap)))
 
-(defun tree-heap-compare (a b)
-  (let ((c-a (car a))
-        (c-b (car b)))
-    (cond
-      ((> c-a c-b) 1)
-      ((< c-a c-b) -1)
-      ((equalp (cdr a) (cdr b)) 0)
-      (t -1))))
+;; (defun make-tree-heap (cost-function)
+;;   (%make-tree-heap nil cost-function))
 
-(defun tree-heap-empty-p (heap)
-  "Is HEAP empty?"
-  (null (tree-heap-root heap)))
+;; (defun tree-heap-compare (a b)
+;;   (let ((c-a (car a))
+;;         (c-b (car b)))
+;;     (cond
+;;       ((> c-a c-b) 1)
+;;       ((< c-a c-b) -1)
+;;       ((equalp (cdr a) (cdr b)) 0)
+;;       (t -1))))
 
-(defun tree-heap-insert (heap value &optional (cost (funcall (tree-heap-cost heap) value)))
-  "Insert VALUE into HEAP."
-  (new-tree-heap heap
-                 (avl-tree-reinsert (tree-heap-root heap)
-                                    (cons cost value)
-                                    #'tree-heap-compare)))
+;; (defun tree-heap-empty-p (heap)
+;;   "Is HEAP empty?"
+;;   (null (tree-heap-root heap)))
 
-(defun tree-heap-find-min (heap)
-  (cdr (binary-tree-min (tree-heap-root heap))))
+;; (defun tree-heap-insert (heap value &optional (cost (funcall (tree-heap-cost heap) value)))
+;;   "Insert VALUE into HEAP."
+;;   (new-tree-heap heap
+;;                  (avl-tree-reinsert (tree-heap-root heap)
+;;                                     (cons cost value)
+;;                                     #'tree-heap-compare)))
 
-(defun tree-heap-find-max (heap)
-  (cdr (binary-tree-max (tree-heap-root heap))))
+;; (defun tree-heap-find-min (heap)
+;;   (cdr (binary-tree-min (tree-heap-root heap))))
 
-(defun tree-heap-remove-min (heap)
-  (multiple-value-bind (root value) (avl-tree-remove-min (tree-heap-root heap))
-    (values (new-tree-heap heap root) (cdr value))))
+;; (defun tree-heap-find-max (heap)
+;;   (cdr (binary-tree-max (tree-heap-root heap))))
 
-(defun tree-heap-remove-max (heap)
-  (multiple-value-bind (root value ) (avl-tree-remove-max (tree-heap-root heap))
-    (values (new-tree-heap heap root) (cdr value))))
+;; (defun tree-heap-remove-min (heap)
+;;   (multiple-value-bind (root value) (avl-tree-remove-min (tree-heap-root heap))
+;;     (values (new-tree-heap heap root) (cdr value))))
+
+;; (defun tree-heap-remove-max (heap)
+;;   (multiple-value-bind (root value ) (avl-tree-remove-max (tree-heap-root heap))
+;;     (values (new-tree-heap heap root) (cdr value))))
+
+;; (defun tree-heap-construct (cost-function elements)
+;;   (fold #'tree-heap-insert (make-tree-heap cost-function)

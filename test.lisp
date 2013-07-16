@@ -367,36 +367,37 @@
   (dotimes (i (ash *test-iterations* -2))
     (let* ((list-1 (loop for i below 1000 collect (random 100000)))
            (list-2 (loop for i below 1000 collect (random 1000000)))
-           (s-1 (remove-duplicates (sort (copy-list list-1) #'<)))
-           (s-2 (remove-duplicates (sort (copy-list list-2) #'<)))
-           (t-1 (fold #'tree-heap-insert (make-tree-heap #'identity) list-1))
-           (t-2 (fold #'tree-heap-insert (make-tree-heap #'identity) list-2))
+           ;(s-1 (remove-duplicates (sort (copy-list list-1) #'<)))
+           ;(s-2 (remove-duplicates (sort (copy-list list-2) #'<)))
+           ;(t-1 (fold #'tree-heap-insert (make-tree-heap #'identity) list-1))
+           ;(t-2 (fold #'tree-heap-insert (make-tree-heap #'identity) list-2))
            (p-1 (fold (pairing-heap-builder #'-) nil list-1))
-           (p-2 (fold (pairing-heap-builder #'-) nil list-2)))
+           (p-2 (fold (pairing-heap-builder #'-) nil list-2))
+           )
       (labels ((heap-list (heap)
                  (map 'list #'cdr (avl-tree-list (tree-heap-root heap)))))
-        (lisp-unit:assert-equalp s-1
-                                 (heap-list t-1))
-        (lisp-unit:assert-equalp s-2
-                                 (heap-list t-2))
+        ;(lisp-unit:assert-equalp s-1
+                                 ;(heap-list t-1))
+        ;(lisp-unit:assert-equalp s-2
+                                 ;(heap-list t-2))
 
-        ;; find min
-        (lisp-unit:assert-equalp (car s-1) (tree-heap-find-min t-1))
+        ;; ;; find min
+        ;; (lisp-unit:assert-equalp (car s-1) (tree-heap-find-min t-1))
 
-        ;; find max
-        (lisp-unit:assert-equalp (car (last s-1)) (tree-heap-find-max t-1))
+        ;; ;; find max
+        ;; (lisp-unit:assert-equalp (car (last s-1)) (tree-heap-find-max t-1))
 
         ;; remove min
-        (multiple-value-bind (tree value) (tree-heap-remove-min t-1)
-          (lisp-unit:assert-equalp (cdr s-1)
-                                   (heap-list tree))
-          (lisp-unit:assert-equalp (car s-1) value))
+        ;; (multiple-value-bind (tree value) (tree-heap-remove-min t-1)
+        ;;   (lisp-unit:assert-equalp (cdr s-1)
+        ;;                            (heap-list tree))
+        ;;   (lisp-unit:assert-equalp (car s-1) value))
 
         ;; remove max
-        (multiple-value-bind (tree value) (tree-heap-remove-max t-1)
-          (lisp-unit:assert-equalp (subseq s-1 0 (1- (length s-1)))
-                                   (heap-list tree))
-          (lisp-unit:assert-equalp (car (last s-1)) value))
+        ;; (multiple-value-bind (tree value) (tree-heap-remove-max t-1)
+        ;;   (lisp-unit:assert-equalp (subseq s-1 0 (1- (length s-1)))
+        ;;                            (heap-list tree))
+        ;;   (lisp-unit:assert-equalp (car (last s-1)) value))
 
         (lisp-unit:assert-equalp (pairing-heap-list p-1 #'-)
                                  (sort (copy-list list-1) #'<))
