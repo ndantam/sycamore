@@ -66,7 +66,7 @@
                                    (cons key nil)
                                    (tree-map-compare tree-map))))
 
-(defun tree-map-find (tree-map key)
+(defun tree-map-find (tree-map key &optional default)
   "Find value indexed by KEY in TREE-MAP."
   (multiple-value-bind (cons present)
       (binary-tree-find (tree-map-root tree-map)
@@ -74,7 +74,7 @@
                         (tree-map-compare tree-map))
     (if present
         (values (cdr cons) t)
-        (values nil nil))))
+        (values default nil))))
 
 
 (defun map-tree-map (order result-type function tree-map)
