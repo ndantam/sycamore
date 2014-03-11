@@ -88,6 +88,10 @@ FUNCTION: (lambda (key value))."
                                    (lambda (pair) (funcall function (car pair) (cdr pair)))
                                    (tree-map-root tree-map))))
 
+(defun tree-map-count (map)
+  "Number of elements in MAP."
+  (avl-tree-count (tree-map-root map)))
+
 ;;;;;;;;;;;;;;;
 ;; TREE-SET ;;
 ;;;;;;;;;;;;;;;
