@@ -275,9 +275,15 @@ LANG: language output for dot, (or pdf ps eps png)"
       0))
 
 
-(declaim (ftype (function ((or array binary-tree) (or array binary-tree) function) fixnum) binary-tree-compare))
+(declaim (ftype (function ((or array binary-tree null) (or array binary-tree null) function)
+                          fixnum)
+                binary-tree-compare))
 (defun binary-tree-compare (tree-1 tree-2 compare)
   (declare (type function compare))
+  (cond
+    ((eq tree-1 tree-2) (return-from binary-tree-compare 0))
+    ((null tree-1) (return-from binary-tree-compare -1))
+    ((null tree-2) (return-from binary-tree-compare 1)))
   ;; O(log(n)) space, O(min(m,n)) time
   ;;(declare (optimize (speed 3) (safety 0)))
   (let ((stack (make-array 0;(ash (avl-tree-count tree-1) (- 0 +avl-tree-max-array-length+ 1))
