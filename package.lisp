@@ -52,4 +52,6 @@
    ;; queues
    make-amortized-queue amortized-queue amortized-queue-empty-p
    amortized-enqueue amortized-dequeue amortized-queue-push
-   amortized-queue-list))
+   amortized-queue-list
+   ;; misc
+   or-compare))

@@ -63,3 +63,16 @@
   `(if (<= (funcall ,compare ,value1 ,value2) 0)
        (progn ,lt-eq-case)
        (progn ,gt-case)))
+
+(defmacro or-compare (&rest comparisons)
+  "Short-circuit evaluatation of arguments, returning the first one that is nonzero."
+  (cond
+    ((null comparisons) 0)
+    ((null (cdr comparisons))
+     (car comparisons))
+     (t
+      (alexandria:with-gensyms (i)
+        `(let ((,i ,(car comparisons)))
+           (if (zerop ,i)
+               (or-compare ,@(cdr comparisons))
+               ,i))))))
