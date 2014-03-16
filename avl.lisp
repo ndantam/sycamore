@@ -579,30 +579,55 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 ;;                                            (binary-tree-value left)
 ;;                                            (join-avl-tree (binary-tree-right left) value right compare))))
 
+;; TODO: insert array into tree
+
+(defun avl-tree-join-array (left value right compare)
+  (let ((l-l (length left))
+        (l-r (length right)))
+    (cond
+      ((< (+ l-l l-r) (1- +avl-tree-max-array-length+))
+       (let ((new-array (make-array (1+ (+ l-l l-r)))))
+         (replace new-array left)
+         (setf (aref new-array l-l) value)
+         (replace new-array right :start1 (1+ l-l))
+         new-array))
+      ;; TODO: build two leaf arrays in single step
+      ((< l-l l-r)
+       (avl-tree-insert (build-avl-tree compare right left)
+                        value compare))
+      (t
+       (avl-tree-insert (build-avl-tree compare left right)
+                        value compare)))))
+
+
+
 (defun join-avl-tree (left value right compare)
-  (cond
-    ((null left) (avl-tree-insert right value compare))
-    ((null right) (avl-tree-insert left value compare))
-    ((simple-vector-p left)
-     (avl-tree-insert (build-avl-tree compare right left)
-                      value compare))
-    ((simple-vector-p right)
-     (avl-tree-insert (build-avl-tree compare left right)
-                      value compare))
-    (t
-     (with-avl-trees
-         (l1 v1 r1 c1) left
-         (l2 v2 r2 c2) right
-       (cond
-         ((> c2 (ash c1 +avl-tree-rebalance-log+))
-          (balance-avl-tree (join-avl-tree left value l2 compare)
-                            v2
-                            r2))
-         ((> c1 (ash c2 +avl-tree-rebalance-log+))
-          (balance-avl-tree l1
-                            v1
-                            (join-avl-tree r1 value right compare)))
-         (t (balance-avl-tree left value right)))))))
+  (etypecase left
+    (avl-tree (etypecase right
+                (avl-tree
+                 (with-avl-trees
+                     (l1 v1 r1 c1) left
+                     (l2 v2 r2 c2) right
+                   (cond
+                     ((> c2 (ash c1 +avl-tree-rebalance-log+))
+                      (balance-avl-tree (join-avl-tree left value l2 compare)
+                                        v2
+                                        r2))
+                     ((> c1 (ash c2 +avl-tree-rebalance-log+))
+                      (balance-avl-tree l1
+                                        v1
+                                        (join-avl-tree r1 value right compare)))
+                     (t (balance-avl-tree left value right)))))
+                (simple-vector (avl-tree-insert (build-avl-tree compare left right)
+                                                value compare))
+                (null (avl-tree-insert left value compare))))
+    (simple-vector (etypecase right
+                     (avl-tree (avl-tree-insert (build-avl-tree compare right left)
+                                                value compare))
+                     (simple-vector (avl-tree-join-array left value right compare))
+                     (null (avl-tree-insert left value compare))))
+    (null (avl-tree-insert right value compare))))
+
 
 ;; (defun avl-tree-concatenate (tree-1 tree-2)
 ;;   "Concatenate TREE-1 and TREE-2."
@@ -618,25 +643,47 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 ;;                                            (binary-tree-value tree-1)
 ;;                                            (avl-tree-concatenate (binary-tree-right tree-1) tree-2))))
 
+(defun avl-tree-concatenate-array (left right compare)
+  (let ((l-l (length left))
+        (l-r (length right)))
+    (cond
+      ((< (+ l-l l-r) (1- +avl-tree-max-array-length+))
+       (let ((new-array (make-array  (+ l-l l-r))))
+         (replace new-array left)
+         (replace new-array right :start1 l-l)
+         new-array))
+      ;; TODO: build two leaf arrays in single step
+      ((< l-l l-r)
+        (build-avl-tree compare right left))
+      (t
+       (build-avl-tree compare left right)))))
+
 
 (defun avl-tree-concatenate (tree-1 tree-2 compare)
   "Concatenate TREE-1 and TREE-2."
-  (cond
-    ((null tree-1) tree-2)
-    ((null tree-2) tree-1)
-    ((simple-vector-p tree-1)
-     (build-avl-tree compare tree-2 tree-1))
-    ((simple-vector-p tree-2)
-     (build-avl-tree compare tree-1 tree-2))
-    ((< (avl-tree-weight tree-1) (avl-tree-weight tree-2))
-     (balance-avl-tree (avl-tree-concatenate tree-1 (binary-tree-left tree-2) compare)
-                       (binary-tree-value tree-2)
-                       (binary-tree-right tree-2)))
-    ((< (avl-tree-weight tree-2) (avl-tree-weight tree-1))
-     (balance-avl-tree (binary-tree-left tree-1)
-                       (binary-tree-value tree-1)
-                       (avl-tree-concatenate (binary-tree-right tree-1) tree-2 compare)))
-    (t (balance-avl-tree tree-1 (binary-tree-min tree-2) (avl-tree-remove-min tree-2)))))
+  (etypecase tree-1
+    (avl-tree (etypecase tree-2
+                (avl-tree
+                 (with-avl-tree (l1 v1 r1 c1) tree-1
+                   (with-avl-tree (l2 v2 r2 c2) tree-2
+                     (cond
+                       ((< c1 c2)
+                        (balance-avl-tree (avl-tree-concatenate tree-1 l2 compare)
+                                          v2
+                                          r2))
+                       ((< c2 c1)
+                        (balance-avl-tree l1 v1
+                                          (avl-tree-concatenate r1 tree-2 compare)))
+                       (t (balance-avl-tree tree-1 (binary-tree-min tree-2) (avl-tree-remove-min tree-2)))))))
+                (simple-vector (build-avl-tree compare tree-1 tree-2))
+                (null tree-1)))
+    (simple-vector (etypecase tree-2
+                     (avl-tree (build-avl-tree compare tree-2 tree-1))
+                     (simple-vector (avl-tree-concatenate-array tree-1 tree-2 compare))
+                                        ;(build-avl-tree compare tree-2 tree-1))
+                     (null tree-1)))
+    (null tree-2)))
+
 
 ;; (defun avl-tree-split (tree x compare)
 ;;   (declare (type function compare))

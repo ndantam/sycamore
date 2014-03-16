@@ -41,6 +41,8 @@
 ;; Arrays ;;
 ;;;;;;;;;;;
 
+;; TODO: union, difference
+
 (defun array-tree-position (vector value compare &optional (start 0) (end (length vector)))
   (declare (type function compare)
            (type fixnum start end)
