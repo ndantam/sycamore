@@ -37,6 +37,20 @@
 
 (in-package :sycamore)
 
+
+;;;;;;;;;;;;;;;;;;;;
+;; Top containter ;;
+;;;;;;;;;;;;;;;;;;;;
+(defstruct (root-tree (:constructor %make-aux-tree (%compare root)))
+  %compare
+  (root nil))
+
+
+(defun make-aux-compare (compare)
+  (lambda (pair-1 pair-2)
+    (funcall compare (car pair-1) (car pair-2))))
+
+
 ;;;;;;;;;;;;;;;
 ;; TREE-MAPS ;;
 ;;;;;;;;;;;;;;;
@@ -48,8 +62,7 @@
 (defun make-tree-map (compare)
   "Create a new tree-map."
   (declare (type function compare))
-  (%make-tree-map (lambda (pair-1 pair-2)
-                    (funcall compare (car pair-1) (car pair-2)))
+  (%make-tree-map (make-aux-compare compare)
                   nil))
 
 (defun tree-map-insert (tree-map key value)
@@ -73,8 +86,8 @@
                         (cons key nil)
                         (tree-map-compare tree-map))
     (if present
-        (values (cdr cons) t)
-        (values default nil))))
+        (values (cdr cons) (car cons) t)
+        (values default key nil))))
 
 
 (defun map-tree-map (order result-type function tree-map)
@@ -199,6 +212,59 @@ FUNCTION: (lambda (key value))."
   "Order relation on sets."
   (avl-tree-compare (tree-set-root tree-1) (tree-set-root tree-2)
                     (tree-set-%compare tree-1)))
+
+
+;;;;;;;;;;;;;;;
+;; Tree-Bag  ;;
+;;;;;;;;;;;;;;;
+
+(defstruct (tree-bag (:constructor %make-tree-bag (%compare root))
+                     (:include root-tree)))
+
+(defun tree-bag-increment (value)
+  (values
+   (let ((key (car value))
+         (count (cdr value)))
+     (declare (type positive-fixnum count))
+     (cons key (1+ count)))
+   ;; always present
+   t))
+
+(defun tree-bag-decrement (value)
+  (let ((key (car value))
+        (count (cdr value)))
+    (declare (type positive-fixnum count))
+    (if (= count 0)
+        (values nil nil)
+        (values (cons key (1- count))))))
+
+(defun %tree-bag-insert (tree compare x)
+  (let ((x (cons x 0)))
+    (avl-tree-modify tree x compare #'tree-bag-increment x)))
+
+(defun tree-bag (compare &rest args)
+  (let ((compare (make-aux-compare compare)))
+    (%make-tree-bag compare
+                    (fold (lambda (tree x) (%tree-bag-insert tree compare x))
+                          nil
+                          args))))
+
+(defun tree-bag-insert (tb x)
+  (let ((x (cons x 0))
+        (compare (tree-bag-%compare tb)))
+    (%make-tree-bag compare
+                    (avl-tree-modify (tree-bag-root tb)
+                                     x compare #'tree-bag-increment x))))
+
+(defun tree-bag-count (bag key)
+  "Return count of `KEY' in `BAG'."
+  (multiple-value-bind (cons present)
+      (let ((key (cons key 0)))
+        (binary-tree-find (tree-bag-root bag) key (tree-bag-%compare bag)))
+    (if present
+        (cdr cons)
+        0)))
+
 
 ;;;;;;;;;;;;;;;
 ;; Tree-Heap ;;

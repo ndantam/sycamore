@@ -37,6 +37,10 @@
 
 (in-package :sycamore)
 
+(deftype positive-fixnum ()
+  `(integer 0 ,most-positive-fixnum))
+
+
 ;; (defun fold (function initial-value &rest lists)
 ;;   (let ((value initial-value))
 ;;     (apply #'map nil

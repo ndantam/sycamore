@@ -55,9 +55,9 @@
 (defstruct (avl-tree
              (:include binary-tree)
              (:constructor %make-avl-tree (weight left value right)))
-  (weight 0 :type (integer 0 #.most-positive-fixnum)))
+  (weight 0 :type positive-fixnum))
 
-(declaim (ftype (function (t) (integer 0 #.most-positive-fixnum)) avl-tree-count))
+(declaim (ftype (function (t) positive-fixnum) avl-tree-count))
 (defun avl-tree-count (tree)
   (etypecase tree
     (avl-tree (avl-tree-weight tree))
@@ -358,6 +358,61 @@
                                        (avl-tree-replace r value compare)))))
     (simple-vector (avl-tree-replace-vector tree value compare))
     (null (vector value))))
+
+
+(defun avl-tree-modify-vector (tree value compare modify default)
+  (declare (type simple-vector tree)
+           (type function modify))
+  (multiple-value-bind (i present)
+      (array-tree-insert-position tree value compare)
+    (declare (type fixnum i))
+    (if present
+        ;; replace in tree
+        (array-tree-set tree (funcall modify (aref tree i)) i)
+        ;; moidfy default value
+        (multiple-value-bind (value present) (funcall modify default)
+          (if present
+              ;; insert new value
+              (let* ((n (length tree))
+                     (n/2 (ash n -1)))
+                (declare (type fixnum n n/2))
+                (cond
+                  ((< n +avl-tree-max-array-length+)
+                   (array-tree-insert-at tree value i))
+                  ((< i n/2)
+                   (make-avl-tree (array-tree-insert-at tree value i 0 (1- n/2))
+                                  (aref tree (1- n/2))
+                                  (subseq tree  n/2)))
+                  ((> i n/2)
+                   (make-avl-tree (subseq tree 0 n/2)
+                                  (aref tree n/2)
+                                  (array-tree-insert-at tree value i (1+ n/2))))
+                  (t ;; (= i n/2)
+                   (make-avl-tree (subseq tree 0 n/2)
+                                  value
+                                  (subseq tree  n/2)))))
+              ;; nothing to insert
+              tree)))))
+
+
+(defun avl-tree-modify (tree value compare modify &optional default)
+  "Modify `VALUE' in `TREE', returning new tree."
+  (declare (type function compare modify))
+  (etypecase tree
+    (avl-tree
+     (with-avl-tree (l v r) tree
+       (cond-compare (value v compare)
+                     (balance-avl-tree (avl-tree-modify l value compare modify default)
+                                       v r)
+                     (multiple-value-bind (value present) (funcall modify v)
+                       (if present
+                           (make-avl-tree l value r)
+                           (avl-tree-concatenate l r v)))
+                     (balance-avl-tree l v
+                                       (avl-tree-modify r value compare modify default)))))
+    (simple-vector (avl-tree-modify-vector tree value compare modify default))
+    (null (multiple-value-bind (value present) (funcall modify default)
+            (when present (vector value))))))
 
 
 (defun avl-tree-reinsert-vector (tree value compare)

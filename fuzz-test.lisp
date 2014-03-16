@@ -68,46 +68,81 @@
 ;; Heap ;;
 ;;;;;;;;;;
 
-(defun heap-fuzz-generator ()
-  (loop for i below (random (expt 2 12))
+;; (defun heap-fuzz-generator ()
+;;   (loop for i below (random (expt 2 12))
+;;      collect
+;;        (case (random 3)
+;;          (0 `(:insert ,(random (expt 2 12))))
+;;          (1 '(:find-min))
+;;          (2 `(:remove-min)))))
+
+;; (defun heap-fuzz-tester (fuzz)
+;;   (fuzz::do-operations
+;;       ((list pairing-heap tree-heap) (list nil nil (make-tree-heap #'identity)))
+;;       fuzz
+;;     ((:insert arg)
+;;      (list (cons arg list)
+;;            (pairing-heap-insert pairing-heap arg #'-)
+;;            (tree-heap-insert tree-heap arg)))
+;;     ((:find-min)
+;;      (if list
+;;          (let ((new-list (sort list #'<)))
+;;            (and (equal (car new-list)
+;;                        (pairing-heap-find-min pairing-heap))
+;;                 (equal (car new-list)
+;;                        (tree-heap-find-min tree-heap))
+;;                 (list new-list pairing-heap tree-heap)))
+;;          (and (null pairing-heap)
+;;               (tree-heap-empty-p tree-heap)
+;;               (list list pairing-heap tree-heap))))
+;;     ((:remove-min)
+;;      (if list
+;;          (multiple-value-bind (ph-1 pmin) (pairing-heap-remove-min pairing-heap #'-)
+;;            (multiple-value-bind (th-1 tmin) (tree-heap-remove-min tree-heap)
+;;              (destructuring-bind (lmin &rest lh-1) (sort list #'<)
+;;                (and (equal lmin pmin)
+;;                     (equal lmin tmin)
+;;                     (list lh-1 ph-1 th-1)))))
+;;          (and (null pairing-heap)
+;;               (tree-heap-empty-p tree-heap)
+;;               (list list pairing-heap tree-heap))))))
+
+;; (defun run-heap-tests (&key (count 1))
+;;   (fuzz:run-tests #'heap-fuzz-generator
+;;                   #'heap-fuzz-tester
+;;                   :count count))
+
+
+
+;;;;;;;;;
+;; BAG ;;
+;;;;;;;;;
+
+(defun bag-fuzz-generator ()
+  (loop
+     for i below (random (expt 2 10))
      collect
-       (case (random 3)
-         (0 `(:insert ,(random (expt 2 12))))
-         (1 '(:find-min))
-         (2 `(:remove-min)))))
+       (random 32)))
 
-(defun heap-fuzz-tester (fuzz)
-  (fuzz::do-operations
-      ((list pairing-heap tree-heap) (list nil nil (make-tree-heap #'identity)))
-      fuzz
-    ((:insert arg)
-     (list (cons arg list)
-           (pairing-heap-insert pairing-heap arg #'-)
-           (tree-heap-insert tree-heap arg)))
-    ((:find-min)
-     (if list
-         (let ((new-list (sort list #'<)))
-           (and (equal (car new-list)
-                       (pairing-heap-find-min pairing-heap))
-                (equal (car new-list)
-                       (tree-heap-find-min tree-heap))
-                (list new-list pairing-heap tree-heap)))
-         (and (null pairing-heap)
-              (tree-heap-empty-p tree-heap)
-              (list list pairing-heap tree-heap))))
-    ((:remove-min)
-     (if list
-         (multiple-value-bind (ph-1 pmin) (pairing-heap-remove-min pairing-heap #'-)
-           (multiple-value-bind (th-1 tmin) (tree-heap-remove-min tree-heap)
-             (destructuring-bind (lmin &rest lh-1) (sort list #'<)
-               (and (equal lmin pmin)
-                    (equal lmin tmin)
-                    (list lh-1 ph-1 th-1)))))
-         (and (null pairing-heap)
-              (tree-heap-empty-p tree-heap)
-              (list list pairing-heap tree-heap))))))
 
-(defun run-heap-tests (&key (count 1))
-  (fuzz:run-tests #'heap-fuzz-generator
-                  #'heap-fuzz-tester
+(defun bag-fuzz-tester (fuzz)
+  (let ((bag (fuzz:test-true 'produce-bag
+                             (lambda ()
+                               (fold #'tree-bag-insert (tree-bag #'-) fuzz))))
+        (hash (fuzz:test-true 'produce-hash
+                              (lambda ()
+                                (fold (lambda (h x)
+                                        (setf (gethash x h) (1+ (gethash x h 0)))
+                                        h)
+                                      (make-hash-table)
+                                      fuzz)))))
+    (loop for k being the hash-keys of hash
+         do
+         (fuzz:test= 'bag-count=
+                     (lambda () (gethash k hash))
+                     (lambda () (tree-bag-count bag k))))))
+
+(defun run-bag-tests (&key (count 1))
+  (fuzz:run-tests #'bag-fuzz-generator
+                  #'bag-fuzz-tester
                   :count count))

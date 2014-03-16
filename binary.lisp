@@ -192,6 +192,13 @@ RESULT-TYPE: (or 'list nil)"
            (null (binary-tree-right tree)))))
 
 
+(defun binary-tree-depth (tree)
+  (etypecase tree
+    (binary-tree
+     (1+ (max (binary-tree-depth (binary-tree-left tree))
+              (binary-tree-depth (binary-tree-right tree)))))
+    (array 1)
+    (null 0)))
 
 #+sbcl
 (defun output-dot-file (program output function lang)
