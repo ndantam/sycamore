@@ -238,9 +238,11 @@
       ((> n1 n2) 1)
       (t
        (labels ((rec (start end)
+                  (declare (type fixnum start end))
                   (if (>= start end)
                       0
                       (let ((i (+ start (ash (- end start) -1))))
+                        (declare (type fixnum i))
                         (or-compare (funcall compare (aref vector-1 i) (aref vector-2 i))
                                     (rec start i)
                                     (rec (1+ i) end))))))
