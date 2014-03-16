@@ -41,8 +41,6 @@
 ;; Arrays ;;
 ;;;;;;;;;;;
 
-;; TODO: union, difference
-
 (defun array-tree-position (vector value compare &optional (start 0) (end (length vector)))
   (declare (type function compare)
            (type fixnum start end)
@@ -173,13 +171,14 @@
                      (subseq ,tree-sym (1+ ,i)))))
        ,@body)))
 
-(defun array-tree-split-at (tree position)
+(defun array-tree-split-at (tree position
+                            &optional (start 0) (end (length tree)))
   (declare (type simple-vector tree)
            (type fixnum position))
-  (values (when (> position 0) (subseq tree 0 position))
+  (values (when (> position start) (subseq tree start position))
           (aref tree position)
-          (when (< position (1- (length tree)))
-            (subseq tree (1+ position)))))
+          (when (< position (1- end))
+            (subseq tree (1+ position) end))))
 
 (defun array-tree-split (tree x compare)
   (declare (type simple-vector tree)
@@ -216,6 +215,7 @@
         (if (> n 0)
             (replace (make-array n) array)
             nil)))))
+
 
 
 

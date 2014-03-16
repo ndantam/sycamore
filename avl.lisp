@@ -43,6 +43,9 @@
 ;;  AVL  ;;
 ;;;;;;;;;;;
 
+;; Ok, these aren't really AVL trees since we explicitly store element
+;; count.
+
 ;; SEE: Adams, Stephen. Implementing Sets Efficiantly in a Functional Language
 
 ;; All leaf nodes are simple vectors.
@@ -51,6 +54,11 @@
 (defconstant +avl-tree-max-array-length+ 8)
 (defparameter +avl-tree-rebalance-log+ 2)  ;; power two difference for rebalancing
 (declaim (type (integer 2 2) +avl-tree-rebalance-log+))
+
+(defmacro with-temp-avl-array ((var &optional (size +avl-tree-max-array-length+)) &body body)
+  `(let ((,var (make-array ,size)))
+     (declare (dynamic-extent ,var))
+     ,@body))
 
 (defstruct (avl-tree
              (:include binary-tree)
@@ -582,22 +590,33 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 ;; TODO: insert array into tree
 
 (defun avl-tree-join-array (left value right compare)
-  (let ((l-l (length left))
-        (l-r (length right)))
-    (cond
-      ((< (+ l-l l-r) (1- +avl-tree-max-array-length+))
-       (let ((new-array (make-array (1+ (+ l-l l-r)))))
-         (replace new-array left)
-         (setf (aref new-array l-l) value)
-         (replace new-array right :start1 (1+ l-l))
-         new-array))
-      ;; TODO: build two leaf arrays in single step
-      ((< l-l l-r)
-       (avl-tree-insert (build-avl-tree compare right left)
-                        value compare))
-      (t
-       (avl-tree-insert (build-avl-tree compare left right)
-                        value compare)))))
+  (declare (ignore compare)
+           (type simple-vector left right))
+  (let* ((l-l (length left))
+         (l-r (length right))
+         (l-x (+ l-l l-r 1)))
+    (labels ((fill-array (new-array)
+               (replace new-array left)
+               (setf (aref new-array l-l) value)
+               (replace new-array right :start1 (1+ l-l))
+               new-array))
+      (if (< l-x  +avl-tree-max-array-length+)
+          (let ((new-array (make-array l-x)))
+            (fill-array new-array))
+          (let* ((n (1+ (ash +avl-tree-max-array-length+ 1))))
+            (with-temp-avl-array (new-array n)
+              (assert (<= l-x n))
+              (fill-array new-array)
+              (multiple-value-call #'make-avl-tree
+                (array-tree-split-at new-array (ash l-x -1) 0 l-x))))))))
+
+      ;; ;; TODO: build two leaf arrays in single step
+      ;; ((< l-l l-r)
+      ;;  (avl-tree-insert (build-avl-tree compare right left)
+      ;;                   value compare))
+      ;; (t
+      ;;  (avl-tree-insert (build-avl-tree compare left right)
+      ;;                   value compare)))))
 
 
 
@@ -644,6 +663,8 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 ;;                                            (avl-tree-concatenate (binary-tree-right tree-1) tree-2))))
 
 (defun avl-tree-concatenate-array (left right compare)
+  (declare ;(ignore compare)
+           (type simple-vector left right))
   (let ((l-l (length left))
         (l-r (length right)))
     (cond
@@ -896,88 +917,175 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                         compare)))))
 
 
+(defun avl-tree-union-array (tree-1 tree-2 compare)
+  (let* ((l-1 (length tree-1))
+         (l-2 (length tree-2))
+         (l-x (+ l-1 l-2))
+         (x (make-array l-x)))
+    ;; TODO: dynamic extent
+    (let ((k
+           (do ((i 0)
+                (j 0)
+                (k 0 (1+ k)))
+               ((and (= i l-1)
+                     (= j l-2))
+                ;; RESULT
+                k)
+             (cond
+               ((= i l-1)
+                (replace x tree-2 :start1 k :start2 j)
+                (incf k (- l-2 j 1))
+                (setq j l-2))
+               ((= j l-2)
+                (replace x tree-1 :start1 k :start2 i)
+                (incf k (- l-1 i 1))
+                (setq i l-1))
+               (t
+                (cond-compare ((aref tree-1 i) (aref tree-2 j) compare)
+                              (progn (setf (aref x k) (aref tree-1 i))
+                                     (incf i))
+                              (progn (setf (aref x k) (aref tree-2 j))
+                                     (incf i)
+                                     (incf j))
+                              (progn (setf (aref x k) (aref tree-2 j))
+                                     (incf j))))))))
+      (cond
+        ((> k +avl-tree-max-array-length+)
+         (multiple-value-call #'make-avl-tree
+           (array-tree-split-at x (ash k -1) 0 k)))
+        ((= k l-x)
+         x)
+        (t (subseq x 0 k))))))
+
+
 (defun avl-tree-union (tree-1 tree-2 compare)
   (declare (type function compare))
-  (cond
-    ((null tree-1) tree-2)
-    ((null tree-2) tree-1)
-    ;; special-casing the vector gives big speedup
-    ((simple-vector-p tree-1)
-     (build-avl-tree compare tree-2 tree-1))
-    ((simple-vector-p tree-2)
-     (build-avl-tree compare tree-1 tree-2))
-    (t
-     (multiple-value-bind (tree-1 tree-2) ;; normalize sizes, faster to split the smaller tree
-         (if (<= (avl-tree-count tree-2)
-                 (avl-tree-count tree-1))
-             (values tree-1 tree-2)
-             (values tree-2 tree-1))
-       (with-avl-tree (l1 v1 r1) tree-1
-         (multiple-value-bind (l2 p-2 r2) (avl-tree-split tree-2 v1 compare)
-           (declare (ignore p-2))
-           (join-avl-tree (avl-tree-union l1 l2 compare)
-                          v1
-                          (avl-tree-union r1 r2 compare)
-                          compare)))))))
+  (etypecase tree-1
+    (avl-tree (etypecase tree-2
+                (avl-tree
+                 (multiple-value-bind (tree-1 tree-2) ;; normalize sizes, faster to split the smaller tree
+                     (if (<= (avl-tree-count tree-2)
+                             (avl-tree-count tree-1))
+                         (values tree-1 tree-2)
+                         (values tree-2 tree-1))
+                   (with-avl-tree (l1 v1 r1) tree-1
+                     (multiple-value-bind (l2 p-2 r2) (avl-tree-split tree-2 v1 compare)
+                       (declare (ignore p-2))
+                       (join-avl-tree (avl-tree-union l1 l2 compare)
+                                      v1
+                                      (avl-tree-union r1 r2 compare)
+                                      compare)))))
+                (simple-vector (build-avl-tree compare tree-1 tree-2))
+                (null tree-1)))
+    (simple-vector (etypecase tree-2
+                     (avl-tree (build-avl-tree compare tree-2 tree-1))
+                     (simple-vector (avl-tree-union-array tree-1 tree-2 compare))
+                     (null tree-1)))
+    (null tree-2)))
+
+(defun avl-tree-array-intersection (tree1 tree2 compare)
+  (declare (type simple-vector tree1 tree2)
+           (type function compare))
+  (let ((l-1 (length tree1))
+        (l-2 (length tree2)))
+    (with-temp-avl-array (array)
+      (assert (and (<= l-1 +avl-tree-max-array-length+)
+                   (<= l-2 +avl-tree-max-array-length+)))
+      (do ((i 0)
+           (j 0)
+           (k 0))
+          ((or (= i l-1)
+               (= j l-2))
+           (subseq array 0 k))
+        (cond-compare ((aref tree1 i) (aref tree2 j) compare)
+                      (incf i)
+                      (progn
+                        (setf (aref array k) (aref tree1 i))
+                        (incf i)
+                        (incf j)
+                        (incf k))
+                      (incf j))))))
+
+(defun avl-tree-intersection-tree-array (tree array compare)
+  (declare (type simple-vector array))
+  (let* ((l-v (length array)))
+    (with-temp-avl-array (new-array)
+      (assert (<= l-v +avl-tree-max-array-length+))
+      (do ((i 0 (1+ i))
+           (k 0))
+          ((= i l-v)
+           (subseq new-array 0 k))
+        (let ((x (aref array i)))
+          (when (binary-tree-member-p tree x compare)
+            (setf (aref new-array k) x)
+            (incf k)))))))
 
 (defun avl-tree-intersection (tree-1 tree-2 compare)
-  (labels ((fold-keep (vector tree)
-             (fold (lambda (new-tree x)
-                     (if (binary-tree-member-p tree x compare)
-                         (avl-tree-insert new-tree x compare)
-                         new-tree))
-                   nil vector)))
-    (cond
-      ((or (null tree-1)
-           (null tree-2))
-       nil)
-      ;; base intersection
-      ((and (simple-vector-p tree-1)
-            (simple-vector-p tree-2))
-       (array-tree-intersection tree-1 tree-2 compare))
-      ;; keep all in tree-1 that are in tree-2
-      ((simple-vector-p tree-1)
-       (fold-keep tree-1 tree-2))
-      ;; keep all in tree-2 that are in tree-1
-      ((simple-vector-p tree-2)
-       (fold-keep tree-2 tree-1))
-      ;; general case
-      (t
-       (multiple-value-bind (tree-1 tree-2) ;; normalize sizes, faster to split the smaller tree
-           (if (<= (avl-tree-count tree-2)
-                   (avl-tree-count tree-1))
-               (values tree-1 tree-2)
-               (values tree-2 tree-1))
-         (with-avl-tree (l1 v1 r1) tree-1
-           (multiple-value-bind (l2 present r2)
-               (avl-tree-split tree-2 v1 compare)
-             (let ((l-i (avl-tree-intersection l1 l2 compare))
-                   (r-i (avl-tree-intersection r1 r2 compare)))
-               (if present
-                   (join-avl-tree l-i v1 r-i compare)
-                   (avl-tree-concatenate l-i r-i compare))))))))))
+  (etypecase tree-1
+    (avl-tree (etypecase tree-2
+                (avl-tree
+                 (multiple-value-bind (tree-1 tree-2) ;; normalize sizes, faster to split the smaller tree
+                     (if (<= (avl-tree-count tree-2)
+                             (avl-tree-count tree-1))
+                         (values tree-1 tree-2)
+                         (values tree-2 tree-1))
+                   (with-avl-tree (l1 v1 r1) tree-1
+                     (multiple-value-bind (l2 present r2)
+                         (avl-tree-split tree-2 v1 compare)
+                       (let ((l-i (avl-tree-intersection l1 l2 compare))
+                             (r-i (avl-tree-intersection r1 r2 compare)))
+                         (if present
+                             (join-avl-tree l-i v1 r-i compare)
+                             (avl-tree-concatenate l-i r-i compare)))))))
+                (simple-vector (avl-tree-intersection-tree-array tree-1 tree-2 compare))
+                (null nil)))
+    (simple-vector (etypecase tree-2
+                     (avl-tree (avl-tree-intersection-tree-array tree-2 tree-1 compare))
+                     (simple-vector (avl-tree-array-intersection tree-1 tree-2 compare))
+                     (null nil)))
+    (null nil)))
 
 (defun avl-tree-difference (tree-1 tree-2 compare)
   (declare (type function compare))
-  (cond
-    ((null tree-1) nil)
-    ((null tree-2) tree-1)
-    ((simple-vector-p tree-1)
-     (fold (lambda (tree x)
-             (if (binary-tree-member-p tree-2 x compare)
-                 tree
-                 (array-tree-insert tree x compare)))
-           (vector) tree-1))
-    ;; general case
-    (t (multiple-value-bind (left-2 present right-2)
-           (avl-tree-split tree-2 (binary-tree-value tree-1) compare)
-         (let ((left (avl-tree-difference (binary-tree-left tree-1) left-2 compare))
-               (right (avl-tree-difference (binary-tree-right tree-1) right-2 compare)))
-           (if present
-               (avl-tree-concatenate left right compare)
-               (join-avl-tree left (binary-tree-value tree-1) right compare)))))))
-
-
+  (etypecase tree-1
+    (avl-tree (etypecase tree-2
+                (avl-tree
+                 (multiple-value-bind (left-2 present right-2)
+                     (avl-tree-split tree-2 (binary-tree-value tree-1) compare)
+                   (let ((left (avl-tree-difference (binary-tree-left tree-1) left-2 compare))
+                         (right (avl-tree-difference (binary-tree-right tree-1) right-2 compare)))
+                     (if present
+                         (avl-tree-concatenate left right compare)
+                         (join-avl-tree left (binary-tree-value tree-1) right compare)))))
+                (simple-vector
+                 (fold (lambda (tree x)
+                         (avl-tree-remove tree x compare))
+                       tree-1 tree-2))
+                (null tree-1)))
+    (simple-vector (etypecase tree-2
+                     (avl-tree (with-temp-avl-array (new-array)
+                                 (let ((l-1 (length tree-1)))
+                                   (do ((i 0 (1+ i))
+                                        (k 0))
+                                       ((= i l-1)
+                                        (subseq new-array 0 k))
+                                     (let ((x (aref tree-1 i)))
+                                       (unless (binary-tree-member-p tree-2 x compare)
+                                         (setf (aref new-array k) x)
+                                         (incf k)))))))
+                     (simple-vector (with-temp-avl-array (new-array)
+                                      ;; TODO: can we do better?
+                                      (let ((l-1 (length tree-1)))
+                                        (do ((i 0 (1+ i))
+                                             (k 0))
+                                            ((= i l-1)
+                                             (subseq new-array 0 k))
+                                          (let ((x (aref tree-1 i)))
+                                            (unless (binary-tree-member-p tree-2 x compare)
+                                              (setf (aref new-array k) x)
+                                              (incf k)))))))
+                     (null tree-1)))
+    (null nil)))
 
 (defun avl-tree-subset (tree-1 tree-2 compare)
   (declare (type function compare))
