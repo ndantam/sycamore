@@ -484,8 +484,11 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 (defun avl-tree-builder (compare)
   (lambda (tree value) (avl-tree-insert tree value compare)))
 
+(defun build-avl-tree (compare initial-tree elements)
+  (fold (avl-tree-builder compare) initial-tree elements))
+
 (defun avl-tree (compare &rest elements)
-  (fold (avl-tree-builder compare) nil elements))
+  (build-avl-tree compare nil elements))
 
 (defun avl-tree-remove-min (tree)
   "Remove minimum element of TREE, returning element and tree."
@@ -581,10 +584,10 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
     ((null left) (avl-tree-insert right value compare))
     ((null right) (avl-tree-insert left value compare))
     ((simple-vector-p left)
-     (avl-tree-insert (reduce (avl-tree-builder compare) left :initial-value right)
+     (avl-tree-insert (build-avl-tree compare right left)
                       value compare))
     ((simple-vector-p right)
-     (avl-tree-insert (reduce (avl-tree-builder compare) right :initial-value left)
+     (avl-tree-insert (build-avl-tree compare left right)
                       value compare))
     (t
      (with-avl-trees
@@ -622,9 +625,9 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
     ((null tree-1) tree-2)
     ((null tree-2) tree-1)
     ((simple-vector-p tree-1)
-     (reduce (avl-tree-builder compare) tree-1 :initial-value tree-2))
+     (build-avl-tree compare tree-2 tree-1))
     ((simple-vector-p tree-2)
-     (reduce (avl-tree-builder compare) tree-2 :initial-value tree-1))
+     (build-avl-tree compare tree-1 tree-2))
     ((< (avl-tree-weight tree-1) (avl-tree-weight tree-2))
      (balance-avl-tree (avl-tree-concatenate tree-1 (binary-tree-left tree-2) compare)
                        (binary-tree-value tree-2)
@@ -853,9 +856,9 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
     ((null tree-2) tree-1)
     ;; special-casing the vector gives big speedup
     ((simple-vector-p tree-1)
-     (reduce (avl-tree-builder compare) tree-1 :initial-value tree-2))
+     (build-avl-tree compare tree-2 tree-1))
     ((simple-vector-p tree-2)
-     (reduce (avl-tree-builder compare) tree-2 :initial-value tree-1))
+     (build-avl-tree compare tree-1 tree-2))
     (t
      (multiple-value-bind (tree-1 tree-2) ;; normalize sizes, faster to split the smaller tree
          (if (<= (avl-tree-count tree-2)

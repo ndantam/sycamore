@@ -50,7 +50,21 @@
 ;;     value))
 
 (defun fold (function initial-value sequence)
-  (reduce function sequence :initial-value initial-value))
+  (declare (type function function))
+  (etypecase sequence
+    (list
+     (loop
+        for x in sequence
+        for y = (funcall function initial-value x) then
+          (funcall function y x)
+        finally (return y)))
+    (simple-vector
+     (let ((y initial-value))
+       (dotimes (i (length sequence))
+         (setq y (funcall function y (svref sequence i))))
+       y))
+    (sequence
+     (reduce function sequence :initial-value initial-value))))
 
 (defmacro cond-compare ((value1 value2 compare) lt-case eq-case gt-case)
   (alexandria:with-gensyms (c)
