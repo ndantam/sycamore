@@ -86,6 +86,29 @@
          ,@body))))
 
 
+(defun avl-tree-ref (tree subscript)
+  "Return the element of `TREE' at position `SUBSCRIPT'.
+
+Leftmost (least) element of TREE has SUBSCRIPT of zero."
+  (declare (type positive-fixnum subscript))
+  (labels ((rec (tree subscript)
+             (declare (type positive-fixnum subscript))
+             (etypecase tree
+               (avl-tree
+                (with-avl-tree (l v r) tree
+                  (let ((lw (avl-tree-count l)))
+                    (cond
+                      ((< subscript lw)
+                       (rec l subscript))
+                      ((> subscript lw)
+                       (rec r (- subscript lw 1)))
+                      (t v)))))
+               (simple-vector (aref tree subscript))
+               (null (error "Cannot index NIL")))))
+    (assert (< subscript (avl-tree-count tree)))
+    (rec tree subscript)))
+
+
 (defmacro with-avl-trees ((left1 value1 right1 &optional count1) tree1
                           (left2 value2 right2 &optional count2) tree2
                           &body body)
