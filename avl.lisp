@@ -676,6 +676,13 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
     (null
      (values nil nil nil))))
 
+(defun avl-tree-midpoint (tree compare)
+  (declare (type function compare))
+  (let ((v (avl-tree-ref tree (ash (avl-tree-count tree) -1))))
+    (multiple-value-bind (l p r)
+        (avl-tree-split tree v compare)
+      (assert p)
+      (values l v r))))
 
 ;; (defun avl-tree-remove (tree x compare)
 ;;   "Remove X from TREE, returning new tree."
@@ -965,16 +972,32 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
   (declare (type function compare))
   ;; O(log(n)) space, O(min(m,n)) time
   (cond
+    ((eq tree-1 tree-2) 0)
     ((and tree-1 tree-2)
      (let ((n1 (avl-tree-count tree-1))
            (n2 (avl-tree-count tree-2)))
        (cond  ;; first, order by count since that's O(1)
          ((< n1 n2) -1)
          ((> n1 n2) 1)
-         (t (binary-tree-compare tree-1 tree-2 compare)))))
+         ;((< n1 +avl-tree-max-array-length+)
+         ((and (simple-vector-p tree-1)
+               (simple-vector-p tree-2))
+          (let ((i (array-tree-compare tree-1 tree-2 compare)))
+            i))
+         (t
+          ;; try binary again
+          ;(binary-tree-compare tree-1 tree-2 compare)))))
+          (multiple-value-bind (l1 m1 r1)
+              (avl-tree-midpoint tree-1 compare)
+            (multiple-value-bind (l2 m2 r2)
+                (avl-tree-midpoint tree-2 compare)
+              (or-compare (funcall compare m1 m2)
+                          (avl-tree-compare l1 l2 compare)
+                          (avl-tree-compare r1 r2 compare))))))))
     (tree-1 1)
-    (tree-2 -2)
+    (tree-2 -1)
     (t 0)))
+
 
 (defun avl-tree-dot (tree &key output)
   (binary-tree-dot tree

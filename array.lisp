@@ -226,3 +226,20 @@
 ;;                 (subseq array n/2))
 ;;         (values (subseq array 0 n/2)
 ;;                 (array-tree-insert value array compare n/2 n i)))))
+
+(defun array-tree-compare (vector-1 vector-2 compare)
+  (declare (type simple-vector vector-1 vector-2))
+  (let ((n1 (length vector-1))
+        (n2 (length vector-2)))
+    (cond  ;; first, order by count since that's O(1)
+      ((< n1 n2) -1)
+      ((> n1 n2) 1)
+      (t
+       (labels ((rec (start end)
+                  (if (>= start end)
+                      0
+                      (let ((i (+ start (ash (- end start) -1))))
+                        (or-compare (funcall compare (aref vector-1 i) (aref vector-2 i))
+                                    (rec start i)
+                                    (rec (1+ i) end))))))
+         (rec 0 n1))))))
