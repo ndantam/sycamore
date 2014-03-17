@@ -40,6 +40,11 @@
 (deftype positive-fixnum ()
   `(integer 0 ,most-positive-fixnum))
 
+(defun fixnum-compare (a b)
+  (declare (type fixnum a b))
+  (cond ((< a b) -1)
+        ((> a b) 1)
+        (t 0)))
 
 ;; (defun fold (function initial-value &rest lists)
 ;;   (let ((value initial-value))

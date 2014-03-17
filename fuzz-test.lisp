@@ -146,3 +146,48 @@
   (fuzz:run-tests #'bag-fuzz-generator
                   #'bag-fuzz-tester
                   :count count))
+
+;;;;;;;;;;;;;;
+;; TREE-SET ;;
+;;;;;;;;;;;;;;
+
+(defun tree-set-fuzz-generator ()
+  (loop for i below 2
+     collect (loop
+                for i below (1+ (random (expt 2 12)))
+                collect
+                  (random (expt 2 20)))))
+
+(defun tree-set-fuzz-tester (fuzz)
+  (let* ((list-1 (remove-duplicates (first fuzz)))
+         (list-2 (remove-duplicates (second fuzz)))
+         (set-1 (fuzz:test-true 'build-avl-1
+                                (lambda () (build-avl-tree #'fixnum-compare nil list-1))))
+         (set-2 (fuzz:test-true  'build-avl-2
+                                 (lambda () (build-avl-tree #'fixnum-compare nil list-2)))))
+    (labels ((set-sort (x) (sort (copy-list x) #'<)))
+      ;; constructed sets
+      (fuzz:do-test ('avl-elements-1 :test #'equal)
+        (set-sort list-1)
+        (avl-tree-list set-1))
+      (fuzz:do-test ('avl-elements-2 :test #'equal)
+        (set-sort list-2)
+        (avl-tree-list set-2))
+      ;; union
+      (fuzz:do-test ('avl-union :test #'equal)
+        (set-sort (union list-1 list-2))
+        (avl-tree-list (avl-tree-union set-1 set-2 #'fixnum-compare)))
+      ;; intersection
+      (fuzz:do-test ('avl-intersection :test #'equal)
+        (set-sort (intersection list-1 list-2))
+        (avl-tree-list (avl-tree-intersection set-1 set-2 #'fixnum-compare)))
+      ;; difference
+      (fuzz:do-test ('avl-difference :test #'equal)
+        (set-sort (set-difference list-1 list-2))
+        (avl-tree-list (avl-tree-difference set-1 set-2 #'fixnum-compare))))))
+
+(defun run-tree-set-tests (&key (count 1))
+  (fuzz:run-tests #'tree-set-fuzz-generator
+                  #'tree-set-fuzz-tester
+                  :formatter #'identity
+                  :count count))
