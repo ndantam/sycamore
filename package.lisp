@@ -46,6 +46,7 @@
    tree-set-union tree-set-intersection tree-set-difference
    tree-set-member-p tree-set-find
    tree-set-equal-p tree-set-subset-p tree-set-compare
+   tree-set-intersection-difference
    ;; tree map
    make-tree-map tree-map-insert tree-map-remove tree-map-find
    map-tree-map tree-map-count

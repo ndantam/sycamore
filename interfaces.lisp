@@ -195,6 +195,16 @@ FUNCTION: (lambda (key value))."
 (def-tree-set-binop tree-set-difference avl-tree-difference
   "Difference of SET-1 and SET-2.")
 
+(defun tree-set-intersection-difference (tree-1 tree-2)
+  "Simultanously compute intersection and difference."
+  (let ((compare (tree-set-%compare tree-1)))
+    (multiple-value-bind (i d)
+        (avl-tree-intersection-difference (tree-set-root tree-1)
+                                          (tree-set-root tree-2)
+                                          compare)
+      (values (%make-tree-set compare i)
+              (%make-tree-set compare d)))))
+
 (defun tree-set-equal-p (set-1 set-2)
   "Do SET-1 and SET-2 contain the same elements?"
   (binary-tree-equal (tree-set-root set-1)

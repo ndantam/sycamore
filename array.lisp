@@ -45,16 +45,19 @@
   (declare (type function compare)
            (type fixnum start end)
            (type simple-vector vector))
-  (declare (type fixnum start end))
-  (if (>= start end)
-      nil
-      (let* ((i (ash (+ start end) -1))
-             (c (funcall compare value (aref vector i))))
-        (declare (type fixnum c))
-        (cond
-          ((< c 0) (array-tree-position vector value compare start i))
-          ((> c 0) (array-tree-position vector value compare (1+ i) end))
-          (t i)))))
+  (labels ((rec (start end)
+             (declare (type fixnum start end))
+             (if (>= start end)
+                 nil
+                 (let* ((i (ash (+ start end) -1))
+                        (c (funcall compare value (aref vector i))))
+                   (declare (type fixnum c))
+                   (cond
+                     ((< c 0) (rec start i))
+                     ((> c 0) (rec (1+ i) end))
+                     (t i))))))
+    (rec start end)))
+
 
 (defun array-tree-search (vector value compare &optional (start 0) (end (length vector)))
   (declare (type simple-vector vector))
