@@ -72,6 +72,28 @@
     (simple-vector (length tree))
     (null 0)))
 
+(defun avl-tree-balanced-p (x)
+  (etypecase x
+    (avl-tree
+     (with-avl-tree (l v r c) x
+       (declare (ignore v))
+       (let* ((l-c (avl-tree-count l))
+              (r-c (avl-tree-count r))
+              (balanced (and (<= l-c (ash r-c +avl-tree-rebalance-log+))
+                             (<= r-c (ash l-c +avl-tree-rebalance-log+)))))
+              (multiple-value-bind (l-b l-n) (avl-tree-balanced-p l)
+                (multiple-value-bind (r-b r-n) (avl-tree-balanced-p r)
+                  (values (and balanced
+                               l-b
+                               r-b
+                               (= c (+ l-c r-c 1))
+                               (= l-n l-c)
+                               (= r-n r-c))
+                          (+ l-n r-n 1)))))))
+    (simple-vector (values t (length x)))
+    (null (values t 0))))
+
+
 
 (defun make-avl-tree (left value right)
   (%make-avl-tree (the fixnum (+ 1
@@ -762,7 +784,6 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 ;;                              compare)
 ;;               present
 ;;               right-right))))
-
 
 (defun avl-tree-split (tree x compare)
   (declare (type function compare))
