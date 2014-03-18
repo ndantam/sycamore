@@ -709,27 +709,29 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 
 (defun join-avl-tree (left value right compare)
   (etypecase left
-    (avl-tree (etypecase right
-                (avl-tree
-                 (with-avl-trees
-                     (l1 v1 r1 c1) left
-                     (l2 v2 r2 c2) right
-                   (cond
-                     ((> c2 (ash c1 +avl-tree-rebalance-log+))
-                      (balance-avl-tree (join-avl-tree left value l2 compare)
-                                        v2
-                                        r2))
-                     ((> c1 (ash c2 +avl-tree-rebalance-log+))
-                      (balance-avl-tree l1
-                                        v1
-                                        (join-avl-tree r1 value right compare)))
-                     (t (balance-avl-tree left value right)))))
-                (simple-vector (avl-tree-insert (build-avl-tree compare left right)
-                                                value compare))
-                (null (avl-tree-insert left value compare))))
+    (avl-tree
+     (with-avl-tree (l1 v1 r1 c1) left
+       (etypecase right
+         (avl-tree
+          (with-avl-tree (l2 v2 r2 c2) right
+            (cond
+              ((> c2 (ash c1 +avl-tree-rebalance-log+))
+               (balance-avl-tree (join-avl-tree left value l2 compare)
+                                 v2
+                                 r2))
+              ((> c1 (ash c2 +avl-tree-rebalance-log+))
+               (balance-avl-tree l1
+                                 v1
+                                 (join-avl-tree r1 value right compare)))
+              (t (make-avl-tree left value right)))))
+         (simple-vector (balance-avl-tree l1 v1
+                                          (join-avl-tree r1 value right compare)))
+         (null (avl-tree-insert left value compare)))))
     (simple-vector (etypecase right
-                     (avl-tree (avl-tree-insert (build-avl-tree compare right left)
-                                                value compare))
+                     (avl-tree
+                      (with-avl-tree (l2 v2 r2) right
+                        (balance-avl-tree (join-avl-tree left value l2 compare)
+                                          v2 r2)))
                      (simple-vector (balance-avl-tree-array-pair left value right))
                      (null (avl-tree-insert left value compare))))
     (null (avl-tree-insert right value compare))))
