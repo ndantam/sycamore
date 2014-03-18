@@ -120,7 +120,7 @@
 
 (defun bag-fuzz-generator ()
   (loop
-     for i below (random (expt 2 10))
+     for i below (1+ (random (expt 2 10)))
      collect
        (random 32)))
 
@@ -128,7 +128,7 @@
 (defun bag-fuzz-tester (fuzz)
   (let ((bag (fuzz:test-true 'produce-bag
                              (lambda ()
-                               (fold #'tree-bag-insert (tree-bag #'-) fuzz))))
+                               (fold #'tree-bag-insert (tree-bag #'fixnum-compare) fuzz))))
         (hash (fuzz:test-true 'produce-hash
                               (lambda ()
                                 (fold (lambda (h x)
@@ -145,6 +145,7 @@
 (defun run-bag-tests (&key (count 1))
   (fuzz:run-tests #'bag-fuzz-generator
                   #'bag-fuzz-tester
+                  :formatter #'identity
                   :count count))
 
 ;;;;;;;;;;;;;;

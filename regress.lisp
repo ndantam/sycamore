@@ -257,5 +257,54 @@
 
 
 
+(defun regress-2 ()
+  (multiple-value-bind (a b)
+       (regress-pair
+        '((121 34 102 82 53 70 35 42 115 98 100 72 95 104 66 47 68 80 124 63 88 90
+           84 90 112 48 90 52 30 79 46 27 117 29 7 94 66 19 84 75 50 78 70)
+          (61 44 9 62 37 57 63 87 98 9 55 29 74 106 66 89 42 30 9 10 53 12 127 74
+           39 14 54 58 27 3 9 70 119 14 30 92 62 35 107 31 59 6 38 115 113 40 98
+           120 13 56 107 23 5 11 17 7 47 44 24 1 75 110 59 41 127 14 92 111 78 119
+           102 115 96 101 89 57 7 14 47 62 15 24 78 35 87 72 76 7 80 20 89 94 110
+           2 31 52 89 39 102 69 8 80 80 50 16 119 7 2 40 31 69 99 102 78 68 17 109
+           89 79 36 123 24 85 26 44 91 62 20 37 123 48 75 42 54 125 125 77 120 98
+           119 68 54 47 7 36 58 108 4 125 127 93 37 119 68 68 6 91 55 80 45 17 51
+           117 110 63 53 65 19 83 22 122 36 106)))
+     (avl-tree-intersection a b #'fixnum-compare)))
+
+
+(defun regress-3 ()
+  (join-avl-tree (VECTOR 3 7 10 14 15)
+                 19
+                 (MAKE-AVL-TREE (VECTOR 23 25 26 27 28 29 30 33 35 36 37 39 40 41 42) 44
+                                (VECTOR 48 50 51 59 60))
+                        #'fixnum-compare))
+(defun regress-4 ()
+(let ((minlen  +avl-tree-min-array-length+)
+      (maxlen  +avl-tree-max-array-length+))
+  (assert (avl-tree-balanced-p
+           (join-avl-tree (apply #'vector (loop for i below minlen
+                                             collect i))
+                          maxlen
+                          (make-avl-tree (apply #'vector (loop for i below maxlen
+                                                            collect (+ 1 minlen i)))
+                                         (* 2 maxlen)
+                                         (apply #'vector (loop for i below minlen
+                                                            collect (+ 1 (* 2 minlen) i))))
+                          #'fixnum-compare)))))
+
+(defun regress-5 ()
+  (multiple-value-bind (a b)
+       (regress-pair
+        '((125 103 40 122 32 32 47 31 61 36 10 30 90 16 40 62 21 41 80 125 96 75
+           32 121 31 101 14 41 67 32 112 98 8 24 51 11 89 99 77 37 103 113 24 15
+           74 21 75 26 78 125 45 30 66 56 78 56 122 116 71 67 45 90 58 25 63 83 54
+           6 96 18 102 3 59 108 95 84 83 39 84 115 110 33 65 72 15 52 41 63 21 25
+           55 61 99 59 96 110 93 21 3 40 53 0 55 89 64 95 4 104 77 41 66 117)
+          (74 68 97 111 47 87 97 42 42 34 99 74 43 113 22 64 78 85 20 93 2 60 109
+           45 66 96 125 91 124 68 55 5 36 53 84 40 127 115 100 43 11 53 92 72 71
+           31 58 28 17 105 33 59 96 47 117 10 31 106 84 94 54)))
+    (avl-tree-intersection a b #'fixnum-compare)))
+
 (defun regress ()
   (regress-1))

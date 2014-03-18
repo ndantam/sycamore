@@ -51,10 +51,18 @@
 ;; All leaf nodes are simple vectors.
 ;; We can assume a binary tree node will never have NULL left/right values
 
+;;; BALANCING CONSTRAINT:
+;;;   (< (+ minlen maxlen 1) (ash min rebalance-log))
+
 (defconstant +avl-tree-max-array-length+ 16)
-(defconstant +avl-tree-min-array-length+ 4)
+(defconstant +avl-tree-min-array-length+ 6)
 (defparameter +avl-tree-rebalance-log+ 2)  ;; power two difference for rebalancing
 (declaim (type (integer 2 2) +avl-tree-rebalance-log+))
+
+(assert (< (+ +avl-tree-min-array-length+
+              +avl-tree-max-array-length+
+              1)
+           (ash +avl-tree-min-array-length+  +avl-tree-rebalance-log+)))
 
 (defmacro with-temp-avl-array ((var &optional (size +avl-tree-max-array-length+)) &body body)
   `(let ((,var (make-array ,size)))
@@ -708,6 +716,8 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 
 
 (defun join-avl-tree (left value right compare)
+  ;; When arrays are below minimum size, add them to the other tree
+  ;; Could probably be more efficient than element-by-element addition
   (etypecase left
     (avl-tree
      (with-avl-tree (l1 v1 r1 c1) left
@@ -724,14 +734,18 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                                  v1
                                  (join-avl-tree r1 value right compare)))
               (t (make-avl-tree left value right)))))
-         (simple-vector (balance-avl-tree l1 v1
-                                          (join-avl-tree r1 value right compare)))
+         (simple-vector (if (< (length right) +avl-tree-min-array-length+)
+                            (avl-tree-insert (build-avl-tree compare left right) value compare)
+                            (balance-avl-tree l1 v1
+                                              (join-avl-tree r1 value right compare))))
          (null (avl-tree-insert left value compare)))))
     (simple-vector (etypecase right
                      (avl-tree
-                      (with-avl-tree (l2 v2 r2) right
-                        (balance-avl-tree (join-avl-tree left value l2 compare)
-                                          v2 r2)))
+                      (if (< (length left) +avl-tree-min-array-length+)
+                          (avl-tree-insert (build-avl-tree compare right left) value compare)
+                          (with-avl-tree (l2 v2 r2) right
+                            (balance-avl-tree (join-avl-tree left value l2 compare)
+                                              v2 r2))))
                      (simple-vector (balance-avl-tree-array-pair left value right))
                      (null (avl-tree-insert left value compare))))
     (null (avl-tree-insert right value compare))))
@@ -1194,6 +1208,10 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                                 (if present
                                     (join-avl-tree l-i v1 r-i compare)
                                     (avl-tree-concatenate l-i r-i compare))))
+                           ;(unless (avl-tree-balanced-p result)
+                             ;(print (list l-i v1 present r-i))
+                             ;(assert nil))
+
                            result))))))
                 (simple-vector (avl-tree-intersection-tree-array tree-1 tree-2 compare))
                 (null nil)))
