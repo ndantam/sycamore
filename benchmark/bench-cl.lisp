@@ -46,35 +46,40 @@
         (list-2 *time-list-2*)
         (obj-1)
         (obj-2))
+    (labels ((pre-test (test-name)
+               (format output "~&~%: ~A: ~A  :" name test-name)
+               #+sbcl
+               (sb-ext:gc)))
     (if name
         (format t "~&: Benchmarks Results for ~A :" name)
         (format t "~&: Benchmarks Results :" ))
     ;; build
-    (format output "~&~%: ~A: Building object 1 :" name)
+    (pre-test "build object 1")
     (setq obj-1 (time (funcall build list-1)))
 
-    (format output "~&~%: ~A: Building object 2 :" name)
+    (pre-test "build object 2")
     (setq obj-2 (time (funcall build list-2)))
 
     ;; insert
     (when insert
-      (format output "~&~%: ~A: Insert 2 into 1 :" name)
+      (pre-test "insert 2 into 1")
       (time (loop for x in list-2
                for y =  (funcall insert obj-1 x) then
                  (funcall insert y x)))
 
-      (format output "~&~%: ~A: Insert 1 into 2 :" name)
+      (pre-test "insert 1 into 2")
       (time (loop for x in list-1
                for y =  (funcall insert obj-2 x) then
                  (funcall insert y x))))
     ;; remove
     (when insert
       (format output "~&~%: ~A: Remove 2 from 1 :" name)
+      (pre-test "remove 2 from 1")
       (time (loop for x in list-2
                for y =  (funcall remove obj-1 x) then
                  (funcall insert y x)))
 
-      (format output "~&~%: ~A: Remove 1 from 2 :" name)
+      (pre-test "remove 1 from 2")
       (time (loop for x in list-1
                for y =  (funcall remove obj-2 x) then
                  (funcall insert y x))))
@@ -83,24 +88,26 @@
 
     (when union
       (format output "~&~%: ~A: (union 1 2):" name)
+      (pre-test "union 1 2")
       (time (funcall union obj-1 obj-2))
-      (format output "~&~%: ~A: (union 2 1):" name)
+      (pre-test "union 2 1")
       (time (funcall union obj-2 obj-1)))
 
     ;; intersection
     (when intersection
-      (format output "~&~%: ~A: (intersection 1 2):" name)
+      (pre-test "intersection 1 2")
       (time (funcall intersection obj-1 obj-2))
-      (format output "~&~%: ~A: (intersection 2 1):" name)
+      (pre-test "intersection 2 1")
       (time (funcall intersection obj-2 obj-1)))
 
     ;; difference
     (when difference
-      (format output "~&~%: ~A: (difference 1 2):" name)
+      (pre-test "difference 1 2")
       (time (funcall difference obj-1 obj-2))
-      (format output "~&~%: ~A: (difference 2 1):" name)
+      (pre-test "difference 2 1")
       (time (funcall difference obj-2 obj-1)))
     ))
+  nil)
 
 
 (defun time-make-lists (count max)

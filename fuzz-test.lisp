@@ -156,7 +156,7 @@
      collect (loop
                 for i below (1+ (random (expt 2 12)))
                 collect
-                  (random (expt 2 20)))))
+                  (random (expt 2 10)))))
 
 (defun tree-set-fuzz-tester (fuzz)
   (let* ((list-1 (remove-duplicates (first fuzz)))
