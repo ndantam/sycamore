@@ -74,20 +74,27 @@
              (:constructor %make-avl-tree (weight left value right)))
   (weight 0 :type positive-fixnum))
 
+
 (defparameter *avl-tree-print-depth* 0)
 (defparameter *avl-tree-print-max* 512)
 
+(defun %avl-tree (&key weight left value right)
+  (%make-avl-tree weight left value right))
+
 (defmethod print-object ((obj avl-tree) stream)
   (let ((indent (make-string (* 2 *avl-tree-print-depth*) :initial-element #\Space)))
-    (format stream "~&~A" indent)
-    (print-unreadable-object (obj stream :type t :identity t)
-      (format stream ":WEIGHT ~D" (avl-tree-weight obj))
-      (format stream "~&~A  :VALUE ~A~%" indent (avl-tree-value obj))
-      (when (< (avl-tree-weight obj) *avl-tree-print-max*)
-        (let ((*avl-tree-print-depth* (1+ *avl-tree-print-depth*)))
-          (format stream "~&~A  :LEFT ~A"  indent (avl-tree-left obj)))
-        (let ((*avl-tree-print-depth* (1+ *avl-tree-print-depth*)))
-          (format stream "~&~A  :RIGHT ~A~&~A" indent (avl-tree-right obj) indent))))))
+    (if (< (avl-tree-weight obj) *avl-tree-print-max*)
+        (progn
+          (format stream "~&~A" indent)
+          (format stream "(%avl-tree :WEIGHT ~D" (avl-tree-weight obj))
+          (format stream "~&~A  :VALUE ~A~%" indent (avl-tree-value obj))
+          (let ((*avl-tree-print-depth* (1+ *avl-tree-print-depth*)))
+            (format stream "~&~A  :LEFT ~A"  indent (avl-tree-left obj)))
+          (let ((*avl-tree-print-depth* (1+ *avl-tree-print-depth*)))
+            (format stream "~&~A  :RIGHT ~A)" indent (avl-tree-right obj))))
+        (print-unreadable-object (obj stream :type t :identity t)
+          (format stream ":WEIGHT ~D" (avl-tree-weight obj))
+          (format stream "~&~A  :VALUE ~A~%" indent (avl-tree-value obj))))))
 
 (declaim (ftype (function (t) positive-fixnum) avl-tree-count))
 (defun avl-tree-count (tree)
