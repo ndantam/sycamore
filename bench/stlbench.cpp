@@ -43,49 +43,204 @@
 using namespace std;
 
 
-/* Benchmark the STL for operations we care about */
-int main(int argc, char **argv) {
-    vector<int> dat;
-    int d;
+static clock_t time0;
 
-    // read data
-    FILE * f = fopen("/tmp/sycamore-bench.dat", "r");
+static void tic() {
+    time0 = clock();
+}
+
+
+static void toc(const char *msg) {
+    clock_t t1 = clock();
+    printf("%s: %fs\n", msg, ((double)(t1-time0)) / CLOCKS_PER_SEC);
+}
+
+static void load_data( const char *fname, vector<int> &dat ) {
+    FILE * f = fopen(fname, "r");
+    int d;
     while( 1 == fscanf(f, "%d", &d) ) {
         dat.push_back(d);
     }
     fclose(f);
+}
 
-    // build map
-    clock_t t0 = clock();
-    set<int> tree;
+static void build( vector<int> &dat, set<int> &tree ) {
     for( vector<int>::iterator p = dat.begin(); p != dat.end(); p++ ) {
         tree.insert(*p);
     }
-    clock_t t1 = clock();
-    printf("Creation Time for %d elements: %fs\n", dat.size(), ((double)(t1-t0)) / CLOCKS_PER_SEC);
+}
 
-    // search map
-    vector<int> dat1(dat.size());
-    t0 = clock();
-    for( size_t i = 0; i < dat.size(); i++ ) {
-        dat1[i] = (tree.find(dat[i]) != tree.end());
+
+static void insert( set<int> &tree1, const set<int> &tree2 ) {
+    for( set<int>::iterator p = tree2.begin(); p != tree2.end(); p++ ) {
+        tree1.insert(*p);
     }
-    t1 = clock();
-    printf("Search Time for %d elements: %fs\n", dat.size(), ((double)(t1-t0)) / CLOCKS_PER_SEC);
+}
 
-    // // union maps
-    set<int> tree0, tree1;
-    for( size_t i = 0; i < dat.size() / 2; i++ )
-        tree0.insert(dat[i]);
-    for( size_t i = dat.size()/2; i < dat.size() ; i++ )
-        tree1.insert(dat[i]);
 
-    vector<int> vec_union(dat.size());
-    t0 = clock();
-    vector<int>::iterator it = set_union( tree0.begin(), tree0.end(),
-                                          tree1.begin(), tree1.end(),
+static void do_tree_union( const set<int> &tree1, const set<int> &tree2, set<int> tree_union ) {
+
+    vector<int> vec_union(tree1.size() + tree2.size() );
+    vector<int>::iterator it = set_union( tree1.begin(), tree1.end(),
+                                          tree2.begin(), tree2.end(),
                                           vec_union.begin() );
-    set<int> tree_union(vec_union.begin(), it );
-    t1 = clock();
-    printf("Union Time for %d elements: %fs\n", dat.size(), ((double)(t1-t0)) / CLOCKS_PER_SEC);
+    tree_union = set<int>(vec_union.begin(), it );
+}
+
+static void do_tree_intersection( const set<int> &tree1, const set<int> &tree2, set<int> tree ) {
+    vector<int> vec(std::min(tree1.size() , tree2.size()) );
+    vector<int>::iterator it = set_intersection( tree1.begin(), tree1.end(),
+                                                 tree2.begin(), tree2.end(),
+                                                 vec.begin() );
+    tree = set<int>(vec.begin(), it );
+}
+
+/* Benchmark the STL for operations we care about */
+int main(int argc, char **argv) {
+    int d;
+
+    printf("CLOCKS_PER_SEC: %lu\n", CLOCKS_PER_SEC);
+
+    // read data
+    vector<int> dat1, dat2;
+    load_data("/tmp/sycamore-bench-1.dat", dat1);
+    load_data("/tmp/sycamore-bench-2.dat", dat2);
+
+    printf("data size 1: %lu\n", dat1.size() );
+    printf("data size 2: %lu\n", dat2.size() );
+
+    // build map
+    set<int> tree1, tree2;
+    tic();
+    build( dat1, tree1 );
+    toc("build 1");
+
+    tic();
+    build( dat2, tree2 );
+    toc("build 2");
+
+    printf("set size 1: %lu\n", tree1.size() );
+    printf("set size 2: %lu\n", tree2.size() );
+
+    vector<int> vec1(tree1.begin(), tree1.end());
+    vector<int> vec2(tree2.begin(), tree2.end());
+
+    printf("vec size 1: %lu\n", vec1.size() );
+    printf("vec size 2: %lu\n", vec2.size() );
+
+    printf("t1_0: %d, v1_0: %d\n", *tree1.begin(), *vec1.begin());
+    printf("t2_0: %d, v2_0: %d\n", *tree2.begin(), *vec2.begin());
+
+    printf("t1_1: %d, v1_1: %d\n", *(--tree1.end()), *(--vec1.end()));
+    printf("t2_1: %d, v2_1: %d\n", *(--tree2.end()), *(--vec2.end()));
+
+    printf("\n");
+    // Insert
+    {
+        set<int> copy1 = tree1;
+        set<int> copy2 = tree2;
+        tic();
+        insert( copy1, tree2 );
+        toc("Insert 2 into 1");
+        tic();
+        insert( copy2, tree1 );
+        toc("Insert 1 into 2");
+    }
+    printf("set size 1: %lu\n", tree1.size() );
+    printf("set size 2: %lu\n", tree2.size() );
+
+
+    printf("\n");
+    // Union
+    {
+        set<int> u1, u2;
+        {
+            tic();
+            do_tree_union( tree1, tree2, u1 );
+            toc("Tree Union 2 into 1");
+
+            tic();
+            do_tree_union( tree2, tree1, u2 );
+            toc("Tree Union 1 into 2");
+        }
+
+        {
+            tic();
+            vector<int> dat(tree1.size() + tree2.size() );
+            vector<int>::iterator it1 = set_union( vec1.begin(), vec1.end(),
+                                                   vec2.begin(), vec2.end(),
+                                                   dat.begin() );
+            toc( "Vec Union 1 2" );
+            printf( "size1: %lu\n", it1 - dat.begin() );
+        }
+
+        tic();
+        {
+            vector<int> dat(tree1.size() + tree2.size() );
+            vector<int>::iterator it2 = set_union( vec2.begin(), vec2.end(),
+                                                   vec1.begin(), vec1.end(),
+                                                   dat.begin() );
+            toc( "Vec Union 2 1" );
+            printf( "size2: %lu\n", it2 - dat.begin() );
+        }
+    }
+    printf("\n");
+    // Intersection
+    {
+        set<int> u1, u2;
+        {
+            tic();
+            do_tree_intersection( tree1, tree2, u1 );
+            toc("Tree Intersection 1 2");
+
+            tic();
+            do_tree_intersection( tree2, tree1, u2 );
+            toc("Tree Intersection 2 1");
+        }
+
+        {
+            tic();
+            vector<int> dat(std::min(tree1.size() , tree2.size() ));
+            vector<int>::iterator it1 = set_intersection( vec1.begin(), vec1.end(),
+                                                          vec2.begin(), vec2.end(),
+                                                          dat.begin() );
+            toc( "Vec Intersection 1 2" );
+            printf( "size1: %lu\n", it1 - dat.begin() );
+        }
+
+        tic();
+        {
+            vector<int> dat(std::min(tree1.size() , tree2.size() ));
+            vector<int>::iterator it2 = set_intersection( vec2.begin(), vec2.end(),
+                                                          vec1.begin(), vec1.end(),
+                                                          dat.begin() );
+            toc( "Vec Intersection 2 1" );
+            printf( "size2: %lu\n", it2 - dat.begin() );
+        }
+    }
+
+    // // search map
+    // vector<int> dat1(dat.size());
+    // t0 = clock();
+    // for( size_t i = 0; i < dat.size(); i++ ) {
+    //     dat1[i] = (tree.find(dat[i]) != tree.end());
+    // }
+    // t1 = clock();
+    // printf("Search Time for %d elements: %fs\n", dat.size(), ((double)(t1-t0)) / CLOCKS_PER_SEC);
+
+    // // // union maps
+    // set<int> tree0, tree1;
+    // for( size_t i = 0; i < dat.size() / 2; i++ )
+    //     tree0.insert(dat[i]);
+    // for( size_t i = dat.size()/2; i < dat.size() ; i++ )
+    //     tree1.insert(dat[i]);
+
+    // vector<int> vec_union(dat.size());
+    // t0 = clock();
+    // vector<int>::iterator it = set_union( tree0.begin(), tree0.end(),
+    //                                       tree1.begin(), tree1.end(),
+    //                                       vec_union.begin() );
+    // set<int> tree_union(vec_union.begin(), it );
+    // t1 = clock();
+    // printf("Union Time for %d elements: %fs\n", dat.size(), ((double)(t1-t0)) / CLOCKS_PER_SEC);
 }

@@ -47,15 +47,17 @@
 (defun bench-generate-data (&key
                             (output-1 *bench-data-file-1*)
                             (output-2 *bench-data-file-2*)
-                            (count (expt 2 18))
-                            (max count))
-  (flet ((emit (output)
+                            (count-1 (expt 2 18))
+                            (max-1 (* 2 count-1))
+                            (count-2 count-1)
+                            (max-2 (* 2 count-2)))
+  (flet ((emit (count max output)
            (with-open-file (s output :direction :output :if-exists :supersede :if-does-not-exist :create)
              (format s "~{~&~D~}"
                      (loop for i below count
                         collect (random max))))))
-    (emit output-1)
-    (emit output-2)))
+    (emit count-1 max-1 output-1)
+    (emit count-2 max-2 output-2)))
 
 (defun bench-load (pathname)
   (with-open-file (s pathname :direction :input)
@@ -98,7 +100,6 @@
                  (funcall insert y x))))
     ;; remove
     (when insert
-      (format output "~&~%: ~A: Remove 2 from 1 :" name)
       (pre-test "remove 2 from 1")
       (time (loop for x in list-2
                for y =  (funcall remove obj-1 x) then
@@ -112,7 +113,6 @@
     ;; union
 
     (when union
-      (format output "~&~%: ~A: (union 1 2):" name)
       (pre-test "union 1 2")
       (time (funcall union obj-1 obj-2))
       (pre-test "union 2 1")
@@ -169,7 +169,7 @@
 
 (defun time-all (&key count (max count))
   (when (and count max)
-    (bench-generate-data :count count :max max))
+    (bench-generate-data :count-1 count :max-1 max))
   (time-avl)
   (time-fset)
   nil)
