@@ -244,8 +244,8 @@ LANG: language output for dot, (or pdf ps eps png)"
                                                x (funcall node-label-function tree)))
                                  (null (format s "~&  ~A[label=\"nil\" shape=none];~&" x))
                                  (simple-vector
-                                  (format s "~&  ~A[label=\"~{~A~^, ~}\",shape=box];~&"
-                                          x (loop for k across tree collect k))))
+                                  (format s "~&  ~A[label=\"(~A): ~{~A~^, ~}\",shape=box];~&"
+                                          x (length tree) (loop for k across tree collect k))))
                                (when parent
                                  (format s "~&  ~A -> ~A;~&"
                                          parent x))

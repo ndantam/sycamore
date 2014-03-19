@@ -306,5 +306,86 @@
            31 58 28 17 105 33 59 96 47 117 10 31 106 84 94 54)))
     (avl-tree-intersection a b #'fixnum-compare)))
 
+
+(defun regress-6 ()
+  (multiple-value-bind (left value right)
+      (values
+       (%avl-tree :WEIGHT 36
+                  :VALUE 337
+                  :LEFT #(301 304 309 311 314 317 319 321 325 327 328 329 331 332)
+                  :RIGHT
+                  (%avl-tree :WEIGHT 21
+                             :VALUE 372
+                             :LEFT #(340 342 344 351 357 358 359 362 363 364 366 368)
+                             :RIGHT #(376 377 378 381 382 383 384 385)))
+       387
+       (%avl-tree :WEIGHT 203
+                  :VALUE 881
+                  :LEFT
+                  (%avl-tree :WEIGHT 156
+                             :VALUE 561
+                             :LEFT
+                             (%avl-tree :WEIGHT 58
+                                        :VALUE 478
+                                        :LEFT
+                                        (%avl-tree :WEIGHT 31
+                                                   :VALUE 428
+                                                   :LEFT
+                                                   (%avl-tree :WEIGHT 18
+                                                              :VALUE 402
+                                                              :LEFT #(390 391 393 395 397 399 400 401)
+                                                              :RIGHT #(406 407 409 414 418 419 422 423 424))
+                                                   :RIGHT #(432 434 443 447 448 450 455 457 465 469 473 475))
+                                        :RIGHT
+                                        (%avl-tree :WEIGHT 26
+                                                   :VALUE 523
+                                                   :LEFT #(486 490 491 496 499 500 501 511 513 515 517 519 520 522)
+                                                   :RIGHT #(533 534 538 539 543 544 546 550 551 554 556)))
+                             :RIGHT
+                             (%avl-tree :WEIGHT 97
+                                        :VALUE 648
+                                        :LEFT
+                                        (%avl-tree :WEIGHT 23
+                                                   :VALUE 601
+                                                   :LEFT #(562 564 567 575 577 581 583 586 595 599)
+                                                   :RIGHT #(608 611 616 618 622 629 630 635 637 640 642 646))
+                                        :RIGHT
+                                        (%avl-tree :WEIGHT 73
+                                                   :VALUE 778
+                                                   :LEFT
+                                                   (%avl-tree :WEIGHT 39
+                                                              :VALUE 738
+                                                              :LEFT
+                                                              (%avl-tree :WEIGHT 27
+                                                                         :VALUE 696
+                                                                         :LEFT #(652 657 661 663 666 668 670 677 678 682 685 692)
+                                                                         :RIGHT #(698 701 702 705 712 714 718 720 721 726 727 730 731
+                                                                                  734))
+                                                              :RIGHT #(748 754 758 761 764 765 767 769 770 771 773))
+                                                   :RIGHT
+                                                   (%avl-tree :WEIGHT 33
+                                                              :VALUE 831
+                                                              :LEFT #(780 782 783 785 787 790 797 804 806 822 823 825 826 827
+                                                                      830)
+                                                              :RIGHT
+                                                              (%avl-tree :WEIGHT 17
+                                                                         :VALUE 858
+                                                                         :LEFT #(833 842 843 846 848 851 853 856)
+                                                                         :RIGHT #(860 865 870 871 872 875 878 880))))))
+                  :RIGHT
+                  (%avl-tree :WEIGHT 46
+                             :VALUE 954
+                             :LEFT
+                             (%avl-tree :WEIGHT 26
+                                        :VALUE 915
+                                        :LEFT #(882 886 888 890 894 899 903 905 907 909 910 911)
+                                        :RIGHT #(919 922 925 926 927 928 929 933 934 936 948 952 953))
+                             :RIGHT
+                             (%avl-tree :WEIGHT 19
+                                        :VALUE 983
+                                        :LEFT #(961 962 964 966 969 970 974 976 981)
+                                        :RIGHT #(984 985 990 991 992 995 1009 1021 1023)))))
+    (join-avl-tree left value right #'-)))
+
 (defun regress ()
   (regress-1))

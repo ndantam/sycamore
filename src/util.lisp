@@ -100,3 +100,6 @@
            (if (zerop ,i)
                (or-compare ,@(cdr comparisons))
                ,i))))))
+
+(defun vector-range (start end)
+  (apply #'vector (loop for i from start below end collect i)))

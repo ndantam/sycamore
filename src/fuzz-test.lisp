@@ -162,10 +162,11 @@
 (defun tree-set-fuzz-tester (fuzz)
   (let* ((list-1 (remove-duplicates (first fuzz)))
          (list-2 (remove-duplicates (second fuzz)))
+         (compare #'fixnum-compare)
          (set-1 (fuzz:test-true 'build-avl-1
-                                (lambda () (build-avl-tree #'fixnum-compare nil list-1))))
+                                (lambda () (build-avl-tree compare nil list-1))))
          (set-2 (fuzz:test-true  'build-avl-2
-                                 (lambda () (build-avl-tree #'fixnum-compare nil list-2))))
+                                 (lambda () (build-avl-tree compare nil list-2))))
          (set-p-1))
     (labels ((set-sort (x) (sort (copy-list x) #'<))
              (set-result (x)
@@ -191,6 +192,26 @@
       (fuzz:test-true 'avl-balanced-sorted-2
                       (lambda () (avl-tree-balanced-p
                                   (build-avl-tree #'fixnum-compare nil (set-sort list-2)))))
+
+      ;; join balance
+      (map-binary-tree :inorder nil
+                       (lambda (x)
+                         (with-avl-tree-split (l p r) set-1 x compare
+                           (assert p)
+                           (fuzz:test-true 'join-balanced
+                                           (lambda () (avl-tree-balanced-p (join-avl-tree l x r
+                                                                                          compare))))))
+                       set-1)
+      (map-binary-tree :inorder nil
+                       (lambda (x)
+                         (with-avl-tree-split (l p r) set-2 x compare
+                           (assert p)
+                           (fuzz:test-true 'join-balanced
+                                           (lambda () (avl-tree-balanced-p (join-avl-tree l x r
+                                                                                          compare))))))
+                       set-2)
+
+
       ;; union
       (fuzz:do-test ('avl-union :test #'equal)
         (set-sort (union list-1 list-2))
