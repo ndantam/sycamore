@@ -41,8 +41,15 @@
 #include <stdarg.h>
 #include <algorithm>
 
-using namespace std;
+/* Benchmark STL sets.
+ *
+ * Note: it is difficult to measure the performance cost of heap
+ * allocation here.  GLIBC malloc() will be very fast. GLIBC free()
+ * will usually be very fast because it batches work.  Occasionally,
+ * free() will reorganize the heap (and be very slow).
+ */
 
+using namespace std;
 
 #define MODULO(a,b) (((a) % (b)) + (b)) % (b);
 
