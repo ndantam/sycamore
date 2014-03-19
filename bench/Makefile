@@ -4,7 +4,7 @@
 default:
 
 stlbench: stlbench.cpp
-	$(CXX) stlbench.cpp -O2 -o stlbench
+	$(CXX) stlbench.cpp -O2 -o stlbench -lrt
 
 
 clean:

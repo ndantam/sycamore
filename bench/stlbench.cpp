@@ -38,22 +38,59 @@
 #include <vector>
 #include <cstdio>
 #include <time.h>
+#include <stdarg.h>
 #include <algorithm>
 
 using namespace std;
 
 
-static clock_t time0;
+#define MODULO(a,b) (((a) % (b)) + (b)) % (b);
 
-static void tic() {
-    time0 = clock();
+static struct timespec aa_tick_tock_start;
+
+static inline struct timespec
+aa_tm_make( time_t sec, long nsec ) {
+    struct timespec t;
+    t.tv_sec = sec;
+    t.tv_nsec = nsec;
+    return t;
+}
+
+static inline struct timespec
+aa_tm_make_norm( time_t sec, long nsec ) {
+    long nsp = MODULO( (long)nsec, (long)1000000000 );
+    return aa_tm_make( sec + (nsec - nsp)/1e9, nsp );
+}
+
+static inline struct timespec
+aa_tm_sub( const struct timespec a, const struct timespec b ) {
+    return aa_tm_make_norm( a.tv_sec - b.tv_sec,
+                            a.tv_nsec - b.tv_nsec );
+}
+
+static void tic()
+{
+    clock_gettime( CLOCK_MONOTONIC, &aa_tick_tock_start );
+}
+
+struct timespec toc( const char fmt[], ...)
+ {
+    struct timespec now;
+    clock_gettime( CLOCK_MONOTONIC, &now );
+    struct timespec t = aa_tm_sub( now, aa_tick_tock_start );
+    double dt = (double)t.tv_sec + (double)t.tv_nsec / 1e9;
+
+    va_list argp;
+    va_start( argp, fmt );
+    vfprintf( stderr, fmt, argp );
+    va_end( argp );
+
+
+    fprintf( stderr, ": %f s\n", (double)t.tv_sec + (double)t.tv_nsec/1e9 );
+    return t;
 }
 
 
-static void toc(const char *msg) {
-    clock_t t1 = clock();
-    printf("%s: %fs\n", msg, ((double)(t1-time0)) / CLOCKS_PER_SEC);
-}
 
 static void load_data( const char *fname, vector<int> &dat ) {
     FILE * f = fopen(fname, "r");
@@ -119,6 +156,7 @@ int main(int argc, char **argv) {
     build( dat2, tree2 );
     toc("build 2");
 
+    printf("\n");
     printf("set size 1: %lu\n", tree1.size() );
     printf("set size 2: %lu\n", tree2.size() );
 
@@ -146,9 +184,6 @@ int main(int argc, char **argv) {
         insert( copy2, tree1 );
         toc("Insert 1 into 2");
     }
-    printf("set size 1: %lu\n", tree1.size() );
-    printf("set size 2: %lu\n", tree2.size() );
-
 
     printf("\n");
     // Union
@@ -171,7 +206,6 @@ int main(int argc, char **argv) {
                                                    vec2.begin(), vec2.end(),
                                                    dat.begin() );
             toc( "Vec Union 1 2" );
-            printf( "size1: %lu\n", it1 - dat.begin() );
         }
 
         tic();
@@ -181,9 +215,9 @@ int main(int argc, char **argv) {
                                                    vec1.begin(), vec1.end(),
                                                    dat.begin() );
             toc( "Vec Union 2 1" );
-            printf( "size2: %lu\n", it2 - dat.begin() );
         }
     }
+
     printf("\n");
     // Intersection
     {
@@ -205,7 +239,6 @@ int main(int argc, char **argv) {
                                                           vec2.begin(), vec2.end(),
                                                           dat.begin() );
             toc( "Vec Intersection 1 2" );
-            printf( "size1: %lu\n", it1 - dat.begin() );
         }
 
         tic();
@@ -215,9 +248,51 @@ int main(int argc, char **argv) {
                                                           vec1.begin(), vec1.end(),
                                                           dat.begin() );
             toc( "Vec Intersection 2 1" );
-            printf( "size2: %lu\n", it2 - dat.begin() );
         }
     }
+
+    printf("\n");
+    // difference
+    {
+        {
+            tic();
+            vector<int> dat(tree1.size());
+            vector<int>::iterator it1 = set_difference( vec1.begin(), vec1.end(),
+                                                        vec2.begin(), vec2.end(),
+                                                        dat.begin() );
+            set<int> d(dat.begin(), it1);
+            toc( "Set Difference 1 2" );
+        }
+
+        tic();
+        {
+            vector<int> dat(tree1.size());
+            vector<int>::iterator it2 = set_difference( vec2.begin(), vec2.end(),
+                                                        vec1.begin(), vec1.end(),
+                                                        dat.begin() );
+            set<int> d(dat.begin(), it2);
+            toc( "Set Difference 2 1" );
+        }
+
+        {
+            tic();
+            vector<int> dat(tree1.size());
+            vector<int>::iterator it1 = set_difference( vec1.begin(), vec1.end(),
+                                                        vec2.begin(), vec2.end(),
+                                                        dat.begin() );
+            toc( "Vec Difference 1 2" );
+        }
+
+        tic();
+        {
+            vector<int> dat(tree1.size());
+            vector<int>::iterator it2 = set_difference( vec2.begin(), vec2.end(),
+                                                        vec1.begin(), vec1.end(),
+                                                        dat.begin() );
+            toc( "Vec Difference 2 1" );
+        }
+    }
+
 
     // // search map
     // vector<int> dat1(dat.size());

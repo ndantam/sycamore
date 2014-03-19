@@ -50,7 +50,7 @@
                             (count-1 (expt 2 18))
                             (max-1 (* 2 count-1))
                             (count-2 count-1)
-                            (max-2 (* 2 count-2)))
+                            (max-2 max-1))
   (flet ((emit (count max output)
            (with-open-file (s output :direction :output :if-exists :supersede :if-does-not-exist :create)
              (format s "~{~&~D~}"
