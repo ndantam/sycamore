@@ -1,6 +1,6 @@
 ;;;; -*- Lisp -*-
 ;;;;
-;;;; Copyright (c) 2012, Georgia Tech Research Corporation
+;;;; Copyright (c) 2012-2014, Georgia Tech Research Corporation
 ;;;; All rights reserved.
 ;;;;
 ;;;; Author(s): Neil T. Dantam <ntd@gatech.edu>
@@ -875,75 +875,6 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
     (check-avl-balance result)
     result))
 
-
-
-
-;; (defun avl-tree-concatenate-array (left right compare)
-;;   (declare ;(ignore compare)
-;;            (type simple-vector left right))
-;;   (let ((l-l (length left))
-;;         (l-r (length right)))
-;;     (cond
-;;       ((< (+ l-l l-r) (1- +avl-tree-max-array-length+))
-;;        (let ((new-array (make-array  (+ l-l l-r))))
-;;          (replace new-array left)
-;;          (replace new-array right :start1 l-l)
-;;          new-array))
-;;       ;; TODO: build two leaf arrays in single step
-;;       ((< l-l l-r)
-;;         (build-avl-tree compare right left))
-;;       (t
-;;        (build-avl-tree compare left right)))))
-
-
-;; (defun avl-tree-concatenate (tree-1 tree-2 compare)
-;;   "Concatenate TREE-1 and TREE-2."
-;;   (etypecase tree-1
-;;     (avl-tree (etypecase tree-2
-;;                 (avl-tree
-;;                  (with-avl-trees
-;;                      (l1 v1 r1 c1) tree-1
-;;                      (l2 v2 r2 c2) tree-2
-;;                    (cond
-;;                      ((< c1 c2)
-;;                       (balance-avl-tree (avl-tree-concatenate tree-1 l2 compare)
-;;                                         v2
-;;                                         r2))
-;;                      ((< c2 c1)
-;;                       (balance-avl-tree l1 v1
-;;                                         (avl-tree-concatenate r1 tree-2 compare)))
-;;                      (t (balance-avl-tree tree-1 (binary-tree-min tree-2)
-;;                                           (avl-tree-remove-min tree-2))))))
-;;                 (simple-vector (build-avl-tree compare tree-1 tree-2))
-;;                 (null tree-1)))
-;;     (simple-vector (etypecase tree-2
-;;                      (avl-tree (build-avl-tree compare tree-2 tree-1))
-;;                      (simple-vector (avl-tree-concatenate-array tree-1 tree-2 compare))
-;;                                         ;(build-avl-tree compare tree-2 tree-1))
-;;                      (null tree-1)))
-;;     (null tree-2)))
-
-
-;; (defun avl-tree-split (tree x compare)
-;;   (declare (type function compare))
-;;   (cond-avl-tree-compare (x tree compare)
-;;     (values nil nil nil)
-;;     (multiple-value-bind (left-left present right-left)
-;;         (avl-tree-split (binary-tree-left tree) x compare)
-;;       (values left-left present (join-avl-tree right-left
-;;                                                (binary-tree-value tree)
-;;                                                (binary-tree-right tree)
-;;                                                compare)))
-;;     (values (binary-tree-left tree) t (binary-tree-right tree))
-;;     (multiple-value-bind (left-right present right-right)
-;;         (avl-tree-split (binary-tree-right tree) x compare)
-;;       (values (join-avl-tree (binary-tree-left tree)
-;;                              (binary-tree-value tree)
-;;                              left-right
-;;                              compare)
-;;               present
-;;               right-right))))
-
 (defmacro with-avl-tree-split ((left present right) tree x compare
                                &body body)
   `(multiple-value-bind (,left ,present ,right)
@@ -976,21 +907,6 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
       (assert p)
       (values l v r))))
 
-;; (defun avl-tree-remove (tree x compare)
-;;   "Remove X from TREE, returning new tree."
-;;   (declare (type function compare))
-;;   (cond-avl-tree-compare (x tree compare)
-;;     nil
-;;     (balance-avl-tree (avl-tree-remove (avl-tree-left tree) x compare)
-;;                       (binary-tree-value tree)
-;;                       (binary-tree-right tree))
-;;     (avl-tree-concatenate (avl-tree-left tree)
-;;                           (avl-tree-right tree))
-;;     (balance-avl-tree (avl-tree-left tree)
-;;                       (avl-tree-value tree)
-;;                       (avl-tree-remove (avl-tree-right tree) x compare))))
-
-
 (defun avl-tree-remove (tree x compare)
   "Remove X from TREE, returning new tree."
   (declare (type function compare))
@@ -1022,119 +938,6 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
            ((> i w-l) (balance-avl-tree l v
                                         (avl-tree-remove-position r (- i w-l 1) compare )))
            (t (avl-tree-concatenate l r compare))))))))
-
-
-(defun avl-tree-trim (tree lo hi compare)
-  "Return subtree rooted between `lo' and `hi'."
-  (declare (type function compare))
-  ;(declare (optimize (speed 3) (safety 0)))
-  (cond
-    ((null tree) nil)
-    ((< (the fixnum (funcall compare (binary-tree-value tree) lo)) 0)
-     (avl-tree-trim (binary-tree-right tree) lo hi compare))
-    ((< (the fixnum (funcall compare hi (binary-tree-value tree))) 0)
-     (avl-tree-trim (binary-tree-left tree) lo hi compare))
-    (t tree)))
-
-;; root between lo and +infinity
-(defun avl-tree-trim-lo (tree lo compare)
-  (declare (type function compare))
-  (cond
-    ((null tree) nil)
-    ((< (funcall compare lo (binary-tree-value tree)) 0)
-     tree)
-    (t (avl-tree-trim-lo (avl-tree-right tree) lo compare))))
-
-
-;; root between -infinity and hi
-(defun avl-tree-trim-hi (tree hi compare)
-  (declare (type function compare))
-  (cond
-    ((null tree) nil)
-    ((> (funcall compare hi (binary-tree-value tree)) 0)
-     tree)
-    (t (avl-tree-trim-hi (avl-tree-left tree) hi compare))))
-
-
-
-(defun avl-tree-split-less (tree x compare)
-  "Everything in tree before than x"
-  (declare (type function compare))
-  (cond-avl-tree-compare (x tree compare)
-                         nil
-                         (avl-tree-split-less (binary-tree-left tree) x compare)
-                         (binary-tree-left tree)
-                         (join-avl-tree (binary-tree-left tree)
-                                        (binary-tree-value tree)
-                                        (avl-tree-split-less (binary-tree-right tree) x compare)
-                                        compare)))
-
-
-(defun avl-tree-split-greater (tree x compare)
-  "Everything in tree after than x"
-  (declare (type function compare))
-  ;(declare (optimize (speed 3) (safety 0)))
-  (cond-avl-tree-compare (x tree compare)
-                         nil
-                         (join-avl-tree (avl-tree-split-greater (binary-tree-left tree) x compare)
-                                        (binary-tree-value tree)
-                                        (binary-tree-right tree)
-                                        compare)
-                         (binary-tree-right tree)
-                         (avl-tree-split-greater (binary-tree-right tree) x compare)))
-
-
-;; tree-2 rooted between lo and hi
-(defun avl-tree-uni-bd (tree-1 tree-2 lo hi compare)
-  (declare (type function compare))
-  (let ((tree-2 (avl-tree-trim tree-2 lo hi compare)))
-    (cond
-      ((null tree-2) tree-1)
-      ((null tree-1)
-       (join-avl-tree (avl-tree-split-greater (avl-tree-left tree-2) lo compare)
-                      (avl-tree-value tree-2)
-                      (avl-tree-split-less (avl-tree-right tree-2) hi compare)
-                      compare))
-      (t (join-avl-tree (avl-tree-uni-bd (avl-tree-left tree-1)
-                                         tree-2 lo (avl-tree-value tree-1) compare)
-                        (avl-tree-value tree-1)
-                        (avl-tree-uni-bd (avl-tree-right tree-1)
-                                         tree-2 (avl-tree-value tree-1) hi compare)
-                        compare)))))
-
-;; tree-2 between -inf and hi
-(defun avl-tree-uni-hi (tree-1 tree-2 hi compare)
-  (let ((tree-2 (avl-tree-trim-hi tree-2 hi compare)))
-    (cond
-      ((null tree-2) tree-1)
-      ((null tree-1) (avl-tree-split-less tree-2 hi compare))
-      (t (join-avl-tree (avl-tree-uni-hi (avl-tree-left tree-1) tree-2 (avl-tree-value tree-1) compare)
-                        (avl-tree-value tree-1)
-                        (avl-tree-uni-bd (avl-tree-right tree-1) tree-2 (avl-tree-value tree-1) hi compare)
-                        compare)))))
-
-;; tree-2 between lo and +inf
-(defun avl-tree-uni-lo (tree-1 tree-2 lo compare)
-  (let ((tree-2 (avl-tree-trim-lo tree-2 lo compare)))
-    (cond
-      ((null tree-2) tree-1)
-      ((null tree-1) (avl-tree-split-greater tree-2 lo compare))
-      (t (join-avl-tree (avl-tree-uni-bd (avl-tree-left tree-1) tree-2 lo (avl-tree-value tree-1) compare)
-                        (avl-tree-value tree-1)
-                        (avl-tree-uni-lo (avl-tree-right tree-1) tree-2 (avl-tree-value tree-1) compare)
-                        compare)))))
-
-(defun avl-tree-hedge-union (tree-1 tree-2 compare)
-  (declare (type function compare))
-  (cond
-    ((null tree-1) tree-2)
-    ((null tree-2) tree-1)
-    (t (with-avl-tree (l1 v1 r1) tree-1
-         (join-avl-tree (avl-tree-uni-hi l1 tree-2 v1 compare)
-                        v1
-                        (avl-tree-uni-lo r1 tree-2 v1 compare)
-                        compare)))))
-
 
 (defun avl-tree-union-array (tree-1 tree-2 compare)
   "Merge two arrays into and avl-tree"
