@@ -96,6 +96,7 @@
      (t
       (alexandria:with-gensyms (i)
         `(let ((,i ,(car comparisons)))
+           (declare (type fixnum ,i))
            (if (zerop ,i)
                (or-compare ,@(cdr comparisons))
                ,i))))))

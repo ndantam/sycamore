@@ -37,6 +37,8 @@
 
 (in-package :sycamore)
 
+;;(declaim (optimize (speed 3) (safety 0)))
+
 ;;;;;;;;;;;;
 ;; Arrays ;;
 ;;;;;;;;;;;
@@ -177,7 +179,7 @@
 (defun array-tree-split-at (tree position
                             &optional (start 0) (end (length tree)))
   (declare (type simple-vector tree)
-           (type fixnum position))
+           (type fixnum position start end))
   (values (when (> position start) (subseq tree start position))
           (aref tree position)
           (when (< position (1- end))
@@ -233,7 +235,8 @@
 ;;                 (array-tree-insert value array compare n/2 n i)))))
 
 (defun array-tree-compare (vector-1 vector-2 compare)
-  (declare (type simple-vector vector-1 vector-2))
+  (declare (type simple-vector vector-1 vector-2)
+           (type function compare))
   (let ((n1 (length vector-1))
         (n2 (length vector-2)))
     (cond  ;; first, order by count since that's O(1)

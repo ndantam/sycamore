@@ -137,7 +137,9 @@
               (balanced (and (<= l-c (ash r-c +avl-tree-rebalance-log+))
                              (<= r-c (ash l-c +avl-tree-rebalance-log+)))))
               (multiple-value-bind (l-b l-n) (avl-tree-balanced-p l)
+                (declare (type fixnum l-n))
                 (multiple-value-bind (r-b r-n) (avl-tree-balanced-p r)
+                  (declare (type fixnum r-n))
                   (unless balanced
                     (format t "~&l-c: ~A, r-c: ~A" l-c r-c)
                     (print x))
@@ -185,54 +187,35 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 
 (defun avl-tree-list (tree) (map-binary-tree :inorder 'list #'identity tree))
 
-(defun right-avl-tree (constructor left value right)
+(defun right-avl-tree (left value right)
   "Right rotation"
-  (declare (type function constructor))
-  (funcall constructor
-           (binary-tree-left left)
-           (binary-tree-value left)
-           (funcall constructor
-                    (binary-tree-right left)
-                    value
-                    right)))
+  (make-avl-tree (binary-tree-left left)
+                 (binary-tree-value left)
+                 (make-avl-tree (binary-tree-right left) value right)))
 
-(defun left-avl-tree (constructor left value right)
+(defun left-avl-tree (left value right)
   "Left rotation"
-  (declare (type function constructor))
-  (funcall constructor
-           (funcall constructor
-                    left
-                    value
-                    (binary-tree-left right))
-           (binary-tree-value right)
-           (binary-tree-right right)))
+  (make-avl-tree (make-avl-tree left value (binary-tree-left right))
+                 (binary-tree-value right)
+                 (binary-tree-right right)))
 
-(defun left-right-avl-tree (constructor left value right)
+(defun left-right-avl-tree (left value right)
   "Right rotation then left rotation"
-  (declare (type function constructor))
-  (funcall constructor
-           (funcall constructor left
-                    value
-                    (binary-tree-left-left right))
-           (binary-tree-value-left right)
-           (funcall constructor
-                    (binary-tree-right-left right)
-                    (binary-tree-value right)
-                    (binary-tree-right right))))
+  (make-avl-tree (make-avl-tree left value (binary-tree-left-left right))
+                 (binary-tree-value-left right)
+                 (make-avl-tree (binary-tree-right-left right)
+                                (binary-tree-value right)
+                                (binary-tree-right right))))
 
-(defun right-left-avl-tree (constructor left value right)
+(defun right-left-avl-tree (left value right)
   "Left rotation then right rotation"
-  (declare (type function constructor))
-  (funcall constructor
-           (funcall constructor
-                    (binary-tree-left left)
-                    (binary-tree-value left)
-                    (binary-tree-left-right left))
-           (binary-tree-value-right left)
-           (funcall constructor
-                    (binary-tree-right-right left)
-                    value
-                    right)))
+  (make-avl-tree (make-avl-tree (binary-tree-left left)
+                                (binary-tree-value left)
+                                (binary-tree-left-right left))
+                 (binary-tree-value-right left)
+                 (make-avl-tree (binary-tree-right-right left)
+                                value
+                                right)))
 
 (defun balance-avl-tree-array-pair (left value right)
   (declare (type simple-vector left right))
@@ -277,8 +260,7 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
          (t (make-avl-tree left value right)))))))
 
 
-(defun balance-general-avl-tree (constructor left value right)
-  (declare (type function constructor))
+(defun balance-avl-tree (left value right)
   ;;(declare (optimize (speed 3) (safety 0)))
   ;;(format t "~&Balance-avl-tree~&")
   (flet ((balance (w-l w-r t-l t-r)
@@ -290,8 +272,8 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                   (if (and (> (avl-tree-count (binary-tree-right left))
                               (avl-tree-count (binary-tree-left left)))
                            (avl-tree-p (binary-tree-right left)))
-                      (right-left-avl-tree constructor left value right)
-                      (right-avl-tree constructor left value right))
+                      (right-left-avl-tree left value right)
+                      (right-avl-tree left value right))
                   (balance-avl-tree-array-pair left value right)))
              ;; right too tall
              ((> w-r (ash w-l +avl-tree-rebalance-log+))
@@ -299,12 +281,12 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                   (if (and (< (avl-tree-count (binary-tree-right right))
                               (avl-tree-count (binary-tree-left right)))
                            (avl-tree-p (binary-tree-left right)))
-                      (left-right-avl-tree constructor left value right)
-                      (left-avl-tree constructor left value right))
+                      (left-right-avl-tree left value right)
+                      (left-avl-tree left value right))
                   (balance-avl-tree-array-pair left value right)))
              ;; close enough
              (t
-              (funcall constructor left value right)))))
+              (make-avl-tree left value right)))))
     ;; Type dispatching
     (etypecase left
       (avl-tree
@@ -358,8 +340,16 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
   ;;     (t
   ;;      (funcall constructor left value right)))))
 
-(defun balance-avl-tree (left value right)
-  (balance-general-avl-tree #'make-avl-tree left value right))
+(defun balance-avl-tree-left (old-tree old-left left value right)
+  (if (eq old-left left)
+      old-tree
+      (balance-avl-tree left value right)))
+
+(defun balance-avl-tree-right (old-tree old-right left value right)
+  (if (eq old-right right)
+      old-tree
+      (balance-avl-tree left value right)))
+
 
 (defun avl-tree-smaller (tree-1 tree-2)
   "Is `tree-1' shorter than `tree-2'?"
@@ -453,11 +443,13 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
     (avl-tree
      (with-avl-tree (l v r) tree
        (cond-compare (value v compare)
-                     (balance-avl-tree (avl-tree-insert l value compare)
-                                       v r)
+                     (balance-avl-tree-left tree l
+                                            (avl-tree-insert l value compare)
+                                            v r)
                      tree
-                     (balance-avl-tree l v
-                                       (avl-tree-insert r value compare)))))
+                     (balance-avl-tree-right tree r
+                                             l v
+                                             (avl-tree-insert r value compare)))))
     (simple-vector (avl-tree-insert-vector tree value compare))
     (null (vector value))))
 
@@ -727,29 +719,40 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
             (cond
               ((> c2 (ash c1 +avl-tree-rebalance-log+))
                (balance-avl-tree (join-avl-tree left value l2 compare)
-                                 v2
-                                 r2))
+                                 v2 r2))
               ((> c1 (ash c2 +avl-tree-rebalance-log+))
-               (balance-avl-tree l1
-                                 v1
+               (balance-avl-tree l1 v1
                                  (join-avl-tree r1 value right compare)))
               (t (make-avl-tree left value right)))))
          (simple-vector (if (< (length right) +avl-tree-min-array-length+)
                             (avl-tree-insert (build-avl-tree compare left right) value compare)
-                            (balance-avl-tree l1 v1
-                                              (join-avl-tree r1 value right compare))))
+                            (balance-avl-tree l1 v1 (join-avl-tree r1 value right compare))))
          (null (avl-tree-insert left value compare)))))
     (simple-vector (etypecase right
                      (avl-tree
                       (if (< (length left) +avl-tree-min-array-length+)
                           (avl-tree-insert (build-avl-tree compare right left) value compare)
                           (with-avl-tree (l2 v2 r2) right
-                            (balance-avl-tree (join-avl-tree left value l2 compare)
-                                              v2 r2))))
+                            (balance-avl-tree (join-avl-tree left value l2 compare) v2 r2))))
                      (simple-vector (balance-avl-tree-array-pair left value right))
                      (null (avl-tree-insert left value compare))))
     (null (avl-tree-insert right value compare))))
 
+(defun join-avl-tree-left (tree old-left left value right compare)
+  (if (eq old-left left)
+      tree
+      (join-avl-tree left value right compare)))
+
+(defun join-avl-tree-right (tree old-right left value right compare)
+  (if (eq old-right right)
+      tree
+      (join-avl-tree left value right compare)))
+
+(defun join-avl-tree-left-right (tree old-left old-right left value right compare)
+  (if (and (eq old-left left)
+           (eq old-right right))
+      tree
+      (join-avl-tree left value right compare)))
 
 (defun avl-tree-concatenate (tree-1 tree-2 compare)
   "Concatenate TREE-1 and TREE-2."
@@ -932,19 +935,17 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 (defun avl-tree-remove (tree x compare)
   "Remove X from TREE, returning new tree."
   (declare (type function compare))
-  (cond-avl-tree-vector-compare
-   (x tree compare)
-   nil
-   (array-tree-remove tree x compare)
-   (balance-avl-tree (avl-tree-remove (avl-tree-left tree) x compare)
-                     (binary-tree-value tree)
-                     (binary-tree-right tree))
-   (avl-tree-concatenate (avl-tree-left tree)
-                         (avl-tree-right tree)
-                         compare)
-   (balance-avl-tree (avl-tree-left tree)
-                     (avl-tree-value tree)
-                     (avl-tree-remove (avl-tree-right tree) x compare))))
+  (etypecase tree
+    (avl-tree (with-avl-tree (l v r) tree
+                (cond-compare (x v compare)
+                              (balance-avl-tree-left tree l
+                                                     (avl-tree-remove l x compare) v r)
+                              (avl-tree-concatenate l r compare)
+                              (balance-avl-tree-right tree r
+                                                      l v (avl-tree-remove r x compare)))))
+    (simple-vector (array-tree-remove tree x compare))
+    (null tree)))
+
 
 
 (defun avl-tree-remove-position (tree i compare)
@@ -1093,10 +1094,11 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
           ((and (= i l-1)
                 (= j l-2))
            ;; RESULT
-           (if (> k +avl-tree-max-array-length+)
-               (multiple-value-call #'make-avl-tree
-                 (array-tree-split-at x (ash k -1) 0 k))
-               (subseq x 0 k)))
+           (cond ((> k +avl-tree-max-array-length+)
+                  (multiple-value-call #'make-avl-tree
+                    (array-tree-split-at x (ash k -1) 0 k)))
+                 ((= k l-1) tree-1)
+                 (t (subseq x 0 k))))
         (declare (type fixnum i j k))
         (cond
           ((= i l-1)
@@ -1133,18 +1135,20 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
   (etypecase tree-1
     (avl-tree (etypecase tree-2
                 (avl-tree
-                 (multiple-value-bind (tree-1 tree-2) ;; normalize sizes, faster to split the smaller tree
-                     (if (<= (avl-tree-count tree-2)
-                             (avl-tree-count tree-1))
+                 ;; normalize sizes, faster to split the smaller tree
+                 (multiple-value-bind (tree-1 tree-2)
+                     (if (<= (avl-tree-weight tree-2)
+                             (avl-tree-weight tree-1))
                          (values tree-1 tree-2)
                          (values tree-2 tree-1))
                    (with-avl-tree (l1 v1 r1) tree-1
                      (multiple-value-bind (l2 p-2 r2) (avl-tree-split tree-2 v1 compare)
                        (declare (ignore p-2))
-                       (join-avl-tree (avl-tree-union l1 l2 compare)
-                                      v1
-                                      (avl-tree-union r1 r2 compare)
-                                      compare)))))
+                       (join-avl-tree-left-right tree-1 l1 r1
+                                           (avl-tree-union l1 l2 compare)
+                                           v1
+                                           (avl-tree-union r1 r2 compare)
+                                           compare)))))
                 (simple-vector (avl-tree-union-tree-vector tree-1 tree-2 compare))
                 (null tree-1)))
     (simple-vector (etypecase tree-2
@@ -1164,9 +1168,11 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
       (do ((i 0)
            (j 0)
            (k 0))
-          ((or (= i l-1)
-               (= j l-2))
-           (subseq array 0 k))
+          ((or (>= i l-1)
+               (>= j l-2))
+           (cond ((= k l-1) tree1)
+                 ((= k l-2) tree2)
+                 (t (subseq array 0 k))))
         (cond-compare ((aref tree1 i) (aref tree2 j) compare)
                       (incf i)
                       (progn
@@ -1184,7 +1190,9 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
       (do ((i 0 (1+ i))
            (k 0))
           ((= i l-v)
-           (subseq new-array 0 k))
+           (if (= k l-v)
+               array ;; all elements in array retained
+               (subseq new-array 0 k)))
         (let ((x (aref array i)))
           (when (binary-tree-member-p tree x compare)
             (setf (aref new-array k) x)
@@ -1233,7 +1241,8 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                            (right (avl-tree-difference r1 right-2 compare)))
                        (if present
                            (avl-tree-concatenate left right compare)
-                           (join-avl-tree left (binary-tree-value tree-1) right compare))))))
+                           (join-avl-tree-left-right tree-1 l1 r1
+                                                     left v1 right compare))))))
                 (simple-vector
                  (fold (lambda (tree x)
                          (avl-tree-remove tree x compare))
