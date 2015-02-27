@@ -46,15 +46,17 @@
         ((> a b) 1)
         (t 0)))
 
-;; (defun fold (function initial-value &rest lists)
-;;   (let ((value initial-value))
-;;     (apply #'map nil
-;;            (lambda (&rest args)
-;;              (setq value (apply function value args)))
-;;            lists)
-;;     value))
+(defun fold-n (function initial-value sequences)
+  "Fold `FUNCTION' over each sequence in `SEQUENCES'."
+  (let ((value initial-value))
+    (flet ((fun2 (&rest args)
+             (declare (dynamic-extent args))
+             (setq value (apply function value args))))
+      (apply #'map nil #'fun2 sequences)
+      value)))
 
-(defun fold (function initial-value sequence)
+(defun fold-1 (function initial-value sequence)
+  "Fold `FUNCTION' over each value in `SEQUENCE'."
   (declare (type function function))
   (etypecase sequence
     (list
@@ -70,6 +72,15 @@
        y))
     (sequence
      (reduce function sequence :initial-value initial-value))))
+
+(declaim (inline fold))
+(defun fold (function initial-value &rest sequences)
+  (declare (type function function)
+           (dynamic-extent sequences))
+  (destructuring-bind (sequence . more-sequences) sequences
+    (if more-sequences
+        (fold-n function initial-value sequences)
+        (fold-1 function initial-value sequence))))
 
 (defmacro cond-compare ((value1 value2 compare) lt-case eq-case gt-case)
   (alexandria:with-gensyms (c)
