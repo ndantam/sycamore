@@ -40,7 +40,9 @@
   (:export
    ;; tree sets
    make-tree-set tree-set tree-set-p
-   map-tree-set fold-tree-set tree-set-count
+   map-tree-set fold-tree-set do-tree-set
+   tree-set-list
+   tree-set-count
    tree-set-insert tree-set-remove
    tree-set-remove-min tree-set-remove-max tree-set-remove-position
    tree-set-union tree-set-intersection tree-set-difference

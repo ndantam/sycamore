@@ -132,6 +132,13 @@ FUNCTION: (lambda (key value))."
   "Apply FUNCTION to every element of SET."
   (map-binary-tree :inorder result-type function (tree-set-root set)))
 
+(defmacro do-tree-set ((var set &optional result) &body body)
+  `(progn
+     (map-tree-set nil (lambda (,var)
+                         ,@body)
+                   ,set)
+     ,result))
+
 (defun fold-tree-set (function initial-value set)
   "Fold FUNCTION over every element of SET."
   (fold-binary-tree :inorder function initial-value (tree-set-root set)))
@@ -223,6 +230,10 @@ FUNCTION: (lambda (key value))."
   (avl-tree-compare (tree-set-root tree-1) (tree-set-root tree-2)
                     (tree-set-%compare tree-1)))
 
+(defun tree-set-list (set)
+  "Return list of elements in `SET'."
+  (fold-tree-set (lambda (list x) (cons x list))
+                 nil set))
 
 ;;;;;;;;;;;;;;;
 ;; Tree-Bag  ;;
