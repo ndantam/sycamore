@@ -60,11 +60,10 @@
   (declare (type function function))
   (etypecase sequence
     (list
-     (loop
-        for x in sequence
-        for y = (funcall function initial-value x) then
-          (funcall function y x)
-        finally (return y)))
+     (let ((y initial-value))
+       (dolist (x sequence)
+         (setq y (funcall function y x)))
+       y))
     (simple-vector
      (let ((y initial-value))
        (dotimes (i (length sequence))
