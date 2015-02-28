@@ -109,9 +109,13 @@ FUNCTION: (lambda (key value))."
 ;; TREE-SET ;;
 ;;;;;;;;;;;;;;;
 
-(defstruct (tree-set (:constructor %make-tree-set (%compare root)))
+(defstruct (tree-set (:constructor %make-tree-set (%compare %root)))
   %compare
-  root)
+  %root)
+
+(defun tree-set-root (set)
+  (etypecase set
+    (tree-set (tree-set-%root set))))
 
 (defun make-tree-set (compare)
   "Create a new tree-set."
@@ -130,7 +134,7 @@ FUNCTION: (lambda (key value))."
 
 (defun map-tree-set (result-type function set)
   "Apply FUNCTION to every element of SET."
-  (map-binary-tree :inorder result-type function (tree-set-root set)))
+  (map-binary-tree :inorder result-type function (when set (tree-set-root set))))
 
 (defmacro do-tree-set ((var set &optional result) &body body)
   `(progn
@@ -145,7 +149,8 @@ FUNCTION: (lambda (key value))."
 
 
 (defun tree-set-remove-min (set)
-"Remove minimum element of SET."
+  "Remove minimum element of SET."
+  (declare (type tree-set set))
   (multiple-value-bind (tree item) (avl-tree-remove-min (tree-set-root set))
     (values (%make-tree-set (tree-set-%compare set) tree)
             item)))
@@ -231,9 +236,23 @@ FUNCTION: (lambda (key value))."
                     (tree-set-%compare tree-1)))
 
 (defun tree-set-list (set)
-  "Return list of elements in `SET'."
-  (fold-tree-set (lambda (list x) (cons x list))
-                 nil set))
+  "Return list of elements in `SET' in comparison order."
+  (let ((c (cons nil nil)))
+    (declare (dynamic-extent c))
+    (fold-tree-set (lambda (cons x)
+                     (let ((cons-2 (cons x nil)))
+                       (rplacd cons cons-2)
+                       cons-2))
+                   c set)
+    (cdr c)))
+
+(defun tree-set-position (set value)
+  "Return the position of `VALUE' in `SET' or NIL."
+  (avl-tree-position (tree-set-root set) value (tree-set-%compare set)))
+
+(defun tree-set-ref (set subscript)
+  "Return the element of `SET' at position `SUBSCRIPT'."
+  (avl-tree-ref (tree-set-root set) subscript))
 
 ;;;;;;;;;;;;;;;
 ;; Tree-Bag  ;;

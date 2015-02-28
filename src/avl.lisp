@@ -939,6 +939,25 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                                         (avl-tree-remove-position r (- i w-l 1) compare )))
            (t (avl-tree-concatenate l r compare))))))))
 
+
+(defun avl-tree-position (tree value compare)
+  "Return the position of `VALUE' in `TREE' or nil."
+  (declare (type function compare))
+  (labels ((rec (tree i)
+             (etypecase tree
+               (simple-vector
+                (let ((j (array-tree-position tree value compare)))
+                  (if j (+ i j) nil)))
+               (avl-tree
+                (with-avl-tree (l v r) tree
+                  (cond-compare (value v compare)
+                                (rec l i)
+                                (+ i (avl-tree-count l))
+                                (rec r (+ i (avl-tree-count l) 1))))))))
+    (rec tree 0)))
+
+
+
 (defun avl-tree-union-array (tree-1 tree-2 compare)
   "Merge two arrays into and avl-tree"
   (declare (type simple-vector tree-1 tree-2)

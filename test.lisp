@@ -310,6 +310,7 @@
   (dotimes (i *test-iterations*)
     (let* ((list-1 (loop for i below (random 100) collect (random 100)))
            (list-2 (loop for i below (random 100) collect (random 100)))
+           (list-set-1 (remove-duplicates (sort (copy-list list-1) #'<)))
            (set-1 (apply #'tree-set #'- list-1))
            (set-2 (apply #'tree-set #'- list-2)))
       ;; union
@@ -341,9 +342,14 @@
                                   (not (tree-set-subset-p set-1 set-2))))
       (lisp-unit::assert-true (or (subsetp list-2 list-1)
                                   (not (tree-set-subset-p set-2 set-1))))
-      ))
-  )
-
+      ;; position
+      (loop
+         for i from 0
+         for x in list-set-1
+         do
+           (lisp-unit::assert-equal x (tree-set-ref set-1 i))
+           (lisp-unit::assert-equal i (tree-set-position set-1 x)))
+      )))
 
 ;; (lisp-unit:define-test t-tree
 ;;   (dotimes (i 20)
