@@ -96,10 +96,16 @@ ORDER: (or :inorder :preorder :postorder).
 RESULT-TYPE: (or nil 'list).
 FUNCTION: (lambda (key value))."
   (declare (type function function))
-  (%make-tree-map (tree-map-compare tree-map)
-                  (map-binary-tree order result-type
-                                   (lambda (pair) (funcall function (car pair) (cdr pair)))
-                                   (tree-map-root tree-map))))
+  (let ((result (map-binary-tree order (if (eq result-type 'tree-map)
+                                           'list
+                                             result-type)
+                                 (lambda (pair) (funcall function (car pair) (cdr pair)))
+                                 (tree-map-root tree-map))))
+    (ecase result-type
+      (null nil)
+      (list result)
+      (treemap
+       (assert nil)))))
 
 (defun tree-map-count (map)
   "Number of elements in MAP."
