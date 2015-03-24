@@ -101,11 +101,11 @@ FUNCTION: (lambda (key value))."
                                              result-type)
                                  (lambda (pair) (funcall function (car pair) (cdr pair)))
                                  (tree-map-root tree-map))))
-    (ecase result-type
-      (null nil)
-      (list result)
-      (treemap
-       (assert nil)))))
+    (when result-type
+      (ecase result-type
+        (list result)
+        (treemap
+         (assert nil))))))
 
 (defun tree-map-count (map)
   "Number of elements in MAP."
@@ -271,7 +271,7 @@ FUNCTION: (lambda (key value))."
   (values
    (let ((key (car value))
          (count (cdr value)))
-     (declare (type positive-fixnum count))
+     (declare (type unsigned-fixnum count))
      (cons key (1+ count)))
    ;; always present
    t))
@@ -279,7 +279,7 @@ FUNCTION: (lambda (key value))."
 (defun tree-bag-decrement (value)
   (let ((key (car value))
         (count (cdr value)))
-    (declare (type positive-fixnum count))
+    (declare (type unsigned-fixnum count))
     (if (= count 0)
         (values nil nil)
         (values (cons key (1- count))))))

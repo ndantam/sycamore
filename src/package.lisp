@@ -34,9 +34,28 @@
 ;;;;   OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 ;;;;   EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+(defpackage :sycamore-util
+  (:use :cl :alexandria)
+  (:export
+   unsigned-fixnum
+   fixnum-compare
+   string-compare
+   bit-vector-compare
+   fixnum-compare
+   gsymbol-compare
+   fold-n
+   fold
+
+   cond-compare
+   if-less-eq-compare
+   or-compare
+
+   output-dot
+   ))
+
 
 (defpackage :sycamore
-  (:use :cl)
+  (:use :cl :sycamore-util :alexandria)
   (:export
    ;; tree sets
    make-tree-set tree-set tree-set-p

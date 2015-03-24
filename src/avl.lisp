@@ -80,7 +80,7 @@
 (defstruct (avl-tree
              (:include binary-tree)
              (:constructor %make-avl-tree (weight left value right)))
-  (weight 0 :type positive-fixnum))
+  (weight 0 :type unsigned-fixnum))
 
 
 (defparameter *avl-tree-print-depth* 0)
@@ -104,7 +104,7 @@
           (format stream ":WEIGHT ~D" (avl-tree-weight obj))
           (format stream "~&~A  :VALUE ~A~%" indent (avl-tree-value obj))))))
 
-(declaim (ftype (function (t) positive-fixnum) avl-tree-count))
+(declaim (ftype (function (t) unsigned-fixnum) avl-tree-count))
 (declaim (inline avl-tree-count))
 
 (defun avl-tree-count (tree)
@@ -122,7 +122,7 @@
                   left value right))
 
 (defmacro with-avl-tree ((left value right &optional count) tree &body body)
-  (alexandria:with-gensyms (tree-sym l-sym v-sym r-sym)
+  (with-gensyms (tree-sym l-sym v-sym r-sym)
     `(let ((,tree-sym ,tree))
        (multiple-value-bind (,left ,value ,right ,@(when count (list count)))
            (etypecase ,tree-sym
@@ -185,9 +185,9 @@
   "Return the element of `TREE' at position `SUBSCRIPT'.
 
 Leftmost (least) element of TREE has SUBSCRIPT of zero."
-  (declare (type positive-fixnum subscript))
+  (declare (type unsigned-fixnum subscript))
   (labels ((rec (tree subscript)
-             (declare (type positive-fixnum subscript))
+             (declare (type unsigned-fixnum subscript))
              (etypecase tree
                (avl-tree
                 (with-avl-tree (l v r) tree
@@ -478,7 +478,7 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 (defmacro cond-avl-tree-compare ((value tree compare)
                                  null-case less-case equal-case greater-case)
   "Compare VALUE to value of TREE and execute the corresponding case."
-  (alexandria:with-gensyms (c tree-sym)
+  (with-gensyms (c tree-sym)
     `(let ((,tree-sym ,tree))
        (if (null ,tree-sym)
            ,null-case
@@ -492,7 +492,7 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 (defmacro cond-avl-tree-vector-compare ((value tree compare)
                                         null-case vector-case less-case equal-case greater-case)
   "Compare VALUE to value of TREE and execute the corresponding case."
-  (alexandria:with-gensyms (c tree-sym)
+  (with-gensyms (c tree-sym)
     `(let ((,tree-sym ,tree))
        (etypecase ,tree-sym
          (avl-tree

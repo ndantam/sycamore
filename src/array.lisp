@@ -165,7 +165,7 @@
     (rec 0 0 0)))
 
 (defmacro with-array-tree ((left value right) tree &body body)
-  (alexandria:with-gensyms (tree-sym n i)
+  (with-gensyms (tree-sym n i)
     `(multiple-value-bind (,left ,value ,right)
          (let* ((,tree-sym ,tree)
                 (,n (length ,tree-sym))

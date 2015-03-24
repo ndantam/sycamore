@@ -200,37 +200,6 @@ RESULT-TYPE: (or 'list nil)"
     (array 1)
     (null 0)))
 
-#+sbcl
-(defun output-dot-file (program output function lang)
-  "Run `dot' on the output of FUNCTION.
-OUTPUT: output filename
-FUNCTION: (lambda (stream)) => nil, prints dot on STREAM
-LANG: language output for dot, (or pdf ps eps png)"
-  (let ((p (sb-ext:run-program program (list (concatenate 'string "-T" lang))
-                               :wait nil :search t :input :stream :output output
-                               :if-output-exists :supersede)))
-    (funcall function (sb-ext:process-input p))
-    (close (sb-ext:process-input p))
-    (sb-ext:process-wait p)
-    (sb-ext:process-close p)))
-
-
-(defun output-dot (output function &key
-                   (program "dot")
-                   (lang (and (stringp output) (car (last (ppcre:split "\\." output))))))
-  "Produce graphiz output, dispatching on type of OUTPUT.
-OUTPUT:  (or filename stream t nil)
-FUNCTION: (lambda (stream)) => nil, prints dot text on STREAM
-LANG: language output for dot, (or pdf ps eps png)"
-  (cond
-    ((streamp output)
-     (funcall function output))
-    ((null output)
-     (with-output-to-string (s) (output-dot s function)))
-    ((eq output t) (output-dot *standard-output* function))
-    ((stringp output)
-     (output-dot-file program output function lang))
-    (t (error "Unknown output: ~A" output))))
 
 
 (defun binary-tree-dot (tree &key output (node-label-function #'binary-tree-value))
