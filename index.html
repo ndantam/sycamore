@@ -3,14 +3,15 @@
 
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-  <title>SYCAMORE - Common Lisp Trees</title>
+  <title>SYCAMORE - Purely Functional Trees, Etc.</title>
   <style type="text/css">
   pre { padding:5px; background-color:#e0e0e0 }
+  body { font-family: sans; background-color: white;}
   h3, h4 { text-decoration: underline; }
-  a { text-decoration: none; padding: 1px 2px 1px 2px; }
-  a:visited { text-decoration: none; padding: 1px 2px 1px 2px; }
-  a:hover { text-decoration: none; padding: 1px 1px 1px 1px; border: 1px solid #000000; }
-  a:focus { text-decoration: none; padding: 1px 2px 1px 2px; border: none; }
+  a { text-decoration: none; }
+  a:visited { text-decoration: color: purple;}
+  a:hover { text-decoration: underline; }
+  a:focus { text-decoration: none; padding: }
   a.none { text-decoration: none; padding: 0; }
   a.none:visited { text-decoration: none; padding: 0; }
   a.none:hover { text-decoration: none; border: none; padding: 0; }
@@ -20,30 +21,18 @@
   a.noborder:hover { text-decoration: none; border: none; padding: 0; }
   a.noborder:focus { text-decoration: none; border: none; padding: 0; }
   pre.none { padding:5px; background-color:#ffffff }
+  span.download { color: green; }
   </style>
-</head>
+</head><body>
 
-<body bgcolor=white>
-
-<h2> SYCAMORE - Common Lisp Trees</h2>
+<h2> SYCAMORE - Purely Functional Trees, Etc.</h2>
 
 <blockquote>
 <br>&nbsp;<br><h3><a name=abstract class=none>Abstract</a></h3>
-
-Sycamore is a
-<a href="http://en.wikipedia.org/wiki/Functional_programming">functional</a>
-tree library in Common Lisp.  This code comes with
-a <a href="http://www.opensource.org/licenses/bsd-license.php">BSD-style
-license</a> so you can basically do with it whatever you want.
-
-<p>
-<font color=red>Download shortcut:</font> git
-clone <a href="https://github.com/ndantam/sycamore">https://github.com/ndantam/sycamore</a>
-</blockquote>
-
-<br>&nbsp;<br><h3><a class=none name="contents">Contents</a></h3>
+<p>Sycamore is a purely functional data structure library in Common
+Lisp.  It include fast, weight-balanced binary trees, set and
+map (dictionary) interfaces, pairing heaps, and amortized queues.</p>SYCAMORE is available under the <a href="http://opensource.org/licenses/BSD-3-Clause">3-Clause BSD license</a>.<p> <span class='download'>Download Source:</span> <code>git clone <a href="https://github.com/ndantam/sycamore">https://github.com/ndantam/sycamore</a></code></blockquote><br>&nbsp;<br><h3><a class=none name="contents">Contents</a></h3>
 <ol>
-  <li><a href="#download">Download</a>
   <li><a href="#dictionary">The SYCAMORE dictionary</a>
     <ol>
       <li><a href="#amortized-dequeue"><code>amortized-dequeue</code></a>
@@ -53,12 +42,15 @@ clone <a href="https://github.com/ndantam/sycamore">https://github.com/ndantam/s
       <li><a href="#amortized-queue-empty-p"><code>amortized-queue-empty-p</code></a>
       <li><a href="#amortized-queue-list"><code>amortized-queue-list</code></a>
       <li><a href="#amortized-queue-push"><code>amortized-queue-push</code></a>
+      <li><a href="#do-tree-set"><code>do-tree-set</code></a>
       <li><a href="#fold-tree-set"><code>fold-tree-set</code></a>
       <li><a href="#make-amortized-queue"><code>make-amortized-queue</code></a>
       <li><a href="#make-tree-map"><code>make-tree-map</code></a>
       <li><a href="#make-tree-set"><code>make-tree-set</code></a>
       <li><a href="#map-tree-map"><code>map-tree-map</code></a>
       <li><a href="#map-tree-set"><code>map-tree-set</code></a>
+      <li><a href="#or-compare"><code>or-compare</code></a>
+      <li><a href="#tree-map-count"><code>tree-map-count</code></a>
       <li><a href="#tree-map-find"><code>tree-map-find</code></a>
       <li><a href="#tree-map-insert"><code>tree-map-insert</code></a>
       <li><a href="#tree-map-remove"><code>tree-map-remove</code></a>
@@ -68,10 +60,15 @@ clone <a href="https://github.com/ndantam/sycamore">https://github.com/ndantam/s
       <li><a href="#tree-set-count"><code>tree-set-count</code></a>
       <li><a href="#tree-set-difference"><code>tree-set-difference</code></a>
       <li><a href="#tree-set-equal-p"><code>tree-set-equal-p</code></a>
+      <li><a href="#tree-set-find"><code>tree-set-find</code></a>
       <li><a href="#tree-set-insert"><code>tree-set-insert</code></a>
       <li><a href="#tree-set-intersection"><code>tree-set-intersection</code></a>
+      <li><a href="#tree-set-intersection-difference"><code>tree-set-intersection-difference</code></a>
+      <li><a href="#tree-set-list"><code>tree-set-list</code></a>
       <li><a href="#tree-set-member-p"><code>tree-set-member-p</code></a>
       <li><a href="#tree-set-p"><code>tree-set-p</code></a>
+      <li><a href="#tree-set-position"><code>tree-set-position</code></a>
+      <li><a href="#tree-set-ref"><code>tree-set-ref</code></a>
       <li><a href="#tree-set-remove"><code>tree-set-remove</code></a>
       <li><a href="#tree-set-remove-max"><code>tree-set-remove-max</code></a>
       <li><a href="#tree-set-remove-min"><code>tree-set-remove-min</code></a>
@@ -79,15 +76,10 @@ clone <a href="https://github.com/ndantam/sycamore">https://github.com/ndantam/s
       <li><a href="#tree-set-subset-p"><code>tree-set-subset-p</code></a>
       <li><a href="#tree-set-union"><code>tree-set-union</code></a>
     </ol>
+
+  <li><a href="#author">Author</a>
   <li><a href="#ack">Acknowledgements</a>
-</ol>
-
-<br>&nbsp;<br><h3><a class=none name="download">Download</a></h3>
-
-SYCAMORE together with this documentation can be downloaded from
-<a href="https://github.com/ndantam/sycamore">https://github.com/ndantam/sycamore</a>
-
-<br>&nbsp;<br><h3><a class=none name="dictionary">The SYCAMORE dictionary</a></h3>
+</ol><br>&nbsp;<br><h3><a class=none name="dictionary">The SYCAMORE dictionary</a></h3>
 
 
 
@@ -177,6 +169,18 @@ Add ELEMENT to the front of QUEUE.
 <!-- End of entry for AMORTIZED-QUEUE-PUSH -->
 
 
+<!-- Entry for DO-TREE-SET -->
+
+<p><br>[Macro]<br><a class=none name='do-tree-set'><b>do-tree-set</b> <i>(var set <tt>&amp;optional</tt> result) declaration* statement*</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for DO-TREE-SET -->
+
+
 <!-- Entry for FOLD-TREE-SET -->
 
 <p><br>[Function]<br><a class=none name='fold-tree-set'><b>fold-tree-set</b> <i>function initial-value set</i> =&gt; <i>result</i></a>
@@ -252,9 +256,33 @@ Apply FUNCTION to every element of SET.
 <!-- End of entry for MAP-TREE-SET -->
 
 
+<!-- Entry for OR-COMPARE -->
+
+<p><br>[Macro]<br><a class=none name='or-compare'><b>or-compare</b> <i><tt>&amp;rest</tt> comparisons</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Short-circuit evaluatation of arguments, returning the first one that is nonzero.
+
+</blockquote>
+
+<!-- End of entry for OR-COMPARE -->
+
+
+<!-- Entry for TREE-MAP-COUNT -->
+
+<p><br>[Function]<br><a class=none name='tree-map-count'><b>tree-map-count</b> <i>map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Number of elements in MAP.
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-COUNT -->
+
+
 <!-- Entry for TREE-MAP-FIND -->
 
-<p><br>[Function]<br><a class=none name='tree-map-find'><b>tree-map-find</b> <i>tree-map key</i> =&gt; <i>result</i></a>
+<p><br>[Function]<br><a class=none name='tree-map-find'><b>tree-map-find</b> <i>tree-map key <tt>&amp;optional</tt> default</i> =&gt; <i>result</i></a>
 <blockquote><br>
 
 Find value indexed by KEY in TREE-MAP.
@@ -360,6 +388,18 @@ Do SET-1 and SET-2 contain the same elements?
 <!-- End of entry for TREE-SET-EQUAL-P -->
 
 
+<!-- Entry for TREE-SET-FIND -->
+
+<p><br>[Function]<br><a class=none name='tree-set-find'><b>tree-set-find</b> <i>set item</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Find ITEM in SET
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-FIND -->
+
+
 <!-- Entry for TREE-SET-INSERT -->
 
 <p><br>[Function]<br><a class=none name='tree-set-insert'><b>tree-set-insert</b> <i>set item</i> =&gt; <i>result</i></a>
@@ -384,6 +424,30 @@ Intersection of SET-1 and SET-2.
 <!-- End of entry for TREE-SET-INTERSECTION -->
 
 
+<!-- Entry for TREE-SET-INTERSECTION-DIFFERENCE -->
+
+<p><br>[Function]<br><a class=none name='tree-set-intersection-difference'><b>tree-set-intersection-difference</b> <i>tree-1 tree-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Simultanously compute intersection and difference.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-INTERSECTION-DIFFERENCE -->
+
+
+<!-- Entry for TREE-SET-LIST -->
+
+<p><br>[Function]<br><a class=none name='tree-set-list'><b>tree-set-list</b> <i>set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Return list of elements in `SET&#039; in comparison order.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-LIST -->
+
+
 <!-- Entry for TREE-SET-MEMBER-P -->
 
 <p><br>[Function]<br><a class=none name='tree-set-member-p'><b>tree-set-member-p</b> <i>set item</i> =&gt; <i>result</i></a>
@@ -406,6 +470,30 @@ Is ITEM a member of SET?
 </blockquote>
 
 <!-- End of entry for TREE-SET-P -->
+
+
+<!-- Entry for TREE-SET-POSITION -->
+
+<p><br>[Function]<br><a class=none name='tree-set-position'><b>tree-set-position</b> <i>set value</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Return the position of `VALUE&#039; in `SET&#039; or NIL.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-POSITION -->
+
+
+<!-- Entry for TREE-SET-REF -->
+
+<p><br>[Function]<br><a class=none name='tree-set-ref'><b>tree-set-ref</b> <i>set subscript</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Return the element of `SET&#039; at position `SUBSCRIPT&#039;.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-REF -->
 
 
 <!-- Entry for TREE-SET-REMOVE -->
@@ -478,13 +566,16 @@ Union of SET-1 and SET-2.
 </blockquote>
 
 <!-- End of entry for TREE-SET-UNION -->
+<h3><a class=none name="author">Author</a></h3>
+<ul>
+<li>Neil T. Dantam</li>
+</ul>
 
 
-<br>&nbsp;<br><h3><a class=none name="ack">Acknowledgements</a></h3>
-
-<p>
+<br>&nbsp;<br><h3><a class=none name="ack">Acknowledgements</a></h3><p>
 This documentation was prepared with <a href="http://weitz.de/documentation-template/">DOCUMENTATION-TEMPLATE</a>.
 </p>
+<p><a href="http://www.neil.dantam.name">BACK TO MY HOMEPAGE</a></p>
 
 </body>
 </html>
