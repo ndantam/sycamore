@@ -41,14 +41,14 @@
 ;;  T Trees  ;;
 ;;;;;;;;;;;;;;;
 
-;; Reuse the AVL-Tree structure
+;; Reuse the WB-Tree structure
 ;; The binary-tree value slot now holds a sorted array of values
 
 (defconstant +t-tree-max-array-length+ 8)
 
 (defun make-t-tree (left data right)
   (declare (type simple-vector data))
-  (%make-avl-tree (+ (length data) (avl-tree-count left) (avl-tree-count right))
+  (%make-wb-tree (+ (length data) (wb-tree-count left) (wb-tree-count right))
                   left data right))
 
 (defun map-t-tree-nil (function tree)
@@ -102,7 +102,7 @@
                 (array-tree-insert-at array value position n/2)))))
 
 (defun balance-t-tree (left value right)
-  (balance-general-avl-tree #'make-t-tree 3 left value right))
+  (balance-general-wb-tree #'make-t-tree 3 left value right))
 
 (defun t-tree-insert (tree value compare)
   "Insert `value' into `tree' returning new tree."
@@ -111,7 +111,7 @@
   (if (null tree)
       (make-t-tree nil (vector value) nil)
       (labels ((insert (tree value)
-                 (with-avl-tree (l d r) tree
+                 (with-wb-tree (l d r) tree
                    (declare (type simple-vector d))
                    (let* ((len (length d))
                           (c0 (funcall compare value (aref d 0)))
@@ -144,7 +144,7 @@
                              (multiple-value-bind (a0 a1) (t-tree-array-insert-split d value position)
                                (balance-t-tree l a0 (make-t-tree nil a1 nil))))
                             ;; insert min to left
-                            ((avl-tree-smaller l r)
+                            ((wb-tree-smaller l r)
                              (balance-t-tree (insert l (aref d 0))
                                              (array-tree-insert-at d value position 1)
                                              r))
@@ -199,17 +199,17 @@
 ;; (defun t-tree-remove (tree value compare)
 ;;   "Remove `value' from `tree' returning new tree."
 ;;   (when tree
-;;     (with-avl-tree (l d r) tree
+;;     (with-wb-tree (l d r) tree
 ;;       (let* ((len (length d))
 ;;              (c0 (funcall compare value (aref d 0)))
 ;;              (c1 (funcall compare value (aref d (1- len)))))
 ;;           (cond
 ;;             ;; recurse left
 ;;             ((< c0 0)
-;;              (balance-avl-tree (t-tree-remove l value compare) d r))
+;;              (balance-wb-tree (t-tree-remove l value compare) d r))
 ;;             ;; recurse right
 ;;             ((> c1 0)
-;;              (balance-avl-tree l d (t-tree-remove r value compare)))
+;;              (balance-wb-tree l d (t-tree-remove r value compare)))
 ;;             (t
 ;;              (let ((pos (position-if (lambda (x) (zerop (funcall compare value x))) d)))
 ;;                (if pos
@@ -231,7 +231,7 @@
                                        x (if tree
                                              (map 'list #'identity (binary-tree-value tree))
                                              nil)
-                                       (avl-tree-count tree)
+                                       (wb-tree-count tree)
                                        tree)
                                (when parent
                                  (format s "~&  ~A -> ~A;~&"

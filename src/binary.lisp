@@ -262,7 +262,7 @@ RESULT-TYPE: (or 'list nil)"
     ((null tree-2) (return-from binary-tree-compare 1)))
   ;; O(log(n)) space, O(min(m,n)) time
   ;;(declare (optimize (speed 3) (safety 0)))
-  (let ((stack (make-array 0;(ash (avl-tree-count tree-1) (- 0 +avl-tree-max-array-length+ 1))
+  (let ((stack (make-array 0;(ash (wb-tree-count tree-1) (- 0 +wb-tree-max-array-length+ 1))
                            :fill-pointer 0 :adjustable t))
         (i 0))
     (declare (type fixnum i))

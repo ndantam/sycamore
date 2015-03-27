@@ -1,6 +1,6 @@
 (defun regress-pair (x)
-  (values (build-avl-tree #'fixnum-compare nil (remove-duplicates (first x)))
-          (build-avl-tree #'fixnum-compare nil (remove-duplicates (second x)))))
+  (values (build-wb-tree #'fixnum-compare nil (remove-duplicates (first x)))
+          (build-wb-tree #'fixnum-compare nil (remove-duplicates (second x)))))
 
 (let ((regress-1
        '((503 318 77 909 13 852 372 378 859 116 598 753 858 252 394 567 678 971
@@ -235,24 +235,24 @@
           358 959 287 178 92 606 218 133 516 566 455 528 819 924 735 316 943
           257))))
   (defun regress-1 ()
-    ;; Re avl-tree-concatenate not properly balancing trees
+    ;; Re wb-tree-concatenate not properly balancing trees
     (multiple-value-bind (a b) (regress-pair regress-1)
-      (assert (avl-tree-balanced-p (avl-tree-intersection a b #'fixnum-compare))))
+      (assert (wb-tree-balanced-p (wb-tree-intersection a b #'fixnum-compare))))
     (let* ((a
-            (MAKE-AVL-TREE
+            (MAKE-WB-TREE
              (VECTOR 140 142 144 147 149 150 151 152 153 154 155 156 157) 158
-             (MAKE-AVL-TREE
-              (MAKE-AVL-TREE
-               (MAKE-AVL-TREE (VECTOR 160 161 162 164 165 166 167 168) 169
+             (MAKE-WB-TREE
+              (MAKE-WB-TREE
+               (MAKE-WB-TREE (VECTOR 160 161 162 164 165 166 167 168) 169
                               (VECTOR 170 171 173 174 176 178 179 180))
                181 (VECTOR 183 185 186 187 188 189 190 191))
               193 (VECTOR 194 195 196 197 200 201 202 203))))
-           (b (MAKE-AVL-TREE (VECTOR 205 206 207 208 209 211 212 214 216) 217
-                             (MAKE-AVL-TREE (VECTOR 218 221 222 223 224 225 226 227 228)
+           (b (MAKE-WB-TREE (VECTOR 205 206 207 208 209 211 212 214 216) 217
+                             (MAKE-WB-TREE (VECTOR 218 221 222 223 224 225 226 227 228)
                                             229
                                             (VECTOR 230 231 232 233 234 235 237 238 239
                                                     240 241 242 243 245 246)))))
-      (assert (avl-tree-balanced-p (avl-tree-intersection a b #'fixnum-compare))))
+      (assert (wb-tree-balanced-p (wb-tree-intersection a b #'fixnum-compare))))
     t))
 
 
@@ -270,23 +270,23 @@
            89 79 36 123 24 85 26 44 91 62 20 37 123 48 75 42 54 125 125 77 120 98
            119 68 54 47 7 36 58 108 4 125 127 93 37 119 68 68 6 91 55 80 45 17 51
            117 110 63 53 65 19 83 22 122 36 106)))
-     (avl-tree-intersection a b #'fixnum-compare)))
+     (wb-tree-intersection a b #'fixnum-compare)))
 
 
 (defun regress-3 ()
-  (join-avl-tree (VECTOR 3 7 10 14 15)
+  (join-wb-tree (VECTOR 3 7 10 14 15)
                  19
-                 (MAKE-AVL-TREE (VECTOR 23 25 26 27 28 29 30 33 35 36 37 39 40 41 42) 44
+                 (MAKE-WB-TREE (VECTOR 23 25 26 27 28 29 30 33 35 36 37 39 40 41 42) 44
                                 (VECTOR 48 50 51 59 60))
                         #'fixnum-compare))
 (defun regress-4 ()
-(let ((minlen  +avl-tree-min-array-length+)
-      (maxlen  +avl-tree-max-array-length+))
-  (assert (avl-tree-balanced-p
-           (join-avl-tree (apply #'vector (loop for i below minlen
+(let ((minlen  +wb-tree-min-array-length+)
+      (maxlen  +wb-tree-max-array-length+))
+  (assert (wb-tree-balanced-p
+           (join-wb-tree (apply #'vector (loop for i below minlen
                                              collect i))
                           maxlen
-                          (make-avl-tree (apply #'vector (loop for i below maxlen
+                          (make-wb-tree (apply #'vector (loop for i below maxlen
                                                             collect (+ 1 minlen i)))
                                          (* 2 maxlen)
                                          (apply #'vector (loop for i below minlen
@@ -304,88 +304,88 @@
           (74 68 97 111 47 87 97 42 42 34 99 74 43 113 22 64 78 85 20 93 2 60 109
            45 66 96 125 91 124 68 55 5 36 53 84 40 127 115 100 43 11 53 92 72 71
            31 58 28 17 105 33 59 96 47 117 10 31 106 84 94 54)))
-    (avl-tree-intersection a b #'fixnum-compare)))
+    (wb-tree-intersection a b #'fixnum-compare)))
 
 
 (defun regress-6 ()
   (multiple-value-bind (left value right)
       (values
-       (%avl-tree :WEIGHT 36
+       (%wb-tree :WEIGHT 36
                   :VALUE 337
                   :LEFT #(301 304 309 311 314 317 319 321 325 327 328 329 331 332)
                   :RIGHT
-                  (%avl-tree :WEIGHT 21
+                  (%wb-tree :WEIGHT 21
                              :VALUE 372
                              :LEFT #(340 342 344 351 357 358 359 362 363 364 366 368)
                              :RIGHT #(376 377 378 381 382 383 384 385)))
        387
-       (%avl-tree :WEIGHT 203
+       (%wb-tree :WEIGHT 203
                   :VALUE 881
                   :LEFT
-                  (%avl-tree :WEIGHT 156
+                  (%wb-tree :WEIGHT 156
                              :VALUE 561
                              :LEFT
-                             (%avl-tree :WEIGHT 58
+                             (%wb-tree :WEIGHT 58
                                         :VALUE 478
                                         :LEFT
-                                        (%avl-tree :WEIGHT 31
+                                        (%wb-tree :WEIGHT 31
                                                    :VALUE 428
                                                    :LEFT
-                                                   (%avl-tree :WEIGHT 18
+                                                   (%wb-tree :WEIGHT 18
                                                               :VALUE 402
                                                               :LEFT #(390 391 393 395 397 399 400 401)
                                                               :RIGHT #(406 407 409 414 418 419 422 423 424))
                                                    :RIGHT #(432 434 443 447 448 450 455 457 465 469 473 475))
                                         :RIGHT
-                                        (%avl-tree :WEIGHT 26
+                                        (%wb-tree :WEIGHT 26
                                                    :VALUE 523
                                                    :LEFT #(486 490 491 496 499 500 501 511 513 515 517 519 520 522)
                                                    :RIGHT #(533 534 538 539 543 544 546 550 551 554 556)))
                              :RIGHT
-                             (%avl-tree :WEIGHT 97
+                             (%wb-tree :WEIGHT 97
                                         :VALUE 648
                                         :LEFT
-                                        (%avl-tree :WEIGHT 23
+                                        (%wb-tree :WEIGHT 23
                                                    :VALUE 601
                                                    :LEFT #(562 564 567 575 577 581 583 586 595 599)
                                                    :RIGHT #(608 611 616 618 622 629 630 635 637 640 642 646))
                                         :RIGHT
-                                        (%avl-tree :WEIGHT 73
+                                        (%wb-tree :WEIGHT 73
                                                    :VALUE 778
                                                    :LEFT
-                                                   (%avl-tree :WEIGHT 39
+                                                   (%wb-tree :WEIGHT 39
                                                               :VALUE 738
                                                               :LEFT
-                                                              (%avl-tree :WEIGHT 27
+                                                              (%wb-tree :WEIGHT 27
                                                                          :VALUE 696
                                                                          :LEFT #(652 657 661 663 666 668 670 677 678 682 685 692)
                                                                          :RIGHT #(698 701 702 705 712 714 718 720 721 726 727 730 731
                                                                                   734))
                                                               :RIGHT #(748 754 758 761 764 765 767 769 770 771 773))
                                                    :RIGHT
-                                                   (%avl-tree :WEIGHT 33
+                                                   (%wb-tree :WEIGHT 33
                                                               :VALUE 831
                                                               :LEFT #(780 782 783 785 787 790 797 804 806 822 823 825 826 827
                                                                       830)
                                                               :RIGHT
-                                                              (%avl-tree :WEIGHT 17
+                                                              (%wb-tree :WEIGHT 17
                                                                          :VALUE 858
                                                                          :LEFT #(833 842 843 846 848 851 853 856)
                                                                          :RIGHT #(860 865 870 871 872 875 878 880))))))
                   :RIGHT
-                  (%avl-tree :WEIGHT 46
+                  (%wb-tree :WEIGHT 46
                              :VALUE 954
                              :LEFT
-                             (%avl-tree :WEIGHT 26
+                             (%wb-tree :WEIGHT 26
                                         :VALUE 915
                                         :LEFT #(882 886 888 890 894 899 903 905 907 909 910 911)
                                         :RIGHT #(919 922 925 926 927 928 929 933 934 936 948 952 953))
                              :RIGHT
-                             (%avl-tree :WEIGHT 19
+                             (%wb-tree :WEIGHT 19
                                         :VALUE 983
                                         :LEFT #(961 962 964 966 969 970 974 976 981)
                                         :RIGHT #(984 985 990 991 992 995 1009 1021 1023)))))
-    (join-avl-tree left value right #'-)))
+    (join-wb-tree left value right #'-)))
 
 
 (defun regress-7()
@@ -409,21 +409,21 @@
           111 5 51 64 95 8 112 96 17 87 62 83 54 19 56 105 45 51 12 123 127 94 62
           104 93 95 71 62 114 62 122 18 94 36 13 30 40 75 47 57 101 66 81 3 84 65
           125 96 49)))
-    (avl-tree-difference a b #'fixnum-compare))
+    (wb-tree-difference a b #'fixnum-compare))
 
 (defun regress-8()
   (multiple-value-bind (l v r)
       (values #(32 33 34 36)
               37
-              (%avl-tree :WEIGHT 22
+              (%wb-tree :WEIGHT 22
                          :VALUE 61
                          :LEFT #(38 40 43 44 45 46 47 49 50 51 52 54 55 56 57 58)
                          :RIGHT #(62 63 64 65 66)))
 
-    (join-avl-tree l v r #'fixnum-compare)))
+    (join-wb-tree l v r #'fixnum-compare)))
 
 (defun regress-9 ()
-  (balance-avl-tree-array-pair  #(38 40 43 44 45 46 47 49 50 51 52 54 55 56 57 58)
+  (balance-wb-tree-array-pair  #(38 40 43 44 45 46 47 49 50 51 52 54 55 56 57 58)
                                 61
                                 #(62 63 64 65 66)))
 

@@ -80,13 +80,13 @@
                        key
                        value)))))
            (rec-array (trie key value)
-             (avl-tree-modify-vector trie key (make-trie-compare compare)
+             (wb-tree-modify-vector trie key (make-trie-compare compare)
                                      (lambda (trie)
                                        (values (rec trie key value)
                                                t))
                                      nil))
            (rec-tree (trie key value)
-             (avl-tree-modify trie value (make-trie-compare compare)
+             (wb-tree-modify trie value (make-trie-compare compare)
                               (lambda (trie)
                                 (values (rec trie key value)
                                         t))))
@@ -103,7 +103,7 @@
                     (rec-trie trie key value))
                    (simple-vector
                     (rec-array trie key value))
-                   (avl-tree
+                   (wb-tree
                     (rec-tree trie key value))))))
 
     ;; null key

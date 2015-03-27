@@ -163,72 +163,72 @@
   (let* ((list-1 (remove-duplicates (first fuzz)))
          (list-2 (remove-duplicates (second fuzz)))
          (compare #'fixnum-compare)
-         (set-1 (fuzz:test-true 'build-avl-1
-                                (lambda () (build-avl-tree compare nil list-1))))
-         (set-2 (fuzz:test-true  'build-avl-2
-                                 (lambda () (build-avl-tree compare nil list-2))))
+         (set-1 (fuzz:test-true 'build-wb-1
+                                (lambda () (build-wb-tree compare nil list-1))))
+         (set-2 (fuzz:test-true  'build-wb-2
+                                 (lambda () (build-wb-tree compare nil list-2))))
          (set-p-1))
     (labels ((set-sort (x) (sort (copy-list x) #'<))
              (set-result (x)
                (setq set-p-1 x)
-               (avl-tree-list x)))
+               (wb-tree-list x)))
 
 
 
       ;; constructed sets
-      (fuzz:do-test ('avl-elements-1 :test #'equal)
+      (fuzz:do-test ('wb-elements-1 :test #'equal)
         (set-sort list-1)
-        (avl-tree-list set-1))
-      (fuzz:do-test ('avl-elements-2 :test #'equal)
+        (wb-tree-list set-1))
+      (fuzz:do-test ('wb-elements-2 :test #'equal)
         (set-sort list-2)
-        (avl-tree-list set-2))
+        (wb-tree-list set-2))
 
       ;; balance
-      (fuzz:test-true 'avl-balanced-1 (lambda () (avl-tree-balanced-p set-1)))
-      (fuzz:test-true 'avl-balanced-2 (lambda () (avl-tree-balanced-p set-2)))
-      (fuzz:test-true 'avl-balanced-sorted-1
-                      (lambda () (avl-tree-balanced-p
-                                  (build-avl-tree #'fixnum-compare nil (set-sort list-1)))))
-      (fuzz:test-true 'avl-balanced-sorted-2
-                      (lambda () (avl-tree-balanced-p
-                                  (build-avl-tree #'fixnum-compare nil (set-sort list-2)))))
+      (fuzz:test-true 'wb-balanced-1 (lambda () (wb-tree-balanced-p set-1)))
+      (fuzz:test-true 'wb-balanced-2 (lambda () (wb-tree-balanced-p set-2)))
+      (fuzz:test-true 'wb-balanced-sorted-1
+                      (lambda () (wb-tree-balanced-p
+                                  (build-wb-tree #'fixnum-compare nil (set-sort list-1)))))
+      (fuzz:test-true 'wb-balanced-sorted-2
+                      (lambda () (wb-tree-balanced-p
+                                  (build-wb-tree #'fixnum-compare nil (set-sort list-2)))))
 
       ;; join balance
       (map-binary-tree :inorder nil
                        (lambda (x)
-                         (with-avl-tree-split (l p r) set-1 x compare
+                         (with-wb-tree-split (l p r) set-1 x compare
                            (assert p)
                            (fuzz:test-true 'join-balanced
-                                           (lambda () (avl-tree-balanced-p (join-avl-tree l x r
+                                           (lambda () (wb-tree-balanced-p (join-wb-tree l x r
                                                                                           compare))))))
                        set-1)
       (map-binary-tree :inorder nil
                        (lambda (x)
-                         (with-avl-tree-split (l p r) set-2 x compare
+                         (with-wb-tree-split (l p r) set-2 x compare
                            (assert p)
                            (fuzz:test-true 'join-balanced
-                                           (lambda () (avl-tree-balanced-p (join-avl-tree l x r
+                                           (lambda () (wb-tree-balanced-p (join-wb-tree l x r
                                                                                           compare))))))
                        set-2)
 
 
       ;; union
-      (fuzz:do-test ('avl-union :test #'equal)
+      (fuzz:do-test ('wb-union :test #'equal)
         (set-sort (union list-1 list-2))
-        (set-result (avl-tree-union set-1 set-2 #'fixnum-compare)))
-      (fuzz:test-true 'avl-union-balanced-1 (lambda () (avl-tree-balanced-p set-p-1)))
+        (set-result (wb-tree-union set-1 set-2 #'fixnum-compare)))
+      (fuzz:test-true 'wb-union-balanced-1 (lambda () (wb-tree-balanced-p set-p-1)))
 
       ;; intersection
-      (fuzz:do-test ('avl-intersection :test #'equal)
+      (fuzz:do-test ('wb-intersection :test #'equal)
         (set-sort (intersection list-1 list-2))
-        (set-result (avl-tree-intersection set-1 set-2 #'fixnum-compare)))
-      (fuzz:test-true 'avl-intersection-balanced-1 (lambda () (avl-tree-balanced-p set-p-1)))
+        (set-result (wb-tree-intersection set-1 set-2 #'fixnum-compare)))
+      (fuzz:test-true 'wb-intersection-balanced-1 (lambda () (wb-tree-balanced-p set-p-1)))
 
       ;; difference
-      (fuzz:do-test ('avl-difference :test #'equal)
+      (fuzz:do-test ('wb-difference :test #'equal)
         (set-sort (set-difference list-1 list-2))
-        (set-result (avl-tree-difference set-1 set-2 #'fixnum-compare)))
-      (fuzz:test-true 'avl-difference-balanced-1 (lambda () (avl-tree-balanced-p set-p-1))))))
+        (set-result (wb-tree-difference set-1 set-2 #'fixnum-compare)))
+      (fuzz:test-true 'wb-difference-balanced-1 (lambda () (wb-tree-balanced-p set-p-1))))))
 
 (defun run-tree-set-tests (&key (count 1))
   (fuzz:run-tests #'tree-set-fuzz-generator

@@ -7,11 +7,11 @@ API Documentation: http://ndantam.github.com/sycamore
 
 Features
 ========
-* Functional weight-balanced binary tree implementation.  Leaf nodes
-  are simple-vectors, greatly reducing tree height.
-* Pairing heaps
-* Functional amortized queue
-* Interfaces for Sets, Heaps, and Maps (dictionaries).
+* Fast, purely functional weight-balanced binary trees.
+  * Leaf nodes are simple-vectors, greatly reducing tree height.
+* Interfaces for tree Sets and Maps (dictionaries).
+* Purely functional pairing heaps
+* Purely functional amortized queue
 
 Name
 ====

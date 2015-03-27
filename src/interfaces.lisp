@@ -68,14 +68,14 @@
 (defun tree-map-insert (tree-map key value)
   "Insert KEY=>VALUE into TREE-MAP, returning the new tree-map."
   (%make-tree-map (tree-map-compare tree-map)
-                  (avl-tree-replace (tree-map-root tree-map)
+                  (wb-tree-replace (tree-map-root tree-map)
                                     (cons key value)
                                     (tree-map-compare tree-map))))
 
 (defun tree-map-remove (tree-map key)
   "Insert KEY from TREE-MAP, returning the new tree-map."
   (%make-tree-map (tree-map-compare tree-map)
-                  (avl-tree-remove (tree-map-root tree-map)
+                  (wb-tree-remove (tree-map-root tree-map)
                                    (cons key nil)
                                    (tree-map-compare tree-map))))
 
@@ -109,7 +109,7 @@ FUNCTION: (lambda (key value))."
 
 (defun tree-map-count (map)
   "Number of elements in MAP."
-  (avl-tree-count (tree-map-root map)))
+  (wb-tree-count (tree-map-root map)))
 
 ;;;;;;;;;;;;;;;
 ;; TREE-SET ;;
@@ -130,13 +130,13 @@ FUNCTION: (lambda (key value))."
 (defun tree-set (compare &rest args)
   "Create a new tree-set containing all items in ARGS."
   (%make-tree-set compare
-                  (fold (lambda (tree x) (avl-tree-insert tree x compare))
+                  (fold (lambda (tree x) (wb-tree-insert tree x compare))
                         nil
                         args)))
 
 (defun tree-set-count (set)
   "Number of elements in SET."
-  (avl-tree-count (tree-set-root set)))
+  (wb-tree-count (tree-set-root set)))
 
 (defun map-tree-set (result-type function set)
   "Apply FUNCTION to every element of SET."
@@ -157,20 +157,20 @@ FUNCTION: (lambda (key value))."
 (defun tree-set-remove-min (set)
   "Remove minimum element of SET."
   (declare (type tree-set set))
-  (multiple-value-bind (tree item) (avl-tree-remove-min (tree-set-root set))
+  (multiple-value-bind (tree item) (wb-tree-remove-min (tree-set-root set))
     (values (%make-tree-set (tree-set-%compare set) tree)
             item)))
 
 (defun tree-set-remove-max (set)
 "Remove maximum element of SET."
-  (multiple-value-bind (tree item) (avl-tree-remove-max (tree-set-root set))
+  (multiple-value-bind (tree item) (wb-tree-remove-max (tree-set-root set))
     (values (%make-tree-set (tree-set-%compare set) tree)
             item)))
 
 (defun tree-set-remove-position (set i)
 "Remove element of SET and position I."
   (multiple-value-bind (tree item)
-      (avl-tree-remove-position (tree-set-root set) i (tree-set-%compare set))
+      (wb-tree-remove-position (tree-set-root set) i (tree-set-%compare set))
     (values (%make-tree-set (tree-set-%compare set) tree)
             item)))
 
@@ -183,10 +183,10 @@ FUNCTION: (lambda (key value))."
                                            item
                                            (tree-set-%compare set)))))
 
-(def-tree-set-item-op tree-set-insert avl-tree-insert
+(def-tree-set-item-op tree-set-insert wb-tree-insert
   "Insert ITEM into SET.")
 
-(def-tree-set-item-op tree-set-remove avl-tree-remove
+(def-tree-set-item-op tree-set-remove wb-tree-remove
   "Remove ITEM from SET.")
 
 (defun tree-set-member-p (set item)
@@ -206,18 +206,18 @@ FUNCTION: (lambda (key value))."
                                            (tree-set-root set-2)
                                            (tree-set-%compare set-1)))))
 
-(def-tree-set-binop tree-set-union avl-tree-union
+(def-tree-set-binop tree-set-union wb-tree-union
   "Union of SET-1 and SET-2.")
-(def-tree-set-binop tree-set-intersection avl-tree-intersection
+(def-tree-set-binop tree-set-intersection wb-tree-intersection
   "Intersection of SET-1 and SET-2.")
-(def-tree-set-binop tree-set-difference avl-tree-difference
+(def-tree-set-binop tree-set-difference wb-tree-difference
   "Difference of SET-1 and SET-2.")
 
 (defun tree-set-intersection-difference (tree-1 tree-2)
   "Simultanously compute intersection and difference."
   (let ((compare (tree-set-%compare tree-1)))
     (multiple-value-bind (i d)
-        (avl-tree-intersection-difference (tree-set-root tree-1)
+        (wb-tree-intersection-difference (tree-set-root tree-1)
                                           (tree-set-root tree-2)
                                           compare)
       (values (%make-tree-set compare i)
@@ -231,14 +231,14 @@ FUNCTION: (lambda (key value))."
 
 (defun tree-set-subset-p (set-1 set-2)
   "Is SET-1 as subset of SET-2?"
-  (avl-tree-subset (tree-set-root set-1)
+  (wb-tree-subset (tree-set-root set-1)
                   (tree-set-root set-2)
                   (tree-set-%compare set-1)))
 
 ;(declaim (ftype (function (tree-set tree-set) fixnum) tree-set-compare))
 (defun tree-set-compare (tree-1 tree-2)
   "Order relation on sets."
-  (avl-tree-compare (tree-set-root tree-1) (tree-set-root tree-2)
+  (wb-tree-compare (tree-set-root tree-1) (tree-set-root tree-2)
                     (tree-set-%compare tree-1)))
 
 (defun tree-set-list (set)
@@ -254,11 +254,11 @@ FUNCTION: (lambda (key value))."
 
 (defun tree-set-position (set value)
   "Return the position of `VALUE' in `SET' or NIL."
-  (avl-tree-position (tree-set-root set) value (tree-set-%compare set)))
+  (wb-tree-position (tree-set-root set) value (tree-set-%compare set)))
 
 (defun tree-set-ref (set subscript)
   "Return the element of `SET' at position `SUBSCRIPT'."
-  (avl-tree-ref (tree-set-root set) subscript))
+  (wb-tree-ref (tree-set-root set) subscript))
 
 ;;;;;;;;;;;;;;;
 ;; Tree-Bag  ;;
@@ -286,7 +286,7 @@ FUNCTION: (lambda (key value))."
 
 (defun %tree-bag-insert (tree compare x)
   (let ((x (cons x 0)))
-    (avl-tree-modify tree x compare #'tree-bag-increment x)))
+    (wb-tree-modify tree x compare #'tree-bag-increment x)))
 
 (defun tree-bag (compare &rest args)
   (let ((compare (make-aux-compare compare)))
@@ -299,7 +299,7 @@ FUNCTION: (lambda (key value))."
   (let ((x (cons x 0))
         (compare (tree-bag-%compare tb)))
     (%make-tree-bag compare
-                    (avl-tree-modify (tree-bag-root tb)
+                    (wb-tree-modify (tree-bag-root tb)
                                      x compare #'tree-bag-increment x))))
 
 (defun tree-bag-count (bag key)
@@ -344,7 +344,7 @@ FUNCTION: (lambda (key value))."
 ;; (defun tree-heap-insert (heap value &optional (cost (funcall (tree-heap-cost heap) value)))
 ;;   "Insert VALUE into HEAP."
 ;;   (new-tree-heap heap
-;;                  (avl-tree-reinsert (tree-heap-root heap)
+;;                  (wb-tree-reinsert (tree-heap-root heap)
 ;;                                     (cons cost value)
 ;;                                     #'tree-heap-compare)))
 
@@ -355,11 +355,11 @@ FUNCTION: (lambda (key value))."
 ;;   (cdr (binary-tree-max (tree-heap-root heap))))
 
 ;; (defun tree-heap-remove-min (heap)
-;;   (multiple-value-bind (root value) (avl-tree-remove-min (tree-heap-root heap))
+;;   (multiple-value-bind (root value) (wb-tree-remove-min (tree-heap-root heap))
 ;;     (values (new-tree-heap heap root) (cdr value))))
 
 ;; (defun tree-heap-remove-max (heap)
-;;   (multiple-value-bind (root value ) (avl-tree-remove-max (tree-heap-root heap))
+;;   (multiple-value-bind (root value ) (wb-tree-remove-max (tree-heap-root heap))
 ;;     (values (new-tree-heap heap root) (cdr value))))
 
 ;; (defun tree-heap-construct (cost-function elements)

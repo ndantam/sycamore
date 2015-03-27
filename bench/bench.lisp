@@ -136,24 +136,24 @@
 
 
 
-(defun time-avl ()
+(defun time-wb ()
   ;; build
   (let ((compare (lambda (a b)
                    (declare (type fixnum a b))
                          (- a b))))
-    (time-general (lambda (a) (build-avl-tree compare
+    (time-general (lambda (a) (build-wb-tree compare
                                               nil a))
                 :insert (lambda (obj x)
-                          (avl-tree-insert obj x compare))
+                          (wb-tree-insert obj x compare))
                 :remove (lambda (obj x)
-                          (avl-tree-remove obj x compare))
+                          (wb-tree-remove obj x compare))
                 :union (lambda (x y)
-                         (avl-tree-union x y compare))
+                         (wb-tree-union x y compare))
                 :intersection (lambda (x y)
-                                (avl-tree-intersection x y compare))
+                                (wb-tree-intersection x y compare))
                 :difference (lambda (x y)
-                              (avl-tree-difference x y compare))
-                :name "SYCAMORE:AVL")))
+                              (wb-tree-difference x y compare))
+                :name "SYCAMORE:WB")))
 
 
 (defun time-fset ()
@@ -170,6 +170,6 @@
 (defun time-all (&key count (max count))
   (when (and count max)
     (bench-generate-data :count-1 count :max-1 max))
-  (time-avl)
+  (time-wb)
   (time-fset)
   nil)

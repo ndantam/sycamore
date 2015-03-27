@@ -1,4 +1,4 @@
-;;;; -*- Lisp -*-
+;;; -*- Lisp -*-
 ;;;;
 ;;;; Copyright (c) 2011, Georgia Tech Research Corporation
 ;;;; All rights reserved.
@@ -40,8 +40,8 @@
 (defvar *test-list-2*)
 (defvar *test-sort-1*)
 (defvar *test-sort-2*)
-(defvar *test-avl-1*)
-(defvar *test-avl-2*)
+(defvar *test-wb-1*)
+(defvar *test-wb-2*)
 
 ;; number of fuzz test iterations
 #-(or clisp ecl)
@@ -57,15 +57,15 @@
         *test-list-2*  list2
         *test-sort-1* (remove-duplicates (sort (copy-list list1) #'<))
         *test-sort-2* (remove-duplicates (sort (copy-list list2) #'<))
-        *test-avl-1* (fold (avl-tree-builder #'-) nil list1)
-        *test-avl-2* (fold (avl-tree-builder #'-) nil list2)))
+        *test-wb-1* (fold (wb-tree-builder #'-) nil list1)
+        *test-wb-2* (fold (wb-tree-builder #'-) nil list2)))
 
 
 (defun test-list (count &optional (max 100))
   (loop for i below count collect (random max)))
 
-(defun test-avl (count &optional (max 100))
-  (fold (avl-tree-builder #'-) nil (test-list count max)))
+(defun test-wb (count &optional (max 100))
+  (fold (wb-tree-builder #'-) nil (test-list count max)))
 
 (lisp-unit:define-test array
   ;; remove
@@ -144,27 +144,27 @@
                                               #'-))
    )
 
-  ;; avl-tree
+  ;; wb-tree
 
-  (let ((a (make-avl-tree nil 1 nil))
-        (b (make-avl-tree nil 3 nil))
-        (c (make-avl-tree nil 5 nil))
-        (d (make-avl-tree nil 7 nil)))
-    (let ((bal (make-avl-tree (make-avl-tree a 2 b) 4 (make-avl-tree c 6 d)))
-          (right-right (make-avl-tree a 2 (make-avl-tree b 4 (make-avl-tree c 6 d))))
-          (right-left (make-avl-tree a 2 (make-avl-tree (make-avl-tree b 4 c) 6 d)))
-          (left-left (make-avl-tree (make-avl-tree (make-avl-tree a 2 b) 4 c) 6 d))
-          (left-right (make-avl-tree (make-avl-tree a 2 (make-avl-tree b 4 c)) 6 d)) )
-      (let ((bal-right-right (left-avl-tree (binary-tree-left right-right)
+  (let ((a (make-wb-tree nil 1 nil))
+        (b (make-wb-tree nil 3 nil))
+        (c (make-wb-tree nil 5 nil))
+        (d (make-wb-tree nil 7 nil)))
+    (let ((bal (make-wb-tree (make-wb-tree a 2 b) 4 (make-wb-tree c 6 d)))
+          (right-right (make-wb-tree a 2 (make-wb-tree b 4 (make-wb-tree c 6 d))))
+          (right-left (make-wb-tree a 2 (make-wb-tree (make-wb-tree b 4 c) 6 d)))
+          (left-left (make-wb-tree (make-wb-tree (make-wb-tree a 2 b) 4 c) 6 d))
+          (left-right (make-wb-tree (make-wb-tree a 2 (make-wb-tree b 4 c)) 6 d)) )
+      (let ((bal-right-right (left-wb-tree (binary-tree-left right-right)
                                             (binary-tree-value right-right)
                                             (binary-tree-right right-right)))
-            (bal-right-left (left-right-avl-tree (binary-tree-left right-left)
+            (bal-right-left (left-right-wb-tree (binary-tree-left right-left)
                                                  (binary-tree-value right-left)
                                                  (binary-tree-right right-left)))
-            (bal-left-left (right-avl-tree (binary-tree-left left-left)
+            (bal-left-left (right-wb-tree (binary-tree-left left-left)
                                            (binary-tree-value left-left)
                                            (binary-tree-right left-left)))
-            (bal-left-right (right-left-avl-tree (binary-tree-left left-right)
+            (bal-left-right (right-left-wb-tree (binary-tree-left left-right)
                                                  (binary-tree-value left-right)
                                                  (binary-tree-right left-right))))
         (lisp-unit:assert-equalp bal bal-right-right)
@@ -177,77 +177,77 @@
            (list-2 (loop for i below 100 collect (+ 110 (random 100))))
            (sort-1 (remove-duplicates (sort (copy-list list-1) #'<)))
            (sort-2 (remove-duplicates (sort (copy-list list-2) #'<)))
-           (avl-tree-1 (fold (avl-tree-builder #'-) nil list-1))
-           (avl-tree-2 (fold (avl-tree-builder #'-) nil list-2))
-           (avl-tree-12 (fold (lambda (a x) (avl-tree-insert a x #'-)) avl-tree-1 list-2))
-           (avl-tree-cat (avl-tree-concatenate avl-tree-1 avl-tree-2 #'-)))
+           (wb-tree-1 (fold (wb-tree-builder #'-) nil list-1))
+           (wb-tree-2 (fold (wb-tree-builder #'-) nil list-2))
+           (wb-tree-12 (fold (lambda (a x) (wb-tree-insert a x #'-)) wb-tree-1 list-2))
+           (wb-tree-cat (wb-tree-concatenate wb-tree-1 wb-tree-2 #'-)))
       (make-test-vars list-1 list-2)
       ;; construction
-      (lisp-unit:assert-equal sort-1 (avl-tree-list avl-tree-1))
-      (lisp-unit:assert-equal sort-2 (avl-tree-list avl-tree-2))
+      (lisp-unit:assert-equal sort-1 (wb-tree-list wb-tree-1))
+      (lisp-unit:assert-equal sort-2 (wb-tree-list wb-tree-2))
 
       ;; concatenate
-      (lisp-unit:assert-equal (avl-tree-list avl-tree-cat)
+      (lisp-unit:assert-equal (wb-tree-list wb-tree-cat)
                               (append sort-1 sort-2))
-      (lisp-unit:assert-equal (avl-tree-list avl-tree-cat)
-                              (avl-tree-list avl-tree-12))
+      (lisp-unit:assert-equal (wb-tree-list wb-tree-cat)
+                              (wb-tree-list wb-tree-12))
 
       ;; equal
-      (lisp-unit:assert-true (binary-tree-equal avl-tree-cat avl-tree-12 #'-))
+      (lisp-unit:assert-true (binary-tree-equal wb-tree-cat wb-tree-12 #'-))
 
-      (lisp-unit:assert-true (not (binary-tree-equal avl-tree-1 avl-tree-2 #'-)))
+      (lisp-unit:assert-true (not (binary-tree-equal wb-tree-1 wb-tree-2 #'-)))
 
       ;; subset
-      (lisp-unit:assert-true (avl-tree-subset avl-tree-1 avl-tree-12 #'-))
-      (lisp-unit:assert-true (avl-tree-subset avl-tree-2 avl-tree-12 #'-))
-      (lisp-unit:assert-true (avl-tree-subset avl-tree-cat avl-tree-12 #'-))
+      (lisp-unit:assert-true (wb-tree-subset wb-tree-1 wb-tree-12 #'-))
+      (lisp-unit:assert-true (wb-tree-subset wb-tree-2 wb-tree-12 #'-))
+      (lisp-unit:assert-true (wb-tree-subset wb-tree-cat wb-tree-12 #'-))
 
-      (lisp-unit:assert-true (not (avl-tree-subset avl-tree-12 avl-tree-1 #'-)))
-      (lisp-unit:assert-true (not (avl-tree-subset avl-tree-12 avl-tree-2 #'-)))
+      (lisp-unit:assert-true (not (wb-tree-subset wb-tree-12 wb-tree-1 #'-)))
+      (lisp-unit:assert-true (not (wb-tree-subset wb-tree-12 wb-tree-2 #'-)))
 
       ;; min
       (lisp-unit:assert-equal (car sort-1)
-                              (binary-tree-min avl-tree-1))
+                              (binary-tree-min wb-tree-1))
       (lisp-unit:assert-equal (car sort-2)
-                              (binary-tree-min avl-tree-2))
+                              (binary-tree-min wb-tree-2))
 
       ;; remove-min
       (loop
-         with tree = avl-tree-1
+         with tree = wb-tree-1
          for sort on sort-1
-         do (multiple-value-bind (tree-x min) (avl-tree-remove-min tree)
+         do (multiple-value-bind (tree-x min) (wb-tree-remove-min tree)
               (lisp-unit:assert-equal (cdr sort)
-                                      (avl-tree-list tree-x))
+                                      (wb-tree-list tree-x))
               (lisp-unit:assert-equal (car sort)
                                       min)
               (setq tree tree-x)))
 
-      (multiple-value-bind (tree x) (avl-tree-remove-min avl-tree-1)
-        (lisp-unit:assert-equal (cdr sort-1) (avl-tree-list tree))
+      (multiple-value-bind (tree x) (wb-tree-remove-min wb-tree-1)
+        (lisp-unit:assert-equal (cdr sort-1) (wb-tree-list tree))
         (lisp-unit:assert-equal (car sort-1) x))
 
-      (multiple-value-bind (tree x)  (avl-tree-remove-min avl-tree-2)
-        (lisp-unit:assert-equal (cdr sort-2) (avl-tree-list tree))
+      (multiple-value-bind (tree x)  (wb-tree-remove-min wb-tree-2)
+        (lisp-unit:assert-equal (cdr sort-2) (wb-tree-list tree))
         (lisp-unit:assert-equal (car sort-2) x))
 
       ;; remove-max
       (loop
-         with tree = avl-tree-1
+         with tree = wb-tree-1
          for sort on (reverse sort-1)
-         do (multiple-value-bind (tree-x max) (avl-tree-remove-max tree)
+         do (multiple-value-bind (tree-x max) (wb-tree-remove-max tree)
               (lisp-unit:assert-equal (reverse (cdr sort))
-                                      (avl-tree-list tree-x))
+                                      (wb-tree-list tree-x))
               (lisp-unit:assert-equal (car sort)
                                       max)
               (setq tree tree-x)))
 
-      (multiple-value-bind (tree x) (avl-tree-remove-max avl-tree-1)
-        (lisp-unit:assert-equal (avl-tree-list tree)
+      (multiple-value-bind (tree x) (wb-tree-remove-max wb-tree-1)
+        (lisp-unit:assert-equal (wb-tree-list tree)
                                 (subseq sort-1 0 (1- (length sort-1))))
         (lisp-unit:assert-equal x (car (last sort-1))))
 
-      (multiple-value-bind (tree x) (avl-tree-remove-max avl-tree-2)
-        (lisp-unit:assert-equal (avl-tree-list tree)
+      (multiple-value-bind (tree x) (wb-tree-remove-max wb-tree-2)
+        (lisp-unit:assert-equal (wb-tree-list tree)
                                 (subseq sort-2 0 (1- (length sort-2))))
         (lisp-unit:assert-equal x (car (last sort-2))))
 
@@ -255,51 +255,51 @@
       (let ((list (append sort-1 sort-2)))
         (dotimes (i 10)
           (let ((i (random (length list))))
-            (lisp-unit:assert-equal (avl-tree-list (avl-tree-remove avl-tree-cat (elt list i) #'-))
+            (lisp-unit:assert-equal (wb-tree-list (wb-tree-remove wb-tree-cat (elt list i) #'-))
                                     (append (subseq list 0 i)
                                             (subseq list (1+ i)))))))
 
 
       ;; split
       (multiple-value-bind (left present right)
-          (avl-tree-split avl-tree-12 101 #'-)
-        (lisp-unit:assert-equal sort-1 (avl-tree-list left))
-        (lisp-unit:assert-equal sort-2 (avl-tree-list right))
+          (wb-tree-split wb-tree-12 101 #'-)
+        (lisp-unit:assert-equal sort-1 (wb-tree-list left))
+        (lisp-unit:assert-equal sort-2 (wb-tree-list right))
         (lisp-unit:assert-false present)
         )
       )))
 
-(lisp-unit:define-test avl-tree-compare
+(lisp-unit:define-test wb-tree-compare
   ;; divide and conquer
   (lisp-unit:assert-true (= 0
-                            (avl-tree-compare (avl-tree #'- 1 3 5 7)
-                                              (avl-tree #'- 1 3 5 7) #'-)))
+                            (wb-tree-compare (wb-tree #'- 1 3 5 7)
+                                              (wb-tree #'- 1 3 5 7) #'-)))
   (lisp-unit:assert-true (> 0
-                            (avl-tree-compare (avl-tree #'- 1 3 5 7)
-                                              (avl-tree #'- 1 3 5 7 9) #'-)))
+                            (wb-tree-compare (wb-tree #'- 1 3 5 7)
+                                              (wb-tree #'- 1 3 5 7 9) #'-)))
   (lisp-unit:assert-true (< 0
-                            (avl-tree-compare (avl-tree #'- 1 3 5 7 9)
-                                              (avl-tree #'- 1 3 5 7) #'-)))
+                            (wb-tree-compare (wb-tree #'- 1 3 5 7 9)
+                                              (wb-tree #'- 1 3 5 7) #'-)))
 
   (lisp-unit:assert-true (< 0
-                            (avl-tree-compare (avl-tree #'- 2 3 5 7)
-                                              (avl-tree #'- 1 3 5 7) #'-)))
+                            (wb-tree-compare (wb-tree #'- 2 3 5 7)
+                                              (wb-tree #'- 1 3 5 7) #'-)))
   (lisp-unit:assert-true (> 0
-                            (avl-tree-compare (avl-tree #'- 1 3 5 7)
-                                              (avl-tree #'- 2 3 5 7) #'-)))
+                            (wb-tree-compare (wb-tree #'- 1 3 5 7)
+                                              (wb-tree #'- 2 3 5 7) #'-)))
 
   (lisp-unit:assert-true (< 0
-                            (avl-tree-compare (avl-tree #'- 1 3 5 9)
-                                              (avl-tree #'- 1 3 5 7) #'-)))
+                            (wb-tree-compare (wb-tree #'- 1 3 5 9)
+                                              (wb-tree #'- 1 3 5 7) #'-)))
   (lisp-unit:assert-true (> 0
-                            (avl-tree-compare (avl-tree #'- 1 3 5 7)
-                                              (avl-tree #'- 1 3 5 9) #'-)))
+                            (wb-tree-compare (wb-tree #'- 1 3 5 7)
+                                              (wb-tree #'- 1 3 5 9) #'-)))
   (lisp-unit:assert-true (< 0
-                            (avl-tree-compare (avl-tree #'- 1 3 6 7 9)
-                                              (avl-tree #'- 1 3 5 7 9) #'-)))
+                            (wb-tree-compare (wb-tree #'- 1 3 6 7 9)
+                                              (wb-tree #'- 1 3 5 7 9) #'-)))
   (lisp-unit:assert-true (> 0
-                            (avl-tree-compare (avl-tree #'- 1 3 5 7 9)
-                                              (avl-tree #'- 1 3 6 7 9) #'-)))
+                            (wb-tree-compare (wb-tree #'- 1 3 5 7 9)
+                                              (wb-tree #'- 1 3 6 7 9) #'-)))
 
 
   )
@@ -378,7 +378,7 @@
            )
       (labels (
               ; (heap-list (heap)
-              ;   (map 'list #'cdr (avl-tree-list (tree-heap-root heap))))
+              ;   (map 'list #'cdr (wb-tree-list (tree-heap-root heap))))
                )
         ;(lisp-unit:assert-equalp s-1
                                  ;(heap-list t-1))
@@ -424,13 +424,13 @@
   ;; remove min/max with null
   (lisp-unit:assert-equal '((2 3 4 5) 1)
                           (multiple-value-bind (tree min)
-                              (avl-tree-remove-min (make-avl-tree nil 1 (vector 2 3 4 5)))
-                            (list (avl-tree-list tree) min)))
+                              (wb-tree-remove-min (make-wb-tree nil 1 (vector 2 3 4 5)))
+                            (list (wb-tree-list tree) min)))
 
   (lisp-unit:assert-equal '((1 2 3 4) 5)
                           (multiple-value-bind (tree min)
-                              (avl-tree-remove-max (make-avl-tree (vector 1 2 3 4) 5 nil))
-                            (list (avl-tree-list tree) min))))
+                              (wb-tree-remove-max (make-wb-tree (vector 1 2 3 4) 5 nil))
+                            (list (wb-tree-list tree) min))))
 
 ;; (lisp-unit:define-test red-black
 ;;   ;; red-black
