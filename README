@@ -1,9 +1,9 @@
 SYCAMORE
 ========
 
-A Common Lisp functional tree libary.
+A fast, purely functional data structure libary in Common Lisp.
 
-API Documentation: http://ndantam.github.com/sycamore
+API Documentation: http://ndantam.github.io/sycamore
 
 Features
 ========
