@@ -39,8 +39,12 @@
 
 (asdf:defsystem sycamore
   :version "0.0.20120604"
-  :description "Sycamore tree library"
+  :description "Purely Functional Trees, Etc."
   :depends-on (:cl-ppcre :alexandria)
+  :license :bsd-3
+  :homepage "http://ndantam.github.io/sycamore"
+  :source-control "https://github.com/ndantam/sycamore"
+  :author "Neil T. Dantam"
   :weakly-depends-on (:lisp-unit :cl-fuzz)
   :components ((:file "package")
                (:file "util" :depends-on ("package"))
@@ -51,4 +55,9 @@
                (:file "wb-tree" :depends-on ("binary" "array"))
                ;;(:file "ttree" :depends-on ("avl"))
                (:file "interfaces" :depends-on ("wb-tree"))
-               ))
+               )
+
+  :long-description
+  "Sycamore is a purely functional data structure library in Common
+Lisp.  It include fast, weight-balanced binary trees, set and
+map (dictionary) interfaces, pairing heaps, and amortized queues."  )
