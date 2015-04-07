@@ -107,6 +107,12 @@ FUNCTION: (lambda (key value))."
         (treemap
          (assert nil))))))
 
+(defun fold-tree-map (function initial-value tree-map)
+  "Fold FUNCTION over members of the map
+FUNCTION: (lambda (accumulated-value key value))."
+  (fold-binary-tree :inorder (lambda (accum pair) (funcall function accum (car pair) (cdr pair)))
+                    initial-value (tree-map-root tree-map)))
+
 (defun tree-map-count (map)
   "Number of elements in MAP."
   (wb-tree-count (tree-map-root map)))

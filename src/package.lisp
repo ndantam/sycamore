@@ -72,6 +72,7 @@
    ;; tree map
    make-tree-map tree-map-insert tree-map-remove tree-map-find
    map-tree-map tree-map-count
+   fold-tree-map
    ;; queues
    make-amortized-queue amortized-queue amortized-queue-empty-p
    amortized-enqueue amortized-dequeue amortized-queue-push
