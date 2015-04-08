@@ -118,14 +118,14 @@
 
 
 (defun string-compare (a b)
-  (declare (type string a b))
   (labels ((helper (a b)
              (loop
                 for x across a
                 for y across b
                 while (eql x y)
-                finally (return (- (char-code x) (char-code y))))))
-
+                finally (return (if (eql x y)
+                                    (- (length a) (length b))
+                                    (- (char-code x) (char-code y)))))))
     (etypecase a
       (simple-string
        (etypecase b
