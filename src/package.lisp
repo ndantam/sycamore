@@ -64,6 +64,7 @@
    tree-set-count
    tree-set-ref tree-set-position
    tree-set-insert tree-set-remove
+   tree-set-insertf
    tree-set-remove-min tree-set-remove-max tree-set-remove-position
    tree-set-union tree-set-intersection tree-set-difference
    tree-set-member-p tree-set-find
@@ -72,6 +73,7 @@
    tree-set-intern
    ;; tree map
    make-tree-map tree-map-insert tree-map-remove tree-map-find
+   tree-map-insertf
    map-tree-map tree-map-count
    fold-tree-map
    ;; queues

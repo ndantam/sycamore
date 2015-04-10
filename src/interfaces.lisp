@@ -72,6 +72,11 @@
                                     (cons key value)
                                     (tree-map-compare tree-map))))
 
+(defmacro tree-map-insertf (place key value)
+  "Insert KEY=>VALUE into the tree map at PLACE, store at place."
+  `(setf ,place
+         (tree-map-insert ,place ,key ,value)))
+
 (defun tree-map-remove (tree-map key)
   "Insert KEY from TREE-MAP, returning the new tree-map."
   (%make-tree-map (tree-map-compare tree-map)
@@ -194,6 +199,11 @@ FUNCTION: (lambda (accumulated-value key value))."
 
 (def-tree-set-item-op tree-set-remove wb-tree-remove
   "Remove ITEM from SET.")
+
+(defmacro tree-set-insertf (place item)
+  "Insert INTER into the tree set at PLACE, store at PLACE."
+  `(setf ,place
+         (tree-set-insert ,place ,item)))
 
 (defun tree-set-member-p (set item)
   "Is ITEM a member of SET?"
