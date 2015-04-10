@@ -204,6 +204,17 @@ FUNCTION: (lambda (accumulated-value key value))."
   "Find ITEM in SET"
   (binary-tree-find (tree-set-root set) item (tree-set-%compare set)))
 
+(defun tree-set-intern (set item)
+  "Add item to set, unless it already exists.
+RETURNS: (values NEW-SET NEW-ITEM)"
+  (multiple-value-bind (set-item exists)
+      (tree-set-find set item)
+    (if exists
+        (values set set-item)
+        (values (tree-set-insert set item)
+                item))))
+
+
 (defmacro def-tree-set-binop (name implementation-name doc)
   `(defun ,name (set-1 set-2)
      ,doc
