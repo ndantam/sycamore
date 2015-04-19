@@ -122,6 +122,38 @@ FUNCTION: (lambda (accumulated-value key value))."
   "Number of elements in MAP."
   (wb-tree-count (tree-map-root map)))
 
+(defun alist-tree-map (alist compare)
+  "Returns a tree-map containing the keys and values of the association list ALIST."
+  (fold (lambda (map elt) (tree-map-insert map (car elt) (cdr elt)))
+        (make-tree-map compare)
+        alist))
+
+(defun hash-table-tree-map (hash-table compare)
+  "Returns a tree-map containing the keys and values of the hash-table list HASH-TABLE."
+  (let ((map (make-tree-map compare)))
+    (maphash (lambda (key value)
+               (setq map (tree-map-insert map key value)))
+             hash-table)
+    map))
+
+(defun tree-map-alist (tree-map)
+  "Returns an association list containging the keys and values of tree-map TREE-MAP."
+  (declare (type tree-map tree-map))
+  (map-tree-map :inorder 'list #'cons tree-map))
+
+(defun tree-map-hash-table (tree-map &rest hash-table-initargs)
+  "Returns a hash table containing the keys and values of the tree-map TREE-MAP.
+Hash table is initialized using the HASH-TABLE-INITARGS."
+  (declare (type tree-map tree-map)
+           (dynamic-extent hash-table-initargs))
+  (fold-tree-map (lambda (hash key value)
+                   (setf (gethash key hash) value)
+                   hash)
+                 (apply #'make-hash-table hash-table-initargs)
+                 tree-map))
+
+
+
 ;;;;;;;;;;;;;;;
 ;; TREE-SET ;;
 ;;;;;;;;;;;;;;;

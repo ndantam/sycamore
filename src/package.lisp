@@ -76,6 +76,8 @@
    tree-map-insertf
    map-tree-map tree-map-count
    fold-tree-map
+   alist-tree-map hash-table-tree-map
+   tree-map-alist tree-map-hash-table
    ;; queues
    make-amortized-queue amortized-queue amortized-queue-empty-p
    amortized-enqueue amortized-dequeue amortized-queue-push
