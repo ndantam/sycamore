@@ -72,6 +72,7 @@
    tree-set-intersection-difference
    tree-set-intern
    ;; tree map
+   tree-map
    make-tree-map tree-map-insert tree-map-remove tree-map-find
    tree-map-insertf
    map-tree-map tree-map-count
