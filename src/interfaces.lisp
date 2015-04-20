@@ -319,6 +319,14 @@ RETURNS: (values NEW-SET NEW-ITEM)"
   "Return the element of `SET' at position `SUBSCRIPT'."
   (wb-tree-ref (tree-set-root set) subscript))
 
+(defun tree-set-max (set)
+  "Return the greatest item in SET."
+  (binary-tree-max (tree-set-root set)))
+
+(defun tree-set-min (set)
+  "Return the lest item in SET."
+  (binary-tree-min (tree-set-root set)))
+
 ;;;;;;;;;;;;;;;
 ;; Tree-Bag  ;;
 ;;;;;;;;;;;;;;;
