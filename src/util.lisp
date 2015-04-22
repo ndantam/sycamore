@@ -117,21 +117,28 @@
   (apply #'vector (loop for i from start below end collect i)))
 
 
+(declaim (inline  string-compare-inline))
+(defun string-compare-inline (a b)
+  (let ((n-a (length a))
+        (n-b (length b)))
+    (dotimes (i (min n-a n-b))
+      (let ((c-a (aref a i))
+            (c-b (aref b i)))
+        (unless (eql c-a c-b)
+          (return-from string-compare-inline (- (char-code c-a)
+                                                (char-code c-b))))))
+    (- n-a n-b)))
+
 (defun string-compare (a b)
-  (labels ((helper (a b)
-             (loop
-                for x across a
-                for y across b
-                while (eql x y)
-                finally (return (if (eql x y)
-                                    (- (length a) (length b))
-                                    (- (char-code x) (char-code y)))))))
-    (etypecase a
-      (simple-string
-       (etypecase b
-         (simple-string (helper a b))
-         (string (helper a b))))
-      (string (helper a b)))))
+  (etypecase a
+    (simple-string
+     (etypecase b
+       (simple-string (string-compare-inline a b))
+       (string (string-compare-inline a b))))
+    (string
+     (etypecase b
+       (simple-string (string-compare-inline a b))
+       (string (string-compare-inline a b))))))
 
 (defun bit-vector-compare (a b)
   "Compare bitvectors `A' and `B'."
