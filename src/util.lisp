@@ -36,8 +36,6 @@
 
 (in-package :sycamore-util)
 
-(in-package :sycamore)
-
 (deftype unsigned-fixnum ()
   `(integer 0 ,most-positive-fixnum))
 
@@ -139,6 +137,11 @@
      (etypecase b
        (simple-string (string-compare-inline a b))
        (string (string-compare-inline a b))))))
+
+(defun simple-string-compare (a b)
+  (declare (type simple-string a b))
+  (string-compare-inline a b))
+
 
 (defun bit-vector-compare (a b)
   "Compare bitvectors `A' and `B'."
