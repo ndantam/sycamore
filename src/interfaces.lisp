@@ -37,6 +37,7 @@
 
 (in-package :sycamore)
 
+;(declaim (optimize (speed 3) (safety 0)))
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; Top containter ;;
@@ -47,6 +48,7 @@
 
 
 (defun make-aux-compare (compare)
+  (declare (type function compare))
   (lambda (pair-1 pair-2)
     (funcall compare (car pair-1) (car pair-2))))
 
@@ -101,11 +103,15 @@ ORDER: (or :inorder :preorder :postorder).
 RESULT-TYPE: (or nil 'list).
 FUNCTION: (lambda (key value))."
   (declare (type function function))
-  (let ((result (map-binary-tree order (if (eq result-type 'tree-map)
-                                           'list
-                                             result-type)
-                                 (lambda (pair) (funcall function (car pair) (cdr pair)))
-                                 (tree-map-root tree-map))))
+  (let ((result
+         (flet ((helper (pair)
+                  (funcall function (car pair) (cdr pair))))
+           (declare (dynamic-extent (function helper)))
+           (map-binary-tree order (if (eq result-type 'tree-map)
+                                      'list
+                                      result-type)
+                            #'helper
+                            (tree-map-root tree-map)))))
     (when result-type
       (ecase result-type
         (list result)
@@ -115,8 +121,12 @@ FUNCTION: (lambda (key value))."
 (defun fold-tree-map (function initial-value tree-map)
   "Fold FUNCTION over members of the map
 FUNCTION: (lambda (accumulated-value key value))."
-  (fold-binary-tree :inorder (lambda (accum pair) (funcall function accum (car pair) (cdr pair)))
-                    initial-value (tree-map-root tree-map)))
+  (declare (type function function))
+  (flet ((helper (accum pair)
+           (funcall function accum (car pair) (cdr pair))))
+    (declare (dynamic-extent (function helper)))
+    (fold-binary-tree :inorder #'helper
+                      initial-value (tree-map-root tree-map))))
 
 (defun tree-map-count (map)
   "Number of elements in MAP."
@@ -131,9 +141,10 @@ FUNCTION: (lambda (accumulated-value key value))."
 (defun hash-table-tree-map (hash-table compare)
   "Returns a tree-map containing the keys and values of the hash-table list HASH-TABLE."
   (let ((map (make-tree-map compare)))
-    (maphash (lambda (key value)
-               (setq map (tree-map-insert map key value)))
-             hash-table)
+    (flet ((helper (key value)
+             (tree-map-insertf map key value)))
+      (declare (dynamic-extent (function helper)))
+      (maphash #'helper hash-table))
     map))
 
 (defun tree-map-alist (tree-map)
@@ -172,10 +183,11 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
 
 (defun tree-set (compare &rest args)
   "Create a new tree-set containing all items in ARGS."
-  (%make-tree-set compare
-                  (fold (lambda (tree x) (wb-tree-insert tree x compare))
-                        nil
-                        args)))
+  (flet ((helper (tree x)
+           (wb-tree-insert tree x compare)))
+    (declare (dynamic-extent (function helper)))
+    (%make-tree-set compare
+                    (fold #'helper nil args))))
 
 (defun tree-set-count (set)
   "Number of elements in SET."
@@ -186,11 +198,13 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
   (map-binary-tree :inorder result-type function (when set (tree-set-root set))))
 
 (defmacro do-tree-set ((var set &optional result) &body body)
-  `(progn
-     (map-tree-set nil (lambda (,var)
-                         ,@body)
-                   ,set)
-     ,result))
+  (with-gensyms (helper)
+    `(progn
+       (flet ((,helper (,var)
+                ,@body))
+         (declare (dynamic-extent (function ,helper)))
+         (map-tree-set nil #'helper ,set))
+       ,result)))
 
 (defun fold-tree-set (function initial-value set)
   "Fold FUNCTION over every element of SET."

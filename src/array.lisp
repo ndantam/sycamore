@@ -37,7 +37,7 @@
 
 (in-package :sycamore)
 
-;;(declaim (optimize (speed 3) (safety 0)))
+;(declaim (optimize (speed 3) (safety 0)))
 
 ;;;;;;;;;;;;
 ;; Arrays ;;
@@ -58,6 +58,7 @@
                      ((< c 0) (rec start i))
                      ((> c 0) (rec (1+ i) end))
                      (t i))))))
+    (declare (dynamic-extent (function rec)))
     (rec start end)))
 
 
@@ -162,6 +163,7 @@
                     ((< c 0) (rec (1+ i) j (1+ count)))
                     ((> c 0) (rec  i (1+ j) (1+ count)))
                     (t (rec (1+ i) (1+ j) count))))))))
+    (declare (dynamic-extent (function rec)))
     (rec 0 0 0)))
 
 (defmacro with-array-tree ((left value right) tree &body body)
@@ -214,6 +216,7 @@
                          (t
                           (vector-push (aref tree1 i) array)
                           (rec (1+ i) (1+ j))))))))
+      (declare (dynamic-extent (function rec)))
       (rec 0 0)
       ;; make it a simple array
       (let ((n (length array)))
@@ -252,4 +255,5 @@
                         (or-compare (funcall compare (aref vector-1 i) (aref vector-2 i))
                                     (rec start i)
                                     (rec (1+ i) end))))))
+         (declare (dynamic-extent (function rec)))
          (rec 0 n1))))))

@@ -197,6 +197,7 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                       (t v)))))
                (simple-vector (aref tree subscript))
                (null (error "Cannot index NIL")))))
+    (declare (dynamic-extent (function rec)))
     (assert (< subscript (wb-tree-count tree)))
     (rec tree subscript)))
 
@@ -382,6 +383,9 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                  ;; close enough
                  (t
                   (make-wb-tree left value right))))))
+    (declare (dynamic-extent (function balance-t-v)
+                             (function balance-v-t)
+                             (function balance-t-t)))
     ;; Type dispatching
     (let ((result
            (etypecase left
@@ -941,9 +945,11 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
   "Return the position of `VALUE' in `TREE' or nil."
   (declare (type function compare))
   (labels ((rec (tree i)
+             (declare (type fixnum i))
              (etypecase tree
                (simple-vector
                 (let ((j (array-tree-position tree value compare)))
+                  (declare (type fixnum j))
                   (if j (+ i j) nil)))
                (wb-tree
                 (with-wb-tree (l v r) tree
@@ -951,6 +957,7 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                                 (rec l i)
                                 (+ i (wb-tree-count l))
                                 (rec r (+ i (wb-tree-count l) 1))))))))
+    (declare (dynamic-extent (function rec)))
     (rec tree 0)))
 
 
@@ -1125,9 +1132,10 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                            (join-wb-tree-left-right tree-1 l1 r1
                                                      left v1 right compare))))))
                 (simple-vector
-                 (fold (lambda (tree x)
-                         (wb-tree-remove tree x compare))
-                       tree-1 tree-2))
+                 (flet ((helper (tree x)
+                          (wb-tree-remove tree x compare)))
+                   (declare (dynamic-extent (function helper)))
+                   (fold #'helper tree-1 tree-2)))
                 (null tree-1)))
     (simple-vector (etypecase tree-2
                      (wb-tree (with-temp-wb-array (new-array)
@@ -1213,6 +1221,7 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                                 (and (rec (make-wb-tree nil v1 r1)
                                           r2)
                                      (rec l1 tree-2))))))))
+    (declare (dynamic-extent (function rec)))
     (rec tree-1 tree-2)))
 
 

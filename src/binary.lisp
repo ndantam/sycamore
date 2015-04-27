@@ -89,10 +89,11 @@
   (declare (type function function))
   (let* ((c (cons nil nil))
          (k c))
-    (map-binary-tree-nil order (lambda (x)
-                                 (rplacd k (cons (funcall function x) nil))
-                                 (setq k (cdr k)))
-                         tree)
+    (flet ((helper (x)
+             (rplacd k (cons (funcall function x) nil))
+             (setq k (cdr k))))
+      (declare (dynamic-extent (function helper)))
+      (map-binary-tree-nil order #'helper tree))
     (cdr c)))
 
 (defun map-binary-tree (order result-type function tree)
@@ -109,9 +110,10 @@ RESULT-TYPE: (or 'list nil)"
 (defun fold-binary-tree (order function initial-value tree)
   (declare (type function function))
   (let ((v initial-value))
-    (map-binary-tree-nil order
-                         (lambda (x) (setq v (funcall function v x)))
-                         tree)
+    (flet ((helper (x)
+             (setq v (funcall function v x))))
+      (declare (dynamic-extent (function helper)))
+      (map-binary-tree-nil order #'helper tree))
     v))
 
 (defun binary-tree-search-node (tree value compare)
@@ -195,8 +197,10 @@ RESULT-TYPE: (or 'list nil)"
 (defun binary-tree-depth (tree)
   (etypecase tree
     (binary-tree
-     (1+ (max (binary-tree-depth (binary-tree-left tree))
-              (binary-tree-depth (binary-tree-right tree)))))
+     (let ((l (binary-tree-depth (binary-tree-left tree)))
+           (r (binary-tree-depth (binary-tree-right tree))))
+       (declare (type fixnum l r))
+       (1+ (max l r))))
     (array 1)
     (null 0)))
 
@@ -245,9 +249,10 @@ RESULT-TYPE: (or 'list nil)"
 (defun binary-tree-count (tree)
   "Number of elements in TREE."
   (if tree
-      (+ 1
-         (binary-tree-count (binary-tree-left tree))
-         (binary-tree-count (binary-tree-right tree)))
+      (let ((l (binary-tree-count (binary-tree-left tree)))
+            (r (binary-tree-count (binary-tree-right tree))))
+        (declare (type fixnum l r))
+        (+ 1 l r))
       0))
 
 

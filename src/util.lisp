@@ -36,6 +36,9 @@
 
 (in-package :sycamore-util)
 
+
+;;(declaim (optimize (speed 3) (safety 0)))
+
 (deftype unsigned-fixnum ()
   `(integer 0 ,most-positive-fixnum))
 
@@ -48,6 +51,7 @@
 
 (defun fold-n (function initial-value sequences)
   "Fold `FUNCTION' over each sequence in `SEQUENCES'."
+  (declare (type function function))
   (let ((value initial-value))
     (flet ((fun2 (&rest args)
              (declare (dynamic-extent args))
