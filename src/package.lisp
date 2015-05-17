@@ -75,6 +75,7 @@
    ;; tree map
    tree-map
    make-tree-map tree-map-insert tree-map-remove tree-map-find
+   tree-map-contains
    tree-map-insertf
    map-tree-map tree-map-count
    fold-tree-map

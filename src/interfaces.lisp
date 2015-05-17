@@ -88,14 +88,23 @@
 
 (defun tree-map-find (tree-map key &optional default)
   "Find value indexed by KEY in TREE-MAP."
-  (multiple-value-bind (cons present)
-      (binary-tree-find (tree-map-root tree-map)
-                        (cons key nil)
-                        (tree-map-compare tree-map))
-    (if present
-        (values (cdr cons) (car cons) t)
-        (values default key nil))))
+  (let ((key (cons key nil)))
+    (declare (dynamic-extent key))
+    (multiple-value-bind (cons present)
+        (binary-tree-find (tree-map-root tree-map)
+                          key
+                          (tree-map-compare tree-map))
+      (if present
+          (values (cdr cons) (car cons) t)
+          (values default key nil)))))
 
+(defun tree-map-contains (tree-map key)
+  "Test if a key is present in tree-map"
+  (let ((key (cons key nil)))
+    (declare (dynamic-extent key))
+    (binary-tree-member-p (tree-map-root tree-map)
+                          key
+                          (tree-map-compare tree-map))))
 
 (defun map-tree-map (order result-type function tree-map)
   "Apply FUNCTION to all elements in TREE-MAP.
