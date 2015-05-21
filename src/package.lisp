@@ -64,6 +64,7 @@
    tree-set-count
    tree-set-ref tree-set-position
    tree-set-insert tree-set-remove
+   tree-set-replace
    tree-set-insertf
    tree-set-remove-min tree-set-remove-max tree-set-remove-position
    tree-set-union tree-set-intersection tree-set-difference

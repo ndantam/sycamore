@@ -252,6 +252,9 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
 (def-tree-set-item-op tree-set-insert wb-tree-insert
   "Insert ITEM into SET.")
 
+(def-tree-set-item-op tree-set-replace wb-tree-replace
+  "Replace ITEM into SET.")
+
 (def-tree-set-item-op tree-set-remove wb-tree-remove
   "Remove ITEM from SET.")
 
