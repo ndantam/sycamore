@@ -212,7 +212,7 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
        (flet ((,helper (,var)
                 ,@body))
          (declare (dynamic-extent (function ,helper)))
-         (map-tree-set nil #'helper ,set))
+         (map-tree-set nil #',helper ,set))
        ,result)))
 
 (defun fold-tree-set (function initial-value set)
