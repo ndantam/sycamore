@@ -74,10 +74,20 @@
                                     (cons key value)
                                     (tree-map-compare tree-map))))
 
+(defun (setf tree-map-find) (value map key)
+  "Destructively insert value item into map."
+  (setf (tree-map-root map)
+        (wb-tree-replace (tree-map-root map)
+                         (cons key value)
+                         (tree-map-compare map))))
+
+
 (defmacro tree-map-insertf (place key value)
   "Insert KEY=>VALUE into the tree map at PLACE, store at place."
-  `(setf ,place
-         (tree-map-insert ,place ,key ,value)))
+  `(progn
+     (warn "ROBRAY::TREE-MAP-INSERTF is deprecated.")
+     (setf ,place
+           (tree-map-insert ,place ,key ,value))))
 
 (defun tree-map-remove (tree-map key)
   "Insert KEY from TREE-MAP, returning the new tree-map."
@@ -260,13 +270,20 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
 
 (defmacro tree-set-insertf (place item)
   "Insert INTER into the tree set at PLACE, store at PLACE."
-  `(setf ,place
-         (tree-set-insert ,place ,item)))
+  `(progn
+     (warn "ROBRAY::TREE-SET-INSERTF is deprecated.")
+     (setf ,place
+           (tree-set-insert ,place ,item))))
+
+(defun (setf tree-set-find) (item set)
+  "Destructively insert item into set."
+  (setf (tree-set-%root set)
+        (wb-tree-replace (tree-set-%root set) item
+                         (tree-set-%compare set))))
 
 (defun tree-set-member-p (set item)
   "Is ITEM a member of SET?"
   (binary-tree-member-p (tree-set-root set) item (tree-set-%compare set)))
-
 
 (defun tree-set-find (set item)
   "Find ITEM in SET"
