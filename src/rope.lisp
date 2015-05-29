@@ -35,6 +35,8 @@
 
 (in-package :sycamore)
 
+;; (declaim (optimize (speed 3) (safety 0)))
+
 (deftype rope ()
   `(or string symbol rope-node null))
 
@@ -91,6 +93,7 @@
     string))
 
 (defun rope-subrope (rope start end)
+  (declare (type fixnum start end))
   (labels ((helper-string (rope start end)
              (make-array (- end start)
                          :element-type (array-element-type rope)
@@ -150,8 +153,8 @@
 
 ;;; Iteration ;;;
 (defstruct rope-iterator
-  (i 0)
-  (stack nil))
+  (i 0 :type non-negative-fixnum)
+  (stack nil :type list))
 
 (defun rope-iterator-push (itr rope)
   (declare (type rope rope))
@@ -183,8 +186,7 @@
 (defun rope-iterator-next (itr)
   (let ((top (car (rope-iterator-stack itr)))
         (i (rope-iterator-i itr)))
-    (assert (or (stringp top)
-                (null top)))
+    (declare (type (or null string) top))
     (cond
       ((null top) nil)
       ((= i (length top))
