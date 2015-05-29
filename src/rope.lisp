@@ -140,3 +140,83 @@
   (if *print-rope-string*
       (rope-write object :stream stream)
       (call-next-method object stream)))
+
+
+
+;;; Iteration ;;;
+(defstruct rope-iterator
+  (i 0)
+  (stack nil))
+
+(defun rope-iterator-push (itr rope)
+  (declare (type rope rope))
+  (if rope
+      (progn
+        (push rope (rope-iterator-stack itr))
+        (if (rope-node-p rope)
+            (rope-iterator-push itr (rope-node-left rope))
+            itr))
+      itr))
+
+(defun rope-iterator-pop (itr)
+  (let* ((popped (pop (rope-iterator-stack itr)))
+         (top (car (rope-iterator-stack itr))))
+    (when (stringp popped)
+      (assert (= (length popped) (rope-iterator-i itr)))
+      (setf (rope-iterator-i itr) 0))
+    (if (null top)
+        itr
+        (let ((left (rope-node-left top))
+              (right (rope-node-right top)))
+          (cond
+            ((eq popped left)
+             (rope-iterator-push itr right))
+            ((eq popped right)
+             (rope-iterator-pop itr))
+            (t (error "Popped node is orphaned.")))))))
+
+(defun rope-iterator-next (itr)
+  (let ((top (car (rope-iterator-stack itr)))
+        (i (rope-iterator-i itr)))
+    (assert (or (stringp top)
+                (null top)))
+    (cond
+      ((null top) nil)
+      ((= i (length top))
+       (rope-iterator-next (rope-iterator-pop itr)))
+      ((< i (length top))
+       (prog1 (aref top i)
+         (incf (rope-iterator-i itr))))
+      (t (error "Invalid index during rope iteration.")))))
+
+(defun rope-iterator (rope)
+  (rope-iterator-push (make-rope-iterator) rope))
+
+(defun rope-compare-lexographic (rope-1 rope-2)
+  "Compare ropes lexographically."
+  (let ((itr-1 (rope-iterator rope-1))
+        (itr-2 (rope-iterator rope-2)))
+
+    (loop
+       for a = (rope-iterator-next itr-1)
+       for b = (rope-iterator-next itr-2)
+       while (and (and a b)
+                  (eql a b))
+       finally (return (if a
+                           (if b
+                               (- (char-code a)
+                                  (char-code b))
+                               1)
+                           (if b -1 0))))))
+
+(defun rope-compare-fast (rope-1 rope-2)
+  "Compare ropes quickly.
+
+The resulting order is not necessarily lexographic."
+  (let ((n-1 (rope-count rope-1))
+        (n-2 (rope-count rope-2)))
+    (if (= n-1 n-2)
+        ;; Compare equal length ropes lexigraphically
+        (rope-compare-lexographic rope-1 rope-2)
+        ;; Compare different length ropes by size
+        (- n-1 n-2))))
