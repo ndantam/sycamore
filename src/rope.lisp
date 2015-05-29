@@ -36,7 +36,7 @@
 (in-package :sycamore)
 
 (deftype rope ()
-  `(or string rope-node nil))
+  `(or string symbol rope-node null))
 
 (defstruct rope-node
   (count 0 :type non-negative-fixnum)
@@ -48,7 +48,8 @@
   (etypecase rope
     (rope-node (rope-node-count rope))
     (simple-string (length rope))
-    (string (length rope))))
+    (string (length rope))
+    (symbol (length (symbol-name rope)))))
 
 (defun %rope-cat (first second)
   (make-rope-node :count (+ (rope-count first)
@@ -79,6 +80,8 @@
                   (visit-string rope i))
                  (string
                   (visit-string rope i))
+                 (symbol
+                  (visit-string (symbol-name rope) i))
                  (rope-node
                   (visit (rope-node-right rope)
                          (visit (rope-node-left rope) i)))
@@ -110,7 +113,8 @@
            (rope-ref (rope-node-right rope)
                     (- i left-count)))))
     (simple-string (aref rope i))
-    (string (aref rope i))))
+    (string (aref rope i))
+    (symbol (aref (symbol-name rope) i))))
 
 (defun rope-write (rope &key
                           (escape *print-escape*)
@@ -126,6 +130,7 @@
                           (rec (rope-node-right rope)))
                (simple-string (write-1 rope))
                (string (write-1 rope))
+               (symbol (write-1 rope))
                (sequence (map nil #'write-1 rope)))))
     (declare (dynamic-extent #'write-1 #'rec))
     (when escape (write-char #\" stream))
