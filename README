@@ -12,6 +12,7 @@ Features
 * Interfaces for tree Sets and Maps (dictionaries).
 * Purely functional pairing heaps
 * Purely functional amortized queue
+* Ropes
 
 Name
 ====
