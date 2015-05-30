@@ -89,7 +89,7 @@
    ;; Ropes
    rope rope-cat
    rope-count rope-ref rope-string
-   rope-write *print-rope-string*
+   rope-write
    rope-compare-lexographic rope-compare-fast
    ;; misc
    or-compare))

@@ -141,15 +141,17 @@
     (when escape (write-char #\" stream)))
   (values))
 
-(defvar *print-rope-string* t
-  "If true, ropes are printed as Lisp strings instead of structures.")
+(defvar *rope-print* :rope
+  "How to print ropes, one of (or :rope :string :structure)")
+(declaim (type (member :rope :string :structure) *rope-print*))
 
 (defmethod print-object ((object rope-node) stream)
-  (if *print-rope-string*
-      (rope-write object :stream stream)
-      (call-next-method object stream)))
-
-
+  (ecase *rope-print*
+    (:rope (print-unreadable-object (object stream :type nil :identity nil)
+             (princ "ROPE " stream)
+             (rope-write object :stream stream :escape t)))
+    (:string (rope-write object :stream stream))
+    (:structure (call-next-method object stream))))
 
 ;;; Iteration ;;;
 (defstruct rope-iterator
