@@ -86,5 +86,10 @@
    make-amortized-queue amortized-queue amortized-queue-empty-p
    amortized-enqueue amortized-dequeue amortized-queue-push
    amortized-queue-list
+   ;; Ropes
+   rope rope-cat
+   rope-count rope-ref rope-string
+   rope-write *print-rope-string*
+   rope-compare-lexographic rope-compare-fast
    ;; misc
    or-compare))

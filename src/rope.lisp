@@ -41,21 +41,21 @@
   `(or string symbol rope-node null))
 
 (defstruct rope-node
-  (count 0 :type non-negative-fixnum)
+  (length 0 :type non-negative-fixnum)
   (left nil :type rope)
   (right nil :type rope))
 
 
-(defun rope-count (rope)
+(defun rope-length (rope)
   (etypecase rope
-    (rope-node (rope-node-count rope))
+    (rope-node (rope-node-length rope))
     (simple-string (length rope))
     (string (length rope))
     (symbol (length (symbol-name rope)))))
 
 (defun %rope-cat (first second)
-  (make-rope-node :count (+ (rope-count first)
-                            (rope-count second))
+  (make-rope-node :length (+ (rope-length first)
+                             (rope-length second))
                   :left first
                   :right second))
 
@@ -71,7 +71,7 @@
 
 (defun rope-string (rope &key (element-type 'character))
   "Convert the rope to a string."
-  (let ((string (make-string (rope-count rope)
+  (let ((string (make-string (rope-length rope)
                              :element-type element-type)))
     (labels ((visit-string (rope i)
                (replace string rope :start1 i)
@@ -110,11 +110,11 @@
   (etypecase rope
     (rope-node
      (let* ((left (rope-node-left rope))
-            (left-count (rope-count left)))
-       (if (< i left-count)
+            (left-length (rope-length left)))
+       (if (< i left-length)
            (rope-ref left i)
            (rope-ref (rope-node-right rope)
-                    (- i left-count)))))
+                     (- i left-length)))))
     (simple-string (aref rope i))
     (string (aref rope i))
     (symbol (aref (symbol-name rope) i))))
@@ -158,13 +158,17 @@
 
 (defun rope-iterator-push (itr rope)
   (declare (type rope rope))
-  (if rope
-      (progn
-        (push rope (rope-iterator-stack itr))
-        (if (rope-node-p rope)
-            (rope-iterator-push itr (rope-node-left rope))
-            itr))
-      itr))
+  (etypecase rope
+    (null itr)
+    (string
+     (push rope (rope-iterator-stack itr))
+     itr)
+    (symbol
+     (push (symbol-name rope) (rope-iterator-stack itr))
+     itr)
+    (rope-node
+     (push rope (rope-iterator-stack itr))
+     (rope-iterator-push itr (rope-node-left rope)))))
 
 (defun rope-iterator-pop (itr)
   (let* ((popped (pop (rope-iterator-stack itr)))
@@ -220,10 +224,12 @@
   "Compare ropes quickly.
 
 The resulting order is not necessarily lexographic."
-  (let ((n-1 (rope-count rope-1))
-        (n-2 (rope-count rope-2)))
-    (if (= n-1 n-2)
-        ;; Compare equal length ropes lexigraphically
-        (rope-compare-lexographic rope-1 rope-2)
-        ;; Compare different length ropes by size
-        (- n-1 n-2))))
+  (if (eq rope-1 rope-2)
+      0
+      (let ((n-1 (rope-length rope-1))
+            (n-2 (rope-length rope-2)))
+        (if (= n-1 n-2)
+            ;; Compare equal length ropes lexigraphically
+            (rope-compare-lexographic rope-1 rope-2)
+            ;; Compare different length ropes by size
+            (- n-1 n-2)))))
