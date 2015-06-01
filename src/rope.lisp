@@ -235,3 +235,35 @@ The resulting order is not necessarily lexographic."
             (rope-compare-lexographic rope-1 rope-2)
             ;; Compare different length ropes by size
             (- n-1 n-2)))))
+
+
+(defun sexp-rope (sexp &key
+                         symbol-function)
+  "Construct a rope representing S-Expression SEXP.
+
+SYMBOL-FUNCTION: A function to transform symbols in the rope.
+                 (lambda (symbol)) => rope
+RETURNS: a rope"
+
+  (declare (type list sexp)
+           (type (or function null) symbol-function))
+  (let ((rope '|(| ))
+    (loop
+       for rest on sexp
+       for first = (car rest)
+       do
+         (setq rope
+               (rope rope
+                     (etypecase first
+                       (cons (sexp-rope first :symbol-function symbol-function))
+                       (symbol
+                        (if symbol-function
+                            (funcall symbol-function first)
+                            first))
+                       (string first)
+                       (rope first)
+                       (fixnum (format nil "~D" first)))
+                     (if (cdr rest)
+                         '| |
+                         '|)|))))
+       rope))
