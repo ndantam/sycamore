@@ -63,6 +63,8 @@
   "Concatenate all ropes in SEQUENCE."
   (reduce #'%rope-cat sequence))
 
+
+(declaim (inline rope))
 (defun rope (&rest args)
   "Concatenate all ropes in ARGS."
   (declare (dynamic-extent args))
