@@ -37,6 +37,11 @@
 
 ;;(declaim (optimize (speed 3) (safety 0)))
 
+;;; TODO: optimizations
+;;;   - collapse small ropes into simple-strings
+;;;   - height-balance ropes
+;;;   - use heap-based stack for very deep ropes
+
 (deftype rope ()
   `(or string symbol rope-node null))
 
@@ -73,7 +78,6 @@
   "Concatenate all ropes in ARGS."
   (declare (dynamic-extent args))
   (when args (rope-cat args)))
-
 
 (defun rope-string (rope &key (element-type 'character))
   "Convert the rope to a string."
