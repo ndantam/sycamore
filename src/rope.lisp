@@ -129,23 +129,20 @@
                           (escape *print-escape*)
                           (stream *standard-output*))
   "Write ROPE to STREAM."
-  (labels ((write-1 (rope)
-             (write rope
-                    :stream stream
-                    :escape nil))
-           (rec (rope)
+  (labels ((rec (rope)
              (etypecase rope
                (rope-node (rec (rope-node-left rope))
                           (rec (rope-node-right rope)))
-               (simple-string (write-1 rope))
-               (string (write-1 rope))
-               (symbol (write-1 rope))
-               (sequence (map nil #'write-1 rope)))))
-    (declare (dynamic-extent #'write-1 #'rec))
-    (when escape (write-char #\" stream))
-    (rec rope)
-    (when escape (write-char #\" stream)))
-  (values))
+               (simple-string (write-sequence rope stream))
+               (string (write-sequence rope stream))
+               (symbol (write-sequence (symbol-name rope) stream))
+               (sequence (map nil #'rec rope)))))
+    (declare (dynamic-extent #'rec))
+    (if escape
+        (progn (write-char #\" stream)
+               (rec rope)
+               (write-char #\" stream))
+        (rec rope))))
 
 (defvar *rope-print* :rope
   "How to print ropes, one of (or :rope :string :structure)")
