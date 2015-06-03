@@ -269,3 +269,11 @@ RETURNS: a rope"
                          '| |
                          '|)|))))
        rope))
+
+(defgeneric object-rope (object))
+
+(defmethod object-rope ((object string))
+  object)
+
+(defmethod object-rope ((object rope-node))
+  object)

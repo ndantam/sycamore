@@ -92,5 +92,6 @@
    rope-write
    rope-compare-lexographic rope-compare-fast
    sexp-rope
+   object-rope
    ;; misc
    or-compare))
