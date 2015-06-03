@@ -87,11 +87,14 @@
    amortized-enqueue amortized-dequeue amortized-queue-push
    amortized-queue-list
    ;; Ropes
+   *rope-print*
    rope rope-cat
    rope-count rope-ref rope-string
    rope-write
    rope-compare-lexographic rope-compare-fast
+   +rope-newline+
    sexp-rope
    object-rope
+   rope-map
    ;; misc
    or-compare))

@@ -35,10 +35,14 @@
 
 (in-package :sycamore)
 
-;; (declaim (optimize (speed 3) (safety 0)))
+;;(declaim (optimize (speed 3) (safety 0)))
 
 (deftype rope ()
   `(or string symbol rope-node null))
+
+(defconstant +rope-newline+
+  '|
+|)
 
 (defstruct rope-node
   (length 0 :type non-negative-fixnum)
@@ -277,3 +281,33 @@ RETURNS: a rope"
 
 (defmethod object-rope ((object rope-node))
   object)
+
+(defun rope-map (function sequence
+                 &key
+                   (start 0)
+                   end
+                   separator)
+"Apply FUNCTION to each element of SEQUENCE and collect results into a rope.
+
+FUNCTION: (lambda (x)) => ROPE
+SEQUENCE: a sequence
+START: initial position in SEQUENCE
+END: final position in SEQUENCE
+SEQUENCE: a rope to splice between the items of SEQUENCE
+
+RETURNS: a rope"
+  (declare (type function function))
+  (if (>= start (length sequence))
+      ""
+      (flet ((map-nosep (rope item)
+               (rope rope (funcall function item)))
+             (map-sep (rope item)
+               (rope rope separator (funcall function item))))
+        (declare (dynamic-extent #'map-nosep #'map-sep))
+        (reduce (if separator
+                    #'map-sep
+                    #'map-nosep)
+                sequence
+                :start (1+ start)
+                :initial-value (funcall function (elt sequence start))
+                :end end))))
