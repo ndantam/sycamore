@@ -384,21 +384,21 @@ RETURNS: a rope"
       (flet ((map-sep (item)
                (%rope separator (funcall function item))))
         (declare (dynamic-extent #'map-sep))
-        (let ((sep-fun (if separator #'map-sep function))
-              (tmp (make-array (- end start))))
-          (etypecase sequence
-            (list (let ((begin (nthcdr start sequence)))
-                    (setf (aref tmp 0)
-                          (funcall function (first begin)))
-                    (loop
-                       for i from 1 below (length tmp)
-                       for x in (cdr begin)
-                       do (setf (aref tmp i)
-                                (funcall sep-fun x)))))
-            (array (setf (aref tmp 0)
-                         (funcall function (aref sequence start)))
-                   (loop for i from 1
-                      for j from (1+ start) below end
-                      do (setf (aref tmp i)
-                               (funcall sep-fun (aref sequence j))))))
-          (rope-array-cat tmp)))))
+        (let ((sep-fun (if separator #'map-sep function)))
+          (with-temp-array (tmp (- end start))
+            (etypecase sequence
+              (list (let ((begin (nthcdr start sequence)))
+                      (setf (aref tmp 0)
+                            (funcall function (first begin)))
+                      (loop
+                         for i from 1 below (length tmp)
+                         for x in (cdr begin)
+                         do (setf (aref tmp i)
+                                  (funcall sep-fun x)))))
+              (array (setf (aref tmp 0)
+                           (funcall function (aref sequence start)))
+                     (loop for i from 1
+                        for j from (1+ start) below end
+                        do (setf (aref tmp i)
+                                 (funcall sep-fun (aref sequence j))))))
+            (rope-array-cat tmp))))))

@@ -247,3 +247,19 @@ LANG: language output for dot, (or pdf ps eps png)"
            (funcall function s))
          (output-dot-file program output function lang)))
     (t (error "Unknown output: ~A" output))))
+
+
+(defmacro with-temp-array ((name length &key (dynamic-extent-limit 1024))
+                           &body body)
+"Create a temprary array and attempt to stack allocate
+if size is below dynamic-extent-limit."
+  ;; SBCL will stack-allocate arrays with length below 4095
+  (with-gensyms (fun s-length)
+    `(flet ((,fun (,name)
+              ,@body))
+       (let ((,s-length ,length))
+         (if (< ,s-length ,dynamic-extent-limit)
+             (let ((,name (make-array ,s-length)))
+               (declare (dynamic-extent ,name))
+               (,fun ,name))
+             (,fun (make-array ,s-length)))))))

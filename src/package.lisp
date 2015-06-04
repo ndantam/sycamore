@@ -51,6 +51,8 @@
    or-compare
 
    output-dot
+
+   with-temp-array
    ))
 
 
