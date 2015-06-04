@@ -43,7 +43,7 @@
 ;;;   - use heap-based stack for very deep ropes
 
 (deftype rope ()
-  `(or string symbol rope-node null))
+  `(or string symbol rope-node character null))
 
 (defconstant +rope-newline+
   '|
@@ -60,7 +60,9 @@
     (rope-node (rope-node-length rope))
     (simple-string (length rope))
     (string (length rope))
-    (symbol (length (symbol-name rope)))))
+    (null 0)
+    (symbol (length (symbol-name rope)))
+    (character 1)))
 
 (defun %rope-cat (first second)
   (make-rope-node :length (+ (rope-length first)
@@ -88,16 +90,18 @@
                (+ i (length rope)))
              (visit (rope i)
                (etypecase rope
+                 (rope-node
+                  (visit (rope-node-right rope)
+                         (visit (rope-node-left rope) i)))
                  (simple-string
                   (visit-string rope i))
                  (string
                   (visit-string rope i))
-                 (symbol
-                  (visit-string (symbol-name rope) i))
-                 (rope-node
-                  (visit (rope-node-right rope)
-                         (visit (rope-node-left rope) i)))
-                 (null))))
+                 (null i)
+                 (symbol (visit-string (symbol-name rope) i))
+                 (character
+                  (setf (schar string i) rope)
+                  (1+ i)))))
       (declare (dynamic-extent #'visit-string #'visit))
       (visit rope 0))
     string))
@@ -139,14 +143,17 @@
                           (rec (rope-node-right rope)))
                (simple-string (write-sequence rope stream))
                (string (write-sequence rope stream))
+               (null nil)
                (symbol (write-sequence (symbol-name rope) stream))
+               (character (write-char rope stream))
                (sequence (map nil #'rec rope)))))
     (declare (dynamic-extent #'rec))
     (if escape
         (progn (write-char #\" stream)
                (rec rope)
                (write-char #\" stream))
-        (rec rope))))
+        (rec rope)))
+  (values))
 
 (defvar *rope-print* :rope
   "How to print ropes, one of (or :rope :string :structure)")
@@ -281,6 +288,12 @@ RETURNS: a rope"
   object)
 
 (defmethod object-rope ((object rope-node))
+  object)
+
+(defmethod object-rope ((object character))
+  object)
+
+(defmethod object-rope ((object symbol))
   object)
 
 (defun rope-map (function sequence
