@@ -51,9 +51,9 @@
 
 (defstruct rope-node
   (length 0 :type non-negative-fixnum)
+  (height 1 :type (integer 1 #.most-positive-fixnum))
   (left nil :type rope)
   (right nil :type rope))
-
 
 (defun rope-length (rope)
   (etypecase rope
@@ -64,11 +64,43 @@
     (symbol (length (symbol-name rope)))
     (character 1)))
 
+(defun rope-height (rope)
+  (etypecase rope
+    ((or string symbol character) 0)
+    (rope-node (rope-node-height rope))))
+
+(declaim (inline %rope-length-height))
+(defun %rope-length-height (rope)
+  (etypecase rope
+    (rope-node
+     (values (rope-node-length rope)
+             (rope-node-height rope)))
+    (simple-string
+     (values (length rope)
+             0))
+    (string
+     (values (length rope)
+             0))
+    (null
+     (values 0 0))
+    (symbol
+     (values (length (symbol-name rope))
+             0))
+    (character (values 1 0))))
+
 (defun %rope-cat (first second)
-  (make-rope-node :length (+ (rope-length first)
-                             (rope-length second))
-                  :left first
-                  :right second))
+  (multiple-value-bind (length-1 height-1)
+      (rope-length-height first)
+    (if (zerop length-1)
+        second
+        (multiple-value-bind (length-2 height-2)
+            (rope-length-height second)
+          (if (zerop length-2)
+              first
+              (make-rope-node :length (+ length-1 length-2)
+                              :height (1+ (max height-1 height-2))
+                              :left first
+                              :right second))))))
 
 (defun rope-cat (sequence)
   "Concatenate all ropes in SEQUENCE."
