@@ -114,8 +114,6 @@ RETURNS: a rope concatenating FIRST and SECOND"
   (cond
     ((null list)
      nil)
-    ((null (cdr list))
-     (car list))
     ((null (cddr list))
      (%rope (first list) (second list)))
     (t
