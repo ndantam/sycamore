@@ -68,33 +68,41 @@
     ((or string symbol character) 0)
     (rope-node (rope-node-height rope))))
 
-(declaim (inline %rope-length-height))
-
-(defun %rope-length-height (rope)
-  (etypecase rope
-    (rope-node
-     (values (rope-node-length rope)
-             (rope-node-height rope)))
-    (simple-string
-     (values (length rope)
-             0))
-    (string
-     (values (length rope)
-             0))
-    (null
-     (values 0 0))
-    (symbol
-     (values (length (symbol-name rope))
-             0))
-    (character (values 1 0))))
+(declaim (inline %rope-helper))
+(defun %rope-helper (rope)
+  (labels ((rope-node-helper (rope)
+             (values rope
+                     (rope-node-length rope)
+                     (rope-node-height rope))))
+    (etypecase rope
+      (rope-node (rope-node-helper rope))
+      (simple-string
+       (values rope (length rope) 0))
+      (string
+       (values rope (length rope) 0))
+      (null
+       (values nil 0 0))
+      (symbol
+       (values rope
+               (length (symbol-name rope))
+               0))
+      (character (values rope 1 0))
+      (list
+       (rope-node-helper (rope-list-cat rope)))
+      (array
+       (rope-node-helper (rope-array-cat rope))))))
 
 (defun %rope (first second)
-  (multiple-value-bind (length-1 height-1)
-      (%rope-length-height first)
+  "Construct a rope from FIRST and SECOND.
+FIRST: an object of rope or sequence type
+SECOND: an object of rope or sequence type
+RETURNS: a rope concatenating FIRST and SECOND"
+  (multiple-value-bind (first length-1 height-1)
+      (%rope-helper first)
     (if (= 0 length-1)
         second
-        (multiple-value-bind (length-2 height-2)
-            (%rope-length-height second)
+        (multiple-value-bind (second length-2 height-2)
+            (%rope-helper second)
           (if (zerop length-2)
               first
               (make-rope-node :length (+ length-1 length-2)
@@ -131,15 +139,13 @@
        (%rope (rope-array-cat array :start start :end midpoint)
               (rope-array-cat array :start midpoint :end end))))))
 
-(defun rope-cat (sequence)
-  "Concatenate all ropes in SEQUENCE."
-  (etypecase sequence
-    (array (rope-array-cat sequence))
-    (list (rope-list-cat sequence))))
-
 (declaim (inline rope))
 (defun rope (&rest args)
-  "Concatenate all ropes in ARGS."
+  "Concatenate all ropes in ARGS.
+
+Arguments of sequence type will be flattened and concatanted into the rope.
+
+RETURNS: a rope"
   (declare (dynamic-extent args))
   (when args (rope-list-cat args)))
 
