@@ -73,24 +73,27 @@
   (labels ((rope-node-helper (rope)
              (values rope
                      (rope-node-length rope)
-                     (rope-node-height rope))))
-    (etypecase rope
-      (rope-node (rope-node-helper rope))
-      (simple-string
-       (values rope (length rope) 0))
-      (string
-       (values rope (length rope) 0))
-      (null
-       (values nil 0 0))
-      (symbol
-       (values rope
-               (length (symbol-name rope))
-               0))
-      (character (values rope 1 0))
-      (list
-       (rope-node-helper (rope-list-cat rope)))
-      (array
-       (rope-node-helper (rope-array-cat rope))))))
+                     (rope-node-height rope)))
+           (rec (rope)
+             (etypecase rope
+               (rope-node (rope-node-helper rope))
+               (simple-string
+                (values rope (length rope) 0))
+               (string
+                (values rope (length rope) 0))
+               (null
+                (values nil 0 0))
+               (symbol
+                (values rope
+                        (length (symbol-name rope))
+                        0))
+               (character (values rope 1 0))
+               (list
+                (rope-node-helper (rope-list-cat rope)))
+               (array
+                (rope-node-helper (rope-array-cat rope)))
+               (t (rec (object-rope rope))))))
+    (rec rope)))
 
 (defun %rope (first second)
   "Construct a rope from FIRST and SECOND.
@@ -361,6 +364,15 @@ RETURNS: a rope"
 
 (defmethod object-rope ((object symbol))
   object)
+
+(defmethod object-rope ((object integer))
+  (format nil "~D" object))
+
+(defmethod object-rope ((object float))
+  (format nil "~F" object))
+
+(defmethod object-rope ((object double-float))
+  (format nil "~F" object))
 
 (defun rope-map (function sequence
                  &key
