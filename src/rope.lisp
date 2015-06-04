@@ -49,9 +49,12 @@
   '|
 |)
 
+(deftype rope-length-type () `non-negative-fixnum)
+(deftype rope-height-type () `(integer 1 #.most-positive-fixnum))
+
 (defstruct rope-node
-  (length 0 :type non-negative-fixnum)
-  (height 1 :type (integer 1 #.most-positive-fixnum))
+  (length 0 :type rope-length-type)
+  (height 1 :type rope-height-type)
   (left nil :type rope)
   (right nil :type rope))
 
@@ -70,6 +73,7 @@
     (rope-node (rope-node-height rope))))
 
 (declaim (inline %rope-length-height))
+
 (defun %rope-length-height (rope)
   (etypecase rope
     (rope-node
@@ -88,13 +92,13 @@
              0))
     (character (values 1 0))))
 
-(defun %rope-cat (first second)
+(defun %rope (first second)
   (multiple-value-bind (length-1 height-1)
-      (rope-length-height first)
-    (if (zerop length-1)
+      (%rope-length-height first)
+    (if (= 0 length-1)
         second
         (multiple-value-bind (length-2 height-2)
-            (rope-length-height second)
+            (%rope-length-height second)
           (if (zerop length-2)
               first
               (make-rope-node :length (+ length-1 length-2)
@@ -102,16 +106,46 @@
                               :left first
                               :right second))))))
 
+(defun rope-list-cat (list)
+  (cond
+    ((null list)
+     nil)
+    ((null (cdr list))
+     (car list))
+    ((null (cddr list))
+     (%rope (first list) (second list)))
+    (t
+     (rope-list-cat (loop for rest = list then (cddr rest)
+                       while rest
+                       collect (%rope (first rest) (second rest)))))))
+
+(defun rope-array-cat (array
+                       &key
+                         (start 0)
+                         (end (length array)))
+  (declare (type non-negative-fixnum start end)
+           (type array array))
+  (cond
+    ((= (1+ start) end)
+     (aref array start))
+    ((>= start end)
+     nil)
+    (t
+     (let ((midpoint (truncate (+ start end) 2)))
+       (%rope (rope-array-cat array :start start :end midpoint)
+              (rope-array-cat array :start midpoint :end end))))))
+
 (defun rope-cat (sequence)
   "Concatenate all ropes in SEQUENCE."
-  (reduce #'%rope-cat sequence))
-
+  (etypecase sequence
+    (array (rope-array-cat sequence))
+    (list (rope-list-cat sequence))))
 
 (declaim (inline rope))
 (defun rope (&rest args)
   "Concatenate all ropes in ARGS."
   (declare (dynamic-extent args))
-  (when args (rope-cat args)))
+  (when args (rope-list-cat args)))
 
 (defun rope-string (rope &key (element-type 'character))
   "Convert the rope to a string."
