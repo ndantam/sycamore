@@ -45,10 +45,6 @@
 (deftype rope ()
   `(or string symbol rope-node character null))
 
-(defconstant +rope-newline+
-  '|
-|)
-
 (deftype rope-length-type () `non-negative-fixnum)
 (deftype rope-height-type () `(integer 1 #.most-positive-fixnum))
 

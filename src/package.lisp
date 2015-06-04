@@ -88,11 +88,10 @@
    amortized-queue-list
    ;; Ropes
    *rope-print*
-   rope rope-cat
-   rope-count rope-ref rope-string
-   rope-write
+   rope rope-cat %rope
+   rope-length rope-ref
+   rope-string rope-write
    rope-compare-lexographic rope-compare-fast
-   +rope-newline+
    sexp-rope
    object-rope
    rope-map
