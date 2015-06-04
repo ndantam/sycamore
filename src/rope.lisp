@@ -367,7 +367,7 @@ RETURNS: a rope"
 (defun rope-map (function sequence
                  &key
                    (start 0)
-                   end
+                   (end (length sequence))
                    separator)
 "Apply FUNCTION to each element of SEQUENCE and collect results into a rope.
 
@@ -375,21 +375,30 @@ FUNCTION: (lambda (x)) => ROPE
 SEQUENCE: a sequence
 START: initial position in SEQUENCE
 END: final position in SEQUENCE
-SEQUENCE: a rope to splice between the items of SEQUENCE
+SEPARATOR: a rope to splice between the items of SEQUENCE
 
 RETURNS: a rope"
   (declare (type function function))
-  (if (>= start (length sequence))
+  (if (>= start end)
       ""
-      (flet ((map-nosep (rope item)
-               (rope rope (funcall function item)))
-             (map-sep (rope item)
-               (rope rope separator (funcall function item))))
-        (declare (dynamic-extent #'map-nosep #'map-sep))
-        (reduce (if separator
-                    #'map-sep
-                    #'map-nosep)
-                sequence
-                :start (1+ start)
-                :initial-value (funcall function (elt sequence start))
-                :end end))))
+      (flet ((map-sep (item)
+               (%rope separator (funcall function item))))
+        (declare (dynamic-extent #'map-sep))
+        (let ((sep-fun (if separator #'map-sep function))
+              (tmp (make-array (- end start))))
+          (etypecase sequence
+            (list (let ((begin (nthcdr start sequence)))
+                    (setf (aref tmp 0)
+                          (funcall function (first begin)))
+                    (loop
+                       for i from 1 below (length tmp)
+                       for x in (cdr begin)
+                       do (setf (aref tmp i)
+                                (funcall sep-fun x)))))
+            (array (setf (aref tmp 0)
+                         (funcall function (aref sequence start)))
+                   (loop for i from 1
+                      for j from (1+ start) below end
+                      do (setf (aref tmp i)
+                               (funcall sep-fun (aref sequence j))))))
+          (rope-array-cat tmp)))))
