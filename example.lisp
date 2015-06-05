@@ -58,3 +58,45 @@
 ;; Write a rope
 (sycamore:rope-write (sycamore:rope "Hello" #\Space 'World!)
                      :escape nil :stream *standard-output*)
+
+;;;;;;;;;;;;;;;;;
+;;; TREE SETS ;;;
+;;;;;;;;;;;;;;;;;
+
+;; Define an ordering function
+(defun compare (a b)
+  (cond ((< a b) -1)
+        ((> a b) 1)
+        (t 0)))
+
+;; Create a set for integers
+(sycamore:tree-set #'compare 1 2 -10 40)
+
+;; Insertion
+(sycamore:tree-set-insert (sycamore:tree-set #'compare 1 2)
+                          0)
+
+;; Removal
+(sycamore:tree-set-remove (sycamore:tree-set #'compare 1 2 0)
+                          0)
+
+;; Union operation
+(sycamore:tree-set-union (sycamore:tree-set #'compare 1 2)
+                         (sycamore:tree-set #'compare 1 0 3))
+
+;; Intersection operation
+(sycamore:tree-set-intersection (sycamore:tree-set #'compare 1 2)
+                                (sycamore:tree-set #'compare 1 0 3))
+
+;; Difference operation
+(sycamore:tree-set-difference (sycamore:tree-set #'compare 1 2)
+                              (sycamore:tree-set #'compare 1 0 3))
+
+;; Map set
+(sycamore:map-tree-set 'list #'1+
+                        (sycamore:tree-set #'compare 1 0 10 2))
+
+;; Fold set
+(sycamore:fold-tree-set (lambda (list item) (cons item list))
+                        nil
+                        (sycamore:tree-set #'compare 1 0 10 2))
