@@ -54,6 +54,7 @@
   (left nil :type rope)
   (right nil :type rope))
 
+(declaim (ftype (function (rope) rope-length-type) rope-length))
 (defun rope-length (rope)
   (etypecase rope
     (rope-node (rope-node-length rope))
@@ -63,6 +64,7 @@
     (symbol (length (symbol-name rope)))
     (character 1)))
 
+(declaim (ftype (function (rope) non-negative-fixnum) rope-height))
 (defun rope-height (rope)
   (etypecase rope
     ((or string symbol character) 0)
@@ -95,6 +97,7 @@
                (t (rec (object-rope rope))))))
     (rec rope)))
 
+(declaim (ftype (function (t t) rope) %rope))
 (defun %rope (first second)
   "Construct a rope from FIRST and SECOND.
 FIRST: an object of rope or sequence type
@@ -113,6 +116,7 @@ RETURNS: a rope concatenating FIRST and SECOND"
                               :left first
                               :right second))))))
 
+(declaim (ftype (function (list) rope) rope-list-cat))
 (defun rope-list-cat (list)
   (cond
     ((null list)
@@ -123,6 +127,12 @@ RETURNS: a rope concatenating FIRST and SECOND"
      (rope-list-cat (loop for rest = list then (cddr rest)
                        while rest
                        collect (%rope (first rest) (second rest)))))))
+
+(declaim (ftype (function (array &key
+                                 (:start fixnum)
+                                 (:end fixnum))
+                          rope)
+                rope-array-cat))
 
 (defun rope-array-cat (array
                        &key
@@ -140,7 +150,9 @@ RETURNS: a rope concatenating FIRST and SECOND"
        (%rope (rope-array-cat array :start start :end midpoint)
               (rope-array-cat array :start midpoint :end end))))))
 
-(declaim (inline rope))
+
+(declaim (inline rope)
+         (ftype (function * rope) rope))
 (defun rope (&rest args)
   "Concatenate all ropes in ARGS.
 
@@ -174,6 +186,8 @@ RETURNS: a rope"
                         ,(fourth args))))
       (otherwise form))))
 
+(declaim (ftype (function (rope &key (:element-type symbol)) simple-string)
+                rope-string))
 (defun rope-string (rope &key (element-type 'character))
   "Convert the rope to a string."
   (let ((string (make-string (rope-length rope)
@@ -343,7 +357,8 @@ The resulting order is not necessarily lexographic."
             ;; Compare different length ropes by size
             (- n-1 n-2)))))
 
-
+(declaim (ftype (function (list &key (:symbol-function function)) rope)
+                sexp-rope))
 (defun sexp-rope (sexp &key
                          symbol-function)
   "Construct a rope representing S-Expression SEXP.
