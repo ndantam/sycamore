@@ -17,6 +17,45 @@ Features
   - http://en.wikipedia.org/wiki/Pairing_heap
 * Purely functional amortized queue
 
+Examples
+========
+
+See also `./example.lisp`
+
+Ropes
+-----
+
+Create a Rope:
+
+    CL-USER> (sycamore:rope "Hello" #\Space 'World!)
+
+    #<ROPE "Hello WORLD!">
+
+Also works on lists:
+
+    CL-USER> (sycamore:rope (list "Hello" #\Space 'World!))
+
+    #<ROPE "Hello WORLD!">
+
+And arrays:
+
+    CL-USER> (sycamore:rope (vector "Hello" #\Space 'World!))
+
+    #<ROPE "Hello WORLD!">
+
+Rope to string:
+
+    CL-USER> (sycamore:rope-string (sycamore:rope "Hello" #\Space 'World!))
+
+    "Hello WORLD!"
+
+Print a rope:
+
+    CL-USER> (sycamore:rope-write (sycamore:rope "Hello" #\Space 'World!)
+                                  :escape nil :stream *standard-output*)
+
+    Hello WORLD!
+
 Name
 ====
 http://en.wikipedia.org/wiki/Platanus_occidentalis
