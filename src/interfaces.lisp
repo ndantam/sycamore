@@ -185,8 +185,10 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
 
 (defmethod print-object ((object tree-map) stream)
   (print-unreadable-object (object stream :type t :identity nil)
-    (format stream "{~{~{~A~^: ~}~^, ~}}"
-            (map-tree-map :inorder 'list #'list object))))
+    (write (tree-map-alist object
+           :stream stream)))
+    ;; (format stream "{~{~{~A~^: ~}~^, ~}}"
+    ;;         (map-tree-map :inorder 'list #'list object))))
 
 ;;;;;;;;;;;;;;;
 ;; TREE-SET ;;
@@ -376,8 +378,9 @@ RETURNS: (values NEW-SET NEW-ITEM)"
 
 (defmethod print-object ((object tree-set) stream)
   (print-unreadable-object (object stream :type t :identity nil)
-    (format stream "{~{~A~^, ~}}"
-            (tree-set-list object))))
+    (write (tree-set-list object)
+           :stream stream)))
+    ;(format stream "{~{~A~^, ~}}"
 
 ;;;;;;;;;;;;;;;
 ;; Tree-Bag  ;;

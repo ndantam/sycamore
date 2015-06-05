@@ -38,40 +38,40 @@ Create a set for integers:
 
     CL-USER> (sycamore:tree-set #'compare 1 2 -10 40)
 
-    #<TREE-SET {-10, 1, 2, 40}>
+    #<TREE-SET (-10 1 2 40)>
 
 Insertion:
 
     CL-USER> (sycamore:tree-set-insert (sycamore:tree-set #'compare 1 2)
                                        0)
-    #<TREE-SET {0, 1, 2}>
+    #<TREE-SET (0 1 2)>
 
 Removal:
 
     CL-USER> (sycamore:tree-set-remove (sycamore:tree-set #'compare 1 2 0)
                                        0)
-    #<TREE-SET {1, 2}>
+    #<TREE-SET (1 2)>
 
 Union operation:
 
     CL-USER> (sycamore:tree-set-union (sycamore:tree-set #'compare 1 2)
                                       (sycamore:tree-set #'compare 1 0 3))
 
-    #<TREE-SET {0, 1, 2, 3}>
+    #<TREE-SET (0 1 2 3)>
 
 Intersection operation:
 
     CL-USER> (sycamore:tree-set-intersection (sycamore:tree-set #'compare 1 2)
                                              (sycamore:tree-set #'compare 1 0 3))
 
-    #<TREE-SET {1}>
+    #<TREE-SET (1)>
 
 Difference operation:
 
     CL-USER> (sycamore:tree-set-difference (sycamore:tree-set #'compare 1 2)
                                            (sycamore:tree-set #'compare 1 0 3))
 
-    #<TREE-SET {2}>
+    #<TREE-SET (2)>
 
 Map set:
 
