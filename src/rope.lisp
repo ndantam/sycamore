@@ -144,11 +144,35 @@ RETURNS: a rope concatenating FIRST and SECOND"
 (defun rope (&rest args)
   "Concatenate all ropes in ARGS.
 
-Arguments of sequence type will be flattened and concatanted into the rope.
+Arguments of sequence type will be flattened and concatanted into the
+rope.  Other non-rope arguments will be coerced to a rope type by
+calling the OBJECT-ROPE generic function.
+
 
 RETURNS: a rope"
   (declare (dynamic-extent args))
   (when args (rope-list-cat args)))
+
+;; A compiler macro to reduce dispatching when constructing ropes
+(define-compiler-macro rope (&whole form &rest args)
+  (with-gensyms (tmp)
+    (case (length args)
+      (0 nil)
+      (1 `(let ((,tmp ,(car args)))
+            (etypecase ,tmp
+              (rope ,tmp)
+              (cons (rope-list-cat ,tmp))
+              (array (rope-array-cat ,tmp)))))
+      (2 `(%rope ,(first args)
+                 ,(second args)))
+      (3 `(%rope ,(first args)
+                 (%rope ,(second args)
+                        ,(third args))))
+      (4 `(%rope (%rope ,(first args)
+                        ,(second args))
+                 (%rope ,(third args)
+                        ,(fourth args))))
+      (otherwise form))))
 
 (defun rope-string (rope &key (element-type 'character))
   "Convert the rope to a string."
