@@ -165,6 +165,33 @@ RETURNS: a rope"
   (declare (dynamic-extent args))
   (when args (rope-list-cat args)))
 
+
+(defun rope-3 (a1 a2 a3)
+  (%rope a1
+         (%rope a2 a3)))
+(defun rope-4 (a1 a2 a3 a4)
+  (%rope (%rope a1 a2)
+         (%rope a3 a4)))
+(defun rope-5 (a1 a2 a3 a4 a5)
+  (%rope (%rope a1 a2)
+         (%rope a3
+                (%rope a4 a5))))
+(defun rope-6 (a1 a2 a3 a4 a5 a6)
+  (%rope (%rope a1 a2)
+         (%rope (%rope a3 a4)
+                (%rope a5
+                       a6))))
+(defun rope-7 (a1 a2 a3 a4 a5 a6 a7)
+  (%rope (%rope a1
+                (%rope a2 a3))
+         (%rope (%rope a4 a5)
+                (%rope a6 a7))))
+(defun rope-8 (a1 a2 a3 a4 a5 a6 a7 a8)
+  (%rope (%rope (%rope a1 a2)
+                (%rope a3 a4))
+         (%rope (%rope a5 a6)
+                (%rope a7 a8))))
+
 ;; A compiler macro to reduce dispatching when constructing ropes
 (define-compiler-macro rope (&whole form &rest args)
   (with-gensyms (tmp)
@@ -175,15 +202,13 @@ RETURNS: a rope"
               (rope ,tmp)
               (cons (rope-list-cat ,tmp))
               (array (rope-array-cat ,tmp)))))
-      (2 `(%rope ,(first args)
-                 ,(second args)))
-      (3 `(%rope ,(first args)
-                 (%rope ,(second args)
-                        ,(third args))))
-      (4 `(%rope (%rope ,(first args)
-                        ,(second args))
-                 (%rope ,(third args)
-                        ,(fourth args))))
+      (2 `(%rope ,@args))
+      (3 `(rope-3 ,@args))
+      (4 `(rope-4 ,@args))
+      (5 `(rope-5 ,@args))
+      (6 `(rope-6 ,@args))
+      (7 `(rope-7 ,@args))
+      (8 `(rope-8 ,@args))
       (otherwise form))))
 
 (declaim (ftype (function (rope &key (:element-type symbol)) simple-string)
