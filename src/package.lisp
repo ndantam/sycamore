@@ -90,7 +90,7 @@
    amortized-queue-list
    ;; Ropes
    *rope-print*
-   %rope rope
+   %rope rope ropep
    rope-length rope-ref
    rope-string rope-write
    rope-compare-lexographic rope-compare-fast

@@ -45,6 +45,9 @@
 (deftype rope ()
   `(or string symbol rope-node character null))
 
+(defun ropep (object)
+  (typep object 'rope))
+
 (deftype rope-length-type () `non-negative-fixnum)
 (deftype rope-height-type () `(integer 1 #.most-positive-fixnum))
 
