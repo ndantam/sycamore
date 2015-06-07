@@ -185,7 +185,7 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
 
 (defmethod print-object ((object tree-map) stream)
   (print-unreadable-object (object stream :type t :identity nil)
-    (write (tree-map-alist object
+    (write (tree-map-alist object)
            :stream stream)))
     ;; (format stream "{~{~{~A~^: ~}~^, ~}}"
     ;;         (map-tree-map :inorder 'list #'list object))))
