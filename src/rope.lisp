@@ -241,16 +241,51 @@ RETURNS: a rope"
       (visit rope 0))
     string))
 
-(defun rope-subrope (rope start end)
-  (declare (type fixnum start end))
-  (labels ((helper-string (rope start end)
-             (make-array (- end start)
-                         :element-type (array-element-type rope)
-                         :displaced-to rope
-                         :displaced-index-offset start)))
+(defun subrope (rope &key
+                       (start 0)
+                       end
+                       copy)
+  "Return the subrope of ROPE,
+beginning with element number START
+and continuing up to element number END.
+
+START: initial element number of the subrope
+END: one past the final element number of the subrope
+COPY: if true, copy leaf strings"
+  (declare (type fixnum start)
+           (type (or fixnum null) end))
+  ;; (print (list rope start end))
+  (let ((helper (if copy
+                    #'subseq
+                    (lambda (rope start end)
+                      (make-array (- (or end (length rope)) start)
+                                  :element-type (array-element-type rope)
+                                  :displaced-to rope
+                                  :displaced-index-offset start)))))
     (etypecase rope
-      (simple-string (helper-string rope start end))
-      (string (helper-string rope start end)))))
+      (simple-string (funcall helper rope start end))
+      (string (funcall helper rope start end))
+      (null (unless (and (zerop start) (zerop end))
+              (error "Cannot find subrope of ~A" rope))
+            rope)
+      (symbol (subseq (symbol-name rope) start end))
+      (rope-node
+       (let* ((end (or end (rope-node-length rope)))
+              (left (rope-node-left rope))
+              (right (rope-node-right rope))
+              (left-count (rope-length left)))
+         (cond
+           ((<= end left-count)
+            (subrope left :start start :end end :copy copy))
+           ((>= start left-count)
+            (subrope right
+                     :start (- start left-count)
+                     :end (- end left-count)
+                     :copy copy))
+           (t (rope (subrope left :start start :end left-count :copy copy)
+                    (subrope right :start 0 :end (- end left-count) :copy copy)))))))))
+
+
 
 (defun rope-ref (rope i)
   "Return the character at position I."

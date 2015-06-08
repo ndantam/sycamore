@@ -91,6 +91,7 @@
    ;; Ropes
    *rope-print*
    %rope rope ropep
+   subrope
    rope-length rope-ref
    rope-string rope-write
    rope-compare-lexographic rope-compare-fast
