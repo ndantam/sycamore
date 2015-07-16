@@ -161,7 +161,7 @@ FUNCTION: (lambda (accumulated-value key value))."
   "Returns a tree-map containing the keys and values of the hash-table list HASH-TABLE."
   (let ((map (make-tree-map compare)))
     (flet ((helper (key value)
-             (tree-map-insertf map key value)))
+             (setf (tree-map-find map key) value)))
       (declare (dynamic-extent (function helper)))
       (maphash #'helper hash-table))
     map))
