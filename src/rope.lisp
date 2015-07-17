@@ -476,6 +476,9 @@ RETURNS: a rope"
 (defmethod object-rope ((object double-float))
   (format nil "~F" object))
 
+(defmethod object-rope ((object pathname))
+  (namestring object))
+
 (defun rope-map (function sequence
                  &key
                    (start 0)
