@@ -204,7 +204,8 @@ RETURNS: a rope"
             (etypecase ,tmp
               (rope ,tmp)
               (cons (rope-list-cat ,tmp))
-              (array (rope-array-cat ,tmp)))))
+              (array (rope-array-cat ,tmp))
+              (t (object-rope ,tmp)))))
       (2 `(%rope ,@args))
       (3 `(rope-3 ,@args))
       (4 `(rope-4 ,@args))
