@@ -53,6 +53,7 @@
    output-dot
 
    with-temp-array
+   with-timing
    ))
 
 

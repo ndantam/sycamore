@@ -265,7 +265,7 @@ if size is below dynamic-extent-limit."
              (,fun (make-array ,s-length)))))))
 
 
-(defmacro with-timing (&rest body)
+(defmacro with-timing (&body body)
   "Evaluate all forms in body, computing the real and run time.
 
 Returns: (values `(progn ,@body) RUN-TIME REAL-TIME)"
