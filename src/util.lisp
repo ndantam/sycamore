@@ -263,3 +263,22 @@ if size is below dynamic-extent-limit."
                (declare (dynamic-extent ,name))
                (,fun ,name))
              (,fun (make-array ,s-length)))))))
+
+
+(defmacro with-timing (&rest body)
+  "Evaluate all forms in body, computing the real and run time.
+
+Returns: (values `(progn ,@body) RUN-TIME REAL-TIME)"
+  (with-gensyms (real-0 real-1 run-0 run-1 result)
+    `(let* ((,real-0 (get-internal-real-time))
+            (,run-0 (get-internal-run-time))
+            (,result (progn ,@body))
+            (,real-1 (get-internal-real-time))
+            (,run-1 (get-internal-run-time)))
+       (values ,result
+               (coerce (/ (- ,run-1 ,run-0)
+                          internal-time-units-per-second)
+                       'double-float)
+               (coerce (/ (- ,real-1 ,real-0)
+                          internal-time-units-per-second)
+                       'double-float)))))
