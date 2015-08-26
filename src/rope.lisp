@@ -94,9 +94,9 @@
                         0))
                (character (values rope 1 0))
                (list
-                (rope-node-helper (rope-list-cat rope)))
+                (rec (rope-list-cat rope)))
                (array
-                (rope-node-helper (rope-array-cat rope)))
+                (rec (rope-array-cat rope)))
                (t (rec (object-rope rope))))))
     (rec rope)))
 
