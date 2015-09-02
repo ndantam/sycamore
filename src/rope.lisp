@@ -480,6 +480,19 @@ RETURNS: a rope"
 (defmethod object-rope ((object pathname))
   (namestring object))
 
+
+(defun rope-split (separator sequence
+                   &key
+                     (start 0)
+                     (end (length sequence)))
+  (if (<= end start)
+      nil
+      (flet ((f (a b)
+               (rope a separator b)))
+        (declare (dynamic-extent #'f))
+        (reduce #'f sequence :start start :end end :from-end t))))
+
+
 (defun rope-map (function sequence
                  &key
                    (start 0)
@@ -518,3 +531,6 @@ RETURNS: a rope"
                         do (setf (aref tmp i)
                                  (funcall sep-fun (aref sequence j))))))
             (rope-array-cat tmp))))))
+
+(defun rope-parenthesize (a)
+  (rope "(" a ")"))

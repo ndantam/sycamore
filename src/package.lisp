@@ -99,5 +99,36 @@
    sexp-rope
    object-rope
    rope-map
+   rope-split
+   rope-parenthesize
    ;; misc
    or-compare))
+
+(defpackage :sycamore-cgen
+  (:use :cl :sycamore-util :sycamore :alexandria)
+  (:export
+   :cgen-call
+   :cgen-if
+   :cgen-while
+   :cgen-block
+   :cgen-equal
+   :cgen-assign
+   :cgen-stmt
+   :cgen-return
+   :cgen-string
+   :cgen-declare
+   :cgen-array-initializer
+   :cgen-double-float
+   :cgen-single-float
+   :cgen-=
+   :cgen-+
+   :cgen--
+   :cgen-*
+   :cgen-/
+   :cgen-&&
+   :cgen-&
+   :cgen-bit-or
+   :cgen-log-or
+   :cgen-comment
+   :cgen-line-comment
+   ))
