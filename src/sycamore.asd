@@ -55,7 +55,8 @@
                (:file "wb-tree" :depends-on ("binary" "array"))
                ;;(:file "ttree" :depends-on ("avl"))
                (:file "interfaces" :depends-on ("wb-tree"))
-               (:file "rope" :depends-on ("util")))
+               (:file "rope" :depends-on ("util"))
+               (:file "cgen" :depends-on ("rope")))
 
   :long-description
   "Sycamore is a purely functional data structure library in Common
