@@ -107,6 +107,8 @@
 (defpackage :sycamore-cgen
   (:use :cl :sycamore-util :sycamore :alexandria)
   (:export
+   :cgen-include-local
+   :cgen-include-system
    :cgen-call
    :cgen-if
    :cgen-while
@@ -117,6 +119,7 @@
    :cgen-return
    :cgen-string
    :cgen-declare
+   :cgen-declare-array
    :cgen-array-initializer
    :cgen-double-float
    :cgen-single-float
@@ -131,4 +134,7 @@
    :cgen-log-or
    :cgen-comment
    :cgen-line-comment
+   ;; convenience
+   :cgen-call-stmt
+   :cgen-assign-stmt
    ))

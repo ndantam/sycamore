@@ -43,6 +43,7 @@
 
 (defun cgen-stmt (stmt) (rope stmt #\;))
 
+
 (defun cgen-return (value) (cgen-stmt (rope "return " value)))
 
 ;; TODO: escape
@@ -80,7 +81,7 @@
 
 (defmethod object-rope ((object cgen-binop))
   (rope (rope-parenthesize (cgen-binop-a object))
-        " " (cgen-binop-op object) "  "
+        " " (cgen-binop-op object) " "
         (rope-parenthesize (cgen-binop-b object))))
 
 (defun cgen-binop (op a b)
@@ -119,6 +120,13 @@
 (defun cgen-call (function &rest args)
   (cgen-call-list function args))
 
+(defun cgen-call-stmt (function &rest args)
+  (cgen-stmt (cgen-call-list function args)))
+
+
+(defun cgen-assign-stmt (a b)
+  (cgen-stmt (cgen-assign a b)))
+
 (defun cgen-declare (type name &optional initial-value)
   (cgen-stmt (rope type " " name
                    (if initial-value
@@ -135,3 +143,16 @@
 
 (defun cgen-single-float (value)
   (format nil "~Ff" value))
+
+(defun cgen-declare-array (type name values-or-size)
+  (cgen-stmt (rope type " " name
+                   "["
+                   (etypecase values-or-size
+                     (number values-or-size)
+                     (list (length values-or-size))
+                     (array (length values-or-size)))
+
+                   "]"
+                   (when (or (listp values-or-size)
+                             (arrayp values-or-size))
+                     (rope " = " (cgen-array-initializer values-or-size))))))

@@ -468,6 +468,12 @@ RETURNS: a rope"
 (defmethod object-rope ((object symbol))
   object)
 
+(defmethod object-rope ((object list))
+  (rope-list-cat object))
+
+(defmethod object-rope ((object array))
+  (rope-array-cat object))
+
 (defmethod object-rope ((object integer))
   (format nil "~D" object))
 
