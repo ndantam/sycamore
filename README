@@ -17,6 +17,14 @@ Features
   - http://en.wikipedia.org/wiki/Pairing_heap
 * Purely functional amortized queue
 
+Installation
+============
+
+* Sycamore uses ASDF (https://common-lisp.net/project/asdf/).  In the
+  typical case, do the following:
+
+    ln -s `pwd`/src/sycamore.asd  ~/.local/share/common-lisp/source/
+
 Examples
 ========
 
