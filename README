@@ -23,7 +23,7 @@ Installation
 * Sycamore uses ASDF (https://common-lisp.net/project/asdf/).  In the
   typical case, do the following:
 
-    ln -s `pwd`/src/sycamore.asd  ~/.local/share/common-lisp/source/
+    ln -s $(pwd)/src/sycamore.asd  ~/.local/share/common-lisp/source/
 
 Examples
 ========
