@@ -110,6 +110,7 @@
    :cgen-include-local
    :cgen-include-system
    :cgen-call
+   :cgen-defun
    :cgen-if
    :cgen-while
    :cgen-block

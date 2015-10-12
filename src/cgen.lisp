@@ -62,8 +62,13 @@
                *cgen-newline-indent*
                #\})))
     (if-let ((header (cgen-block-header object)))
-      (rope header " " *cgen-newline-indent* body)
+      (rope *cgen-newline-indent* header " " *cgen-newline-indent* body)
       body)))
+
+(defun cgen-defun (result name args body)
+  (sycamore-cgen::make-cgen-block
+   :header (rope result name (rope-parenthesize args))
+   :stmts (flatten body)))
 
 (defun cgen-block (&rest stmts)
   (make-cgen-block :stmts (flatten (ensure-list stmts))))
