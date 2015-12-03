@@ -83,6 +83,7 @@
    tree-map-insertf
    map-tree-map tree-map-count
    fold-tree-map
+   do-tree-map
    alist-tree-map hash-table-tree-map
    tree-map-alist tree-map-hash-table
    ;; queues

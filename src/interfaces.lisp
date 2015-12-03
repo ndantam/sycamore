@@ -137,6 +137,14 @@ FUNCTION: (lambda (key value))."
         (treemap
          (assert nil))))))
 
+(defmacro do-tree-map (((key value) map &optional result) &body body)
+  `(progn
+     (map-tree-map :inorder nil
+                   (lambda (,key ,value)
+                     ,@body)
+                   ,map)
+     ,result))
+
 (defun fold-tree-map (function initial-value tree-map)
   "Fold FUNCTION over members of the map
 FUNCTION: (lambda (accumulated-value key value))."
