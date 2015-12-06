@@ -1,7 +1,7 @@
 SYCAMORE
 ========
 
-A fast, purely functional data structure libary in Common Lisp.
+A fast, purely functional data structure library in Common Lisp.
 
 API Documentation: http://ndantam.github.io/sycamore
 
@@ -137,6 +137,45 @@ Print a rope:
                                   :escape nil :stream *standard-output*)
 
     Hello WORLD!
+
+Alternatives
+============
+
+There are many other Common Lisp data structure libraries.  Here are a
+few alternatives and their trade-offs relative to Sycamore.
+
+FSet
+----
+https://common-lisp.net/project/fset/Site/FSet-CL.html
+
+FSet implements finite sets with a CLOS-based set interface, while
+Sycamore's finite sets take a parameter for a comparison function.
+Both used weight-balanced trees with minor algorithmic differences.
+Generic vs. explicit comparison functions is both an aesthetic and
+performance issue.  FSet's generic comparison functions do not need to
+be passed explicitly, while Sycamore's explicit comparison function
+parameter makes it easier to compare the same type differently if
+needed, e.g., lexicographic vs. fast string comparison.
+
+Included benchmarks show that Sycamore is 30-50% faster than FSet.
+
+CL-Containers
+-------------
+https://github.com/gwkkwg/cl-containers
+
+CL-Containers is stateful/mutable/imperative, while Sycamore is
+purely-functional/persistent.
+
+Lisp Interface Library (LIL)
+----------------------------
+https://github.com/fare/lisp-interface-library
+
+Lisp Interface Library (LIL) provides abstracted data structures using
+Interface Passing Style, while Sycamore provides a few concrete data
+structures. LIL's Interface Passing Style presumably improves
+flexibility at the cost of runtime overhead and API complexity.
+Sycamore's explicit data structures have low-overhead, optimized
+implementations and a simple, documented API.
 
 Name
 ====
