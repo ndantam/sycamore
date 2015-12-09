@@ -85,7 +85,6 @@
 (defmacro tree-map-insertf (place key value)
   "Insert KEY=>VALUE into the tree map at PLACE, store at place."
   `(progn
-     (warn "ROBRAY::TREE-MAP-INSERTF is deprecated.")
      (setf ,place
            (tree-map-insert ,place ,key ,value))))
 
@@ -285,7 +284,6 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
 (defmacro tree-set-insertf (place item)
   "Insert INTER into the tree set at PLACE, store at PLACE."
   `(progn
-     (warn "ROBRAY::TREE-SET-INSERTF is deprecated.")
      (setf ,place
            (tree-set-insert ,place ,item))))
 
