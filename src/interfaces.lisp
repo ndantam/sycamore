@@ -158,20 +158,36 @@ FUNCTION: (lambda (accumulated-value key value))."
   "Number of elements in MAP."
   (wb-tree-count (tree-map-root map)))
 
+(defun tree-map-insert-map (tree-map other-map)
+  "Insert all elements of OTHER-MAP into TREE-MAP"
+  (assert (eq (tree-map-compare tree-map)
+              (tree-map-compare other-map)))
+  (fold-tree-map (lambda (map key value)
+                   (tree-map-insert map key value))
+                 tree-map
+                 other-map))
+
+(defun tree-map-insert-alist (tree-map alist)
+  "Insert all elements of ALIST into TREE-MAP"
+  (fold (lambda (map elt) (tree-map-insert map (car elt) (cdr elt)))
+        tree-map alist))
+
 (defun alist-tree-map (alist compare)
   "Returns a tree-map containing the keys and values of the association list ALIST."
-  (fold (lambda (map elt) (tree-map-insert map (car elt) (cdr elt)))
-        (make-tree-map compare)
-        alist))
+  (tree-map-insert-alist (make-tree-map compare)
+                         alist))
+
+(defun tree-map-insert-hash-table (tree-map hash-table)
+  "Insert all elements of HASH-TABLE into TREE-MAP"
+  (flet ((helper (key value)
+           (setf (tree-map-find tree-map key) value)))
+    (declare (dynamic-extent (function helper)))
+    (maphash #'helper hash-table))
+  tree-map)
 
 (defun hash-table-tree-map (hash-table compare)
   "Returns a tree-map containing the keys and values of the hash-table list HASH-TABLE."
-  (let ((map (make-tree-map compare)))
-    (flet ((helper (key value)
-             (setf (tree-map-find map key) value)))
-      (declare (dynamic-extent (function helper)))
-      (maphash #'helper hash-table))
-    map))
+  (tree-map-insert-hash-table (make-tree-map compare) hash-table))
 
 (defun tree-map-alist (tree-map)
   "Returns an association list containging the keys and values of tree-map TREE-MAP."
@@ -196,6 +212,7 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
            :stream stream)))
     ;; (format stream "{~{~{~A~^: ~}~^, ~}}"
     ;;         (map-tree-map :inorder 'list #'list object))))
+
 
 ;;;;;;;;;;;;;;;
 ;; TREE-SET ;;
