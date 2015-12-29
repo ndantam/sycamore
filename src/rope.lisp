@@ -474,18 +474,12 @@ RETURNS: a rope"
 (defmethod object-rope ((object array))
   (rope-array-cat object))
 
-(defmethod object-rope ((object integer))
-  (format nil "~D" object))
-
-(defmethod object-rope ((object float))
-  (format nil "~F" object))
-
-(defmethod object-rope ((object double-float))
-  (format nil "~F" object))
-
 (defmethod object-rope ((object pathname))
   (namestring object))
 
+;; default to using the lisp printer to get a string
+(defmethod object-rope ((object t))
+  (princ-to-string object))
 
 (defun rope-split (separator sequence
                    &key
