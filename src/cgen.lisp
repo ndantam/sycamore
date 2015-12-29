@@ -248,6 +248,15 @@
 ;;   (print (cons op args))
 
 
+(defun cgen-identifier (rope &key case)
+  (let ((string (rope-string rope)))
+    (setq string (substitute #\_ #\- string))
+    (case case
+      (:upper (string-upcase string))
+      (:lower (string-downcase string))
+      (otherwise string))))
+
+
 (defun cgen-exp (e)
   (labels ((rec-0 (nullary unary op args)
              (if (null args)
