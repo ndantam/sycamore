@@ -85,16 +85,36 @@
 (let ((hash (alist-hash-table
              '((post-++ . 1)
                (post--- . 1)
+               (|()| . 1)
+               ([] . 1)
                (\. . 1)
                (-> . 1)
+
+               (pre-++  . 2)
+               (pre---  . 2)
                (!  . 2)
+               (~  . 2)
                (unary-+  . 2)
                (unary--  . 2)
+               (cast  . 2)
+               (deref . 2)
+               (addr  . 2)
+               (align  . 2)
+
                (* . 3)
                (/ . 3)
                (% . 3)
+
                (+ . 4)
                (- . 4)
+
+               (<< . 5)
+               (>> . 5)
+
+               (< . 6)
+               (> . 6)
+               (<= . 6)
+               (>= . 6)
 
                (== . 7)
                (!= . 7)
@@ -104,6 +124,8 @@
                (\|   . 10)
                (&&   . 11)
                (\|\| . 12)
+
+               (|?:| . 12)
 
                (= . 14)
                (+= . 14)
@@ -117,6 +139,8 @@
                (^= . 14)
                (\|= . 14)
 
+               (|,| . 14)
+
                ))))
   (defun op-precedence (op)
     (if-let ((p (gethash op hash)))
@@ -126,8 +150,8 @@
 (defun precedence (e)
   (etypecase e
     (cgen-op (op-precedence (cgen-op-op e)))
-    (number 99)
-    (rope 99)))
+    (number 0)
+    (rope 0)))
 
 (defun cgen-op-symbol (op)
   "Return the canonical symbol of op"
@@ -139,7 +163,7 @@
               ((:band) '&)
               ((:= =) '=)
               (otherwise op))))
-    (op-precedence op)
+    (assert (op-precedence op))
     op))
 
 
@@ -180,7 +204,7 @@
 (defun cgen-parenthesize (parent child)
   ;(format t "~&parent: ~A:~D" parent (precedence parent))
   ;(format t "~&child: ~A:~D" child (precedence child))
-  (if (< (precedence child) (precedence parent))
+  (if (> (precedence child) (precedence parent))
       (rope-parenthesize child)
       (rope child)))
 
