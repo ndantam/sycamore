@@ -115,6 +115,7 @@
    :cgen-include-system
    :cgen-call
    :cgen-defun
+   :cgen-exp
    :cgen-if
    :cgen-while
    :cgen-block
