@@ -69,6 +69,7 @@
 
 (declaim (ftype (function (rope) rope-length-type) rope-length))
 (defun rope-length (rope)
+  "Return the number of characters in rope"
   (etypecase rope
     (rope-node (rope-node-length rope))
     (simple-string (length rope))
@@ -79,6 +80,7 @@
 
 (declaim (ftype (function (rope) non-negative-fixnum) rope-height))
 (defun rope-height (rope)
+  "Return height of rope"
   (etypecase rope
     ((or string symbol character) 0)
     (rope-node (rope-node-height rope))))
@@ -548,5 +550,6 @@ RETURNS: a rope"
                                  (funcall sep-fun (aref sequence j))))))
             (rope-array-cat tmp))))))
 
-(defun rope-parenthesize (a)
+(defun rope-parenthesize (rope)
+  "Return the parenthesized ROPE."
   (rope #\( a #\)))
