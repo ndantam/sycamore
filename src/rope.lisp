@@ -552,4 +552,4 @@ RETURNS: a rope"
 
 (defun rope-parenthesize (rope)
   "Return the parenthesized ROPE."
-  (rope #\( a #\)))
+  (rope #\( rope #\)))
