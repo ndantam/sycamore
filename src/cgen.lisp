@@ -235,6 +235,15 @@
 (defun cgen-assign (a b)
   (cgen-binop '= a b))
 
+
+(defstruct (cgen-subscript (:include cgen-binop)))
+(defun cgen-subscript (array index)
+  (make-cgen-subscript :op '[] :a array :b index))
+
+(defmethod object-rope ((object cgen-subscript))
+  (rope (cgen-subscript-a object)
+        #\[ (cgen-subscript-b object) #\]))
+
 ;; (defun cgen-op (op args)
 ;;   (print (cons op args))
 

@@ -136,6 +136,7 @@
    :cgen-/
    :cgen-&&
    :cgen-&
+   :cgen-subscript
    :cgen-bit-or
    :cgen-log-or
    :cgen-comment
