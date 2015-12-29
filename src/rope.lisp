@@ -57,6 +57,16 @@
   (left nil :type rope)
   (right nil :type rope))
 
+(declaim (inline object-rope-check))
+(defgeneric object-rope (object))
+
+(defun object-rope-check (object)
+  "Call (OBJECT-ROPE OBJECT) and check that result is a rope"
+  (let ((result (object-rope object)))
+    (check-type result rope)
+    result))
+
+
 (declaim (ftype (function (rope) rope-length-type) rope-length))
 (defun rope-length (rope)
   (etypecase rope
@@ -97,10 +107,11 @@
                 (rec (rope-list-cat rope)))
                (array
                 (rec (rope-array-cat rope)))
-               (t (rec (object-rope rope))))))
+               (t (rec (object-rope-check rope))))))
     (rec rope)))
 
 (declaim (ftype (function (t t) rope) %rope))
+
 (defun %rope (first second)
   "Construct a rope from FIRST and SECOND.
 FIRST: an object of rope or sequence type
@@ -108,28 +119,25 @@ SECOND: an object of rope or sequence type
 RETURNS: a rope concatenating FIRST and SECOND"
   (multiple-value-bind (first length-1 height-1)
       (%rope-helper first)
-    (if (= 0 length-1)
-        second
-        (multiple-value-bind (second length-2 height-2)
-            (%rope-helper second)
-          (if (zerop length-2)
-              first
-              (make-rope-node :length (+ length-1 length-2)
-                              :height (1+ (max height-1 height-2))
-                              :left first
-                              :right second))))))
+    (multiple-value-bind (second length-2 height-2)
+        (%rope-helper second)
+      (cond ((zerop length-1)
+             second)
+            ((zerop length-2)
+             first)
+            (t
+             (make-rope-node :length (+ length-1 length-2)
+                             :height (1+ (max height-1 height-2))
+                             :left first
+                             :right second))))))
 
 (declaim (ftype (function (list) rope) rope-list-cat))
 (defun rope-list-cat (list)
-  (cond
-    ((null list)
-     nil)
-    ((null (cddr list))
-     (%rope (first list) (second list)))
-    (t
-     (rope-list-cat (loop for rest = list then (cddr rest)
-                       while rest
-                       collect (%rope (first rest) (second rest)))))))
+  (if (null (cddr list))
+      (%rope (first list) (second list))
+      (rope-list-cat (loop for rest = list then (cddr rest)
+                        while rest
+                        collect (%rope (first rest) (second rest))))))
 
 (declaim (ftype (function (array &key
                                  (:start fixnum)
@@ -168,10 +176,25 @@ RETURNS: a rope"
   (declare (dynamic-extent args))
   (when args (rope-list-cat args)))
 
+(declaim (ftype (function (t) rope) rope-1))
+(defun rope-1 (rope)
+  (etypecase rope
+    (rope rope)
+    (list
+     (rope-list-cat rope))
+    (array
+     (rope-array-cat rope))
+    (t (object-rope-check rope))))
+
+
+(declaim (inline rope-2))
+(defun rope-2 (a1 a2)
+  (%rope a1 a2))
 
 (defun rope-3 (a1 a2 a3)
   (%rope a1
          (%rope a2 a3)))
+
 (defun rope-4 (a1 a2 a3 a4)
   (%rope (%rope a1 a2)
          (%rope a3 a4)))
@@ -197,23 +220,17 @@ RETURNS: a rope"
 
 ;; A compiler macro to reduce dispatching when constructing ropes
 (define-compiler-macro rope (&whole form &rest args)
-  (with-gensyms (tmp)
-    (case (length args)
-      (0 nil)
-      (1 `(let ((,tmp ,(car args)))
-            (etypecase ,tmp
-              (rope ,tmp)
-              (cons (rope-list-cat ,tmp))
-              (array (rope-array-cat ,tmp))
-              (t (object-rope ,tmp)))))
-      (2 `(%rope ,@args))
-      (3 `(rope-3 ,@args))
-      (4 `(rope-4 ,@args))
-      (5 `(rope-5 ,@args))
-      (6 `(rope-6 ,@args))
-      (7 `(rope-7 ,@args))
-      (8 `(rope-8 ,@args))
-      (otherwise form))))
+  (case (length args)
+    (0 nil)
+    (1 `(rope-1 ,(car args)))
+    (2 `(rope-2 ,@args))
+    (3 `(rope-3 ,@args))
+    (4 `(rope-4 ,@args))
+    (5 `(rope-5 ,@args))
+    (6 `(rope-6 ,@args))
+    (7 `(rope-7 ,@args))
+    (8 `(rope-8 ,@args))
+    (otherwise form)))
 
 (declaim (ftype (function (rope &key (:element-type symbol)) simple-string)
                 rope-string))
@@ -454,7 +471,6 @@ RETURNS: a rope"
                          '|)|))))
        rope))
 
-(defgeneric object-rope (object))
 
 (defmethod object-rope ((object string))
   object)
@@ -533,4 +549,4 @@ RETURNS: a rope"
             (rope-array-cat tmp))))))
 
 (defun rope-parenthesize (a)
-  (rope "(" a ")"))
+  (rope #\( a #\)))
