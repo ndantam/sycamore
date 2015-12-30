@@ -136,6 +136,7 @@
    :cgen-/
    :cgen-&&
    :cgen-&
+   :cgen-sizeof
    :cgen-subscript
    :cgen-identifier
    :cgen-bit-or

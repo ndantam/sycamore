@@ -67,7 +67,7 @@
 
 (defun cgen-defun (result name args body)
   (sycamore-cgen::make-cgen-block
-   :header (rope result name (rope-parenthesize args))
+   :header (rope result #\Space name (rope-parenthesize args))
    :stmts (flatten body)))
 
 (defun cgen-block (&rest stmts)
@@ -81,6 +81,19 @@
   (make-cgen-block :header (rope "if (" test ")")
                             :stmts (flatten (ensure-list body))))
 
+(defmacro def-cgen-binop (symbol)
+  (with-gensyms (a b)
+    `(defun ,(intern (concatenate 'string "CGEN-" (string symbol)))
+         (,a ,b)
+       (cgen-binop ',symbol ,a ,b))))
+
+(def-cgen-binop *)
+(def-cgen-binop /)
+(def-cgen-binop +)
+(def-cgen-binop -)
+
+(defun cgen-sizeof (arg)
+  (cgen-call "sizeof" arg))
 
 (let ((hash (alist-hash-table
              '((post-++ . 1)
@@ -162,6 +175,9 @@
               ((:bor) '\|)
               ((:band) '&)
               ((:= =) '=)
+              ((:->) '->)
+              ((:.) '|.|)
+              ((:[]) '[])
               (otherwise op))))
     (assert (op-precedence op))
     op))
@@ -257,43 +273,7 @@
       (otherwise string))))
 
 
-(defun cgen-exp (e)
-  (labels ((rec-0 (nullary unary op args)
-             (if (null args)
-                 nullary
-                 (rec-1 unary op (car args) (cdr args))))
-           (rec-1 (unary op a args)
-             (if (null args)
-                 unary
-                 (rec-2 op a (car args) (cdr args))))
-           (rec-2 (op a b args)
-             ;; right associative
-             (let ((child (cgen-binop op (rec-e a) (rec-e b))))
-               (if args
-                   (rec-op op (cons child args))
-                   child)))
-           (rec-op (op args)
-             (ecase (cgen-op-symbol op)
-               (! (assert (null (cdr args)))
-                  (cgen-unop-pre op (car args)))
-               (+ (rec-0 0 (car args) op args))
-               (* (rec-0 1 (car args) op args))
-               (&& (rec-0 1 (car args) op args))
-               (& (rec-0 1 (car args) op args))
-               (\|\| (rec-0 0 (car args) op args))
-               (\| (rec-0 0 (car args) op args))
-               (== (print args)
-                   (destructuring-bind (a b &rest args) args
-                     (rec-2 op a b args)))
-               (= (assert (= 2 (length args)))
-                  (cgen-binop op
-                              (rec-e (first args))
-                              (rec-e (second args))))))
-           (rec-e (e)
-             (if (listp e)
-                 (rec-op (car e) (cdr e))
-                 e)))
-    (rec-e e)))
+
 
 (defun cgen-include-local (thing)
     (rope "#include \"" thing "\"" #\Newline))
@@ -358,3 +338,47 @@
                    (when (or (listp values-or-size)
                              (arrayp values-or-size))
                      (rope " = " (cgen-array-initializer values-or-size))))))
+
+
+(defun cgen-exp (e)
+  (labels ((rec-0 (nullary unary op args)
+             (if (null args)
+                 nullary
+                 (rec-1 unary op (car args) (cdr args))))
+           (rec-1 (unary op a args)
+             (if (null args)
+                 unary
+                 (rec-2 op a (car args) (cdr args))))
+           (rec-2 (op a b args)
+             ;; right associative
+             (let ((child (cgen-binop op (rec-e a) (rec-e b))))
+               (if args
+                   (rec-op op (cons child args))
+                   child)))
+           (rec-op (op args)
+             (ecase (cgen-op-symbol op)
+               (! (assert (null (cdr args)))
+                  (cgen-unop-pre op (car args)))
+               (+ (rec-0 0 (car args) op args))
+               (* (rec-0 1 (car args) op args))
+               (&& (rec-0 1 (car args) op args))
+               (& (rec-0 1 (car args) op args))
+               (\|\| (rec-0 0 (car args) op args))
+               (\| (rec-0 0 (car args) op args))
+               (== (print args)
+                   (destructuring-bind (a b &rest args) args
+                     (rec-2 op a b args)))
+               ([]
+                (assert (= 2 (length args)))
+                (cgen-subscript (rec-e (first args))
+                                (rec-e (second args))))
+               ((= -> |.|)
+                (assert (= 2 (length args)))
+                (cgen-binop op
+                            (rec-e (first args))
+                            (rec-e (second args))))))
+           (rec-e (e)
+             (if (listp e)
+                 (rec-op (car e) (cdr e))
+                 e)))
+    (rec-e e)))
