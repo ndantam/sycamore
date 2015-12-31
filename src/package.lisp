@@ -105,6 +105,7 @@
    rope-map
    rope-split
    rope-parenthesize
+   output-rope
    ;; misc
    or-compare))
 

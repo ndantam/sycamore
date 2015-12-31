@@ -345,6 +345,30 @@ COPY: if true, copy leaf strings"
         (rec rope)))
   (values))
 
+(defun output-rope (object place
+                    &key
+                      ;directory
+                      if-exists)
+  (let ((object (rope object)))
+    (labels ((helper (place)
+               (rope-write object :stream place :escape nil)
+               (values)))
+      (cond
+        ((streamp place)
+         (helper place))
+        ((eq place t)
+         (helper *standard-output*))
+        ((null place)
+         object)
+        ((ropep place)
+         (let ((place (rope-string place)))
+           (ensure-directories-exist place)
+           (with-open-file (s place :direction :output
+                              :if-exists if-exists
+                              :if-does-not-exist :create)
+             (helper s))))
+        (t (error "Unknown place type: ~A" place))))))
+
 (defvar *rope-print* :rope
   "How to print ropes, one of (or :rope :string :structure)")
 (declaim (type (member :rope :string :structure) *rope-print*))
