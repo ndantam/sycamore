@@ -178,6 +178,8 @@
               ((:->) '->)
               ((:.) '|.|)
               ((:[]) '[])
+              ((:addr addr) 'addr)
+              ((:deref deref ) 'deref)
               (otherwise op))))
     (assert (op-precedence op))
     op))
@@ -305,6 +307,11 @@
 (defun cgen-call-stmt (function &rest args)
   (cgen-stmt (cgen-call-list function args)))
 
+(defun cgen-addr (e)
+  (cgen-unop-pre :addr e))
+
+(defun cgen-deref (e)
+  (cgen-unop-pre :deref e))
 
 (defun cgen-assign-stmt (a b)
   (cgen-stmt (cgen-assign a b)))

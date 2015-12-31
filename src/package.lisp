@@ -137,6 +137,8 @@
    :cgen-/
    :cgen-&&
    :cgen-&
+   :cgen-addr
+   :cgen-deref
    :cgen-sizeof
    :cgen-subscript
    :cgen-identifier
