@@ -516,6 +516,12 @@ RETURNS: a rope"
 (defmethod object-rope ((object array))
   (rope-array-cat object))
 
+(defmethod object-rope ((object float))
+  (format nil "~F" object))
+
+(defmethod object-rope ((object double-float))
+  (format nil "~F" object))
+
 (defmethod object-rope ((object pathname))
   (namestring object))
 
