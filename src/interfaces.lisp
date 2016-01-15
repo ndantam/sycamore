@@ -97,11 +97,11 @@
 
 (defun tree-map-find (tree-map key &optional default)
   "Find value indexed by KEY in TREE-MAP."
-  (let ((key (cons key nil)))
-    (declare (dynamic-extent key))
+  (let ((map-key (cons key nil)))
+    (declare (dynamic-extent map-key))
     (multiple-value-bind (cons present)
         (binary-tree-find (tree-map-root tree-map)
-                          key
+                          map-key
                           (tree-map-compare tree-map))
       (if present
           (values (cdr cons) (car cons) t)
