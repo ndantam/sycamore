@@ -106,6 +106,12 @@
    rope-split
    rope-parenthesize
    output-rope
+   :rope=
+   :rope/=
+   :rope<
+   :rope<=
+   :rope>
+   :rope>=
    ;; misc
    or-compare))
 

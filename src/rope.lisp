@@ -433,6 +433,8 @@ COPY: if true, copy leaf strings"
 (defun rope-iterator (rope)
   (rope-iterator-push (make-rope-iterator) rope))
 
+;;; Comparisons ;;;
+
 (defun rope-compare-lexographic (rope-1 rope-2)
   "Compare ropes lexographically."
   (let ((itr-1 (rope-iterator rope-1))
@@ -463,6 +465,25 @@ The resulting order is not necessarily lexographic."
             (rope-compare-lexographic rope-1 rope-2)
             ;; Compare different length ropes by size
             (- n-1 n-2)))))
+
+(defun rope= (rope-1 rope-2)
+  (zerop (rope-compare-fast rope-1 rope-2)))
+
+(defun rope/= (rope-1 rope-2)
+  (not (rope= rope-1 rope-2)))
+
+(defun rope< (rope-1 rope-2)
+  (< (rope-compare-lexographic rope-1 rope-2) 0))
+
+(defun rope<= (rope-1 rope-2)
+  (<= (rope-compare-lexographic rope-1 rope-2) 0))
+
+(defun rope> (rope-1 rope-2)
+  (> (rope-compare-lexographic rope-1 rope-2) 0))
+
+(defun rope>= (rope-1 rope-2)
+  (>= (rope-compare-lexographic rope-1 rope-2) 0))
+
 
 (declaim (ftype (function (list &key (:symbol-function function)) rope)
                 sexp-rope))
