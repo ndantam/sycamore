@@ -67,6 +67,12 @@
   (%make-tree-map (make-aux-compare compare)
                   nil))
 
+
+(defun empty-tree-map (tree-map)
+  "Create a new empty tree-map."
+  (%make-tree-map (tree-map-compare tree-map)
+                  nil))
+
 (defun tree-map-insert (tree-map key value)
   "Insert KEY=>VALUE into TREE-MAP, returning the new tree-map."
   (%make-tree-map (tree-map-compare tree-map)
