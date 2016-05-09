@@ -155,4 +155,5 @@
    ;; convenience
    :cgen-call-stmt
    :cgen-assign-stmt
+   :cgen-declare-fun
    ))

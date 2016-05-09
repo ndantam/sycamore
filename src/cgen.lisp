@@ -70,6 +70,9 @@
    :header (rope result #\Space name (rope-parenthesize args))
    :stmts (flatten body)))
 
+(defun cgen-declare-fun (result name args)
+   (rope result #\Space name (rope-parenthesize args) #\;))
+
 (defun cgen-block (&rest stmts)
   (make-cgen-block :stmts (flatten (ensure-list stmts))))
 
