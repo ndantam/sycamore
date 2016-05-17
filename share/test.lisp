@@ -338,10 +338,12 @@
       (lisp-unit::assert-true (tree-set-subset-p set-1 (tree-set-union set-1 set-2)))
       (lisp-unit::assert-true (tree-set-subset-p set-2 (tree-set-union set-1 set-2)))
 
-      (lisp-unit::assert-true (or (subsetp list-1 list-2)
-                                  (not (tree-set-subset-p set-1 set-2))))
-      (lisp-unit::assert-true (or (subsetp list-2 list-1)
-                                  (not (tree-set-subset-p set-2 set-1))))
+      (if (subsetp list-1 list-2)
+          (lisp-unit::assert-true (subsetp list-1 list-2))
+          (lisp-unit::assert-false (tree-set-subset-p set-1 set-2)))
+      (if (subsetp list-2 list-1)
+          (lisp-unit::assert-true (tree-set-subset-p set-2 set-1))
+          (lisp-unit::assert-false (tree-set-subset-p set-2 set-1)))
       ;; position
       (loop
          for i from 0

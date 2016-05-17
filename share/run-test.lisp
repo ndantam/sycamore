@@ -51,8 +51,11 @@
 ;; Try to ASDF load this Package
 (require :asdf)
 
-(asdf:operate 'asdf:load-op :sycamore)
-(asdf:operate 'asdf:load-op :lisp-unit)
+(push (make-pathname :directory '(:relative "src"))
+      asdf:*central-registry*)
+
+(ql:quickload :sycamore)
+(ql:quickload :lisp-unit)
 
 (load "test.lisp")
 
