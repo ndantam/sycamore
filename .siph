@@ -32,16 +32,7 @@
 
 
 siph_pkg_deps() {
-    siph_apt_get -y install sbcl curl
-    if sbcl --script share/load-quicklisp.lisp; then
-        true;
-    else
-       curl -O https://beta.quicklisp.org/quicklisp.lisp
-       sbcl --script <<EOF
-(load "quicklisp.lisp")
-(quicklisp-quickstart:install)
-EOF
-       fi
+    siph_install_quicklisp
 }
 
 siph_pkg_configure() {
