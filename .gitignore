@@ -10,3 +10,7 @@
 /install-sh
 /missing
 /sycamore-*.tar.gz
+/share/run-test.sh.log
+/share/run-test.sh.trs
+/test-driver
+/test-suite.log

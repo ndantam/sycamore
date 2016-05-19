@@ -18,3 +18,5 @@ EXTRA_DIST = \
 	src/util.lisp \
 	src/wb-tree.lisp \
 	example.lisp
+
+TESTS = share/run-test.sh
