@@ -38,9 +38,6 @@ siph_pkg_deps() {
     siph_install_quicklisp
 }
 
-siph_pkg_configure() {
-    autoreconf -i && ./configure
-}
 
 siph_pkg_compile() {
     true
