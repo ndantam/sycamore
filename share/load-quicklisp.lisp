@@ -1,7 +1,12 @@
 (unless (find-package :quicklisp)
   (let ((ql (find-if #'probe-file
-                     (map 'list (lambda (setup) (merge-pathnames setup (user-homedir-pathname)))
-                          '("quicklisp/setup.lisp" ".quicklisp/setup.lisp" "Quicklisp/setup.lisp")))))
+                     (append (map 'list (lambda (setup) (merge-pathnames setup (user-homedir-pathname)))
+                                  '("quicklisp/setup.lisp" ".quicklisp/setup.lisp" "Quicklisp/setup.lisp"))
+                             '("/usr/local/quicklisp/setup.lisp"
+                               "/usr/local/src/quicklisp/setup.lisp"
+                               "/usr/quicklisp/setup.lisp"
+                               "/usr/src/quicklisp/setup.lisp"
+                               "/opt/quicklisp/setup.lisp")))))
     (if ql
         (progn
           (format t "~&Loading QL from ~A~&" ql)
