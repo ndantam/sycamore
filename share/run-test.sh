@@ -1,16 +1,20 @@
 #!/bin/sh
 
+if [ -z "$TOP_SRCDIR" ]; then
+    TOP_SRCDIR=`pwd`
+else
+    TOP_SRCDIR=`realpath "$TOP_SRCDIR"`
+fi
+
 sbcl --script <<EOF
 
-(load "share/load-quicklisp.lisp")
-(push (make-pathname :directory '(:relative "src"))
-      asdf:*central-registry*)
+(load "$TOP_SRCDIR/share/load-quicklisp.lisp")
+(push "$TOP_SRCDIR/src/" asdf:*central-registry*)
 
 (ql:quickload :sycamore)
 (ql:quickload :lisp-unit)
 
-
-(load "share/test.lisp")
+(load "$TOP_SRCDIR/share/test.lisp")
 (in-package :sycamore)
 (lisp-unit:run-tests)
 

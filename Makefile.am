@@ -17,6 +17,12 @@ EXTRA_DIST = \
 	src/ttree.lisp \
 	src/util.lisp \
 	src/wb-tree.lisp \
-	example.lisp
+	example.lisp \
+	share/run-test.sh \
+	share/load-quicklisp.lisp \
+	share/test.lisp
+
+AM_TESTS_ENVIRONMENT=\
+	TOP_SRCDIR=$(top_srcdir)
 
 TESTS = share/run-test.sh
