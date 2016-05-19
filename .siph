@@ -47,6 +47,13 @@ siph_pkg_test() {
     ./share/run-test.sh
 }
 
+siph_pkg_install() {
+    siph_msg "Installing under '$SIPH_QUICKLISP'"
+
+    mkdir -p "$SIPH_BLD_DESTDIR/$SIPH_QUICKLISP/local-projects"
+    ln -vs "$SIPH_BLD_SRCDIR/src/sycamore.asd" "$SIPH_BLD_DESTDIR/$SIPH_QUICKLISP/local-projects"
+}
+
 # Local Variables:
 # mode: shell-script
 # End:
