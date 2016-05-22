@@ -33,8 +33,11 @@ SIPH_PKG_NAME="sycamore"
 SIPH_PKG_REPO="https://github.com/ndantam/sycamore.git"
 SIPH_PKG_BRANCH="master"
 
+SIPH_PKG_DEPS_DEB="curl autoconf automake sbcl"
+
 
 siph_pkg_deps() {
+    siph_deps_deb
     siph_install_quicklisp
 }
 
