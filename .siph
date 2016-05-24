@@ -51,6 +51,7 @@ siph_pkg_test() {
 }
 
 siph_pkg_install() {
+    siph_find_quicklisp
     siph_msg "Installing under '$SIPH_QUICKLISP'"
 
     mkdir -p "$SIPH_BLD_DESTDIR/$SIPH_QUICKLISP/local-projects"
