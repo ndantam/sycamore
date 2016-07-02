@@ -20,18 +20,8 @@ Features
 Installation
 ============
 
-* Install quicklisp: https://www.quicklisp.org
-
-* Sycamore uses ASDF (https://common-lisp.net/project/asdf/) for
-  compilation and loading.  In the typical case, run the following
-  shell commands from the top level source directory:
-    - `mkdir --parents  ~/.local/share/common-lisp/source/`
-    - `ln -s $(pwd)/src/sycamore.asd  ~/.local/share/common-lisp/source/`
-
-* If you need to directly load and use Sycamore, run the following
-  from the Lisp REPL:
-
-    `(ql:quickload :sycamore)`
+* Sycamore uses ASDF (https://common-lisp.net/project/asdf/)
+* See `INSTALL` file for details
 
 Examples
 ========

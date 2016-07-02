@@ -1,0 +1,41 @@
+SYCAMORE INSTALLATION
+
+
+0. INSTALL DEPENDENCIES
+=======================
+
+* Quicklisp is strongly recommended to install dependencies
+  (https://www.quicklisp.org).
+
+* Assuming you are using SBCL (recommended), you can install quicklisp
+  as follows:
+
+    wget https://beta.quicklisp.org/quicklisp.lisp
+    sbcl --load quicklisp.lisp \
+         --eval '(quicklisp-quickstart:install)'
+         --eval '(ql:add-to-init-file)'
+
+1. INSTALL SYCAMORE
+===================
+
+Next, create the symlink for ASDF
+(https://common-lisp.net/project/asdf/) to find the sycamore source
+files:
+
+    mkdir --parents  ~/.local/share/common-lisp/source/
+    ln -s $(pwd)/src/sycamore.asd  ~/.local/share/common-lisp/source/
+
+
+3. LOAD SYCAMORE
+================
+
+To directly load and use Sycamore, run either of the following from
+the Lisp REPL:
+
+* Via quicklisp:
+
+    (ql:quickload :sycamore)
+
+* Otherwise:
+
+    (require :sycamore)
