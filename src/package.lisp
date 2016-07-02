@@ -39,6 +39,7 @@
   (:export
    unsigned-fixnum
    fixnum-compare
+   double-compare
    string-compare
    bit-vector-compare
    fixnum-compare
@@ -87,6 +88,7 @@
    do-tree-map
    alist-tree-map hash-table-tree-map
    tree-map-alist tree-map-hash-table
+   tree-map-keys tree-map-values
    tree-map-insert-map
    tree-map-insert-alist
    tree-map-insert-hash-table

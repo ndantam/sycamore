@@ -212,6 +212,19 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
                  tree-map))
 
 
+(defun tree-map-values (tree-map)
+  (fold-tree-map (lambda (a k v)
+                   (declare (ignore k))
+                   (cons v a))
+                 nil tree-map))
+
+(defun tree-map-keys (tree-map)
+  (fold-tree-map (lambda (a k v)
+                   (declare (ignore v))
+                   (cons k a))
+                 nil tree-map))
+
+
 (defmethod print-object ((object tree-map) stream)
   (print-unreadable-object (object stream :type t :identity nil)
     (write (tree-map-alist object)

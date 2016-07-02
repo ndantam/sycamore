@@ -49,6 +49,13 @@
         ((> a b) 1)
         (t 0)))
 
+(defun double-compare (a b)
+  "Compare two doubles"
+  (declare (type double-float a b))
+  (cond ((< a b) -1)
+        ((> a b) 1)
+        (t 0)))
+
 (defun fold-n (function initial-value sequences)
   "Fold `FUNCTION' over each sequence in `SEQUENCES'."
   (declare (type function function))
