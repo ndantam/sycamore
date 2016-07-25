@@ -261,6 +261,16 @@ RETURNS: a rope"
       (visit rope 0))
     string))
 
+
+(declaim (ftype (function ((or rope pathname)) pathname)
+                rope-pathname))
+
+(defun rope-pathname (rope)
+  "Convert the rope to a pathname."
+  (if (pathnamep rope)
+      rope
+      (pathname (rope-string rope))))
+
 (defun subrope (rope &key
                        (start 0)
                        end

@@ -102,6 +102,7 @@
    subrope
    rope-length rope-ref
    rope-string rope-write
+   rope-pathname
    rope-compare-lexographic rope-compare-fast
    sexp-rope
    object-rope
