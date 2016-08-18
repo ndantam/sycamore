@@ -362,7 +362,13 @@ COPY: if true, copy leaf strings"
   (let ((object (rope object)))
     (labels ((helper (place)
                (rope-write object :stream place :escape nil)
-               (values)))
+               (values))
+             (path-helper (place)
+               (ensure-directories-exist place)
+               (with-open-file (s place :direction :output
+                                  :if-exists if-exists
+                                  :if-does-not-exist :create)
+                 (helper s))))
       (cond
         ((streamp place)
          (helper place))
@@ -371,12 +377,9 @@ COPY: if true, copy leaf strings"
         ((null place)
          object)
         ((ropep place)
-         (let ((place (rope-string place)))
-           (ensure-directories-exist place)
-           (with-open-file (s place :direction :output
-                              :if-exists if-exists
-                              :if-does-not-exist :create)
-             (helper s))))
+         (path-helper (rope-string place)))
+        ((pathnamep place)
+         (path-helper place))
         (t (error "Unknown place type: ~A" place))))))
 
 (defvar *rope-print* :rope
