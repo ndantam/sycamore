@@ -39,7 +39,7 @@
 
 (asdf:defsystem sycamore
   :version "0.0.20120604"
-  :description "Purely Functional Trees, Etc."
+  :description "A fast, purely functional data structure library"
   :depends-on (:cl-ppcre :alexandria)
   :license :bsd-3
   :homepage "http://ndantam.github.io/sycamore"
@@ -57,7 +57,6 @@
                (:file "interfaces" :depends-on ("wb-tree"))
                (:file "rope" :depends-on ("util"))
                (:file "cgen" :depends-on ("rope")))
-
   :long-description
   "Sycamore is a purely functional data structure library in Common
 Lisp.  It include fast, weight-balanced binary trees, set and

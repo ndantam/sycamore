@@ -211,6 +211,19 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
 
 (defun wb-tree-list (tree) (map-binary-tree :inorder 'list #'identity tree))
 
+(defun wb-tree-array (tree)
+  "Convert TREE to an array."
+  (etypecase tree
+    (simple-vector tree)
+    (wb-tree
+     (let ((vector (make-array (wb-tree-weight tree)))
+           (i 0))
+       (map-binary-tree-inorder (lambda (x)
+                                  (setf (aref vector i) x)
+                                  (incf i))
+                                tree)
+       vector))
+    (null (vector))))
 
 
 (defun right-wb-tree (left value right)
@@ -367,8 +380,12 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                            (wb-tree-count l-l))
                         (etypecase r-l
                           (wb-tree (right-left-wb-tree left value right))
-                          (simple-vector (make-wb-tree l-l v-l
-                                                        (balance-wb-tree-array-pair r-l value right))))
+                          (simple-vector
+                           ;; paranoid check, with properly sized
+                           ;; array leaves, right is always a vector
+                           (let ((right (wb-tree-array right)))
+                             (make-wb-tree l-l v-l
+                                           (balance-wb-tree-array-pair r-l value right)))))
                         (right-wb-tree left value right))))
                  ;; right too tall
                  ((> w-r (ash w-l +wb-tree-rebalance-log+))
@@ -377,8 +394,12 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                            (wb-tree-count l-r))
                         (etypecase l-r
                           (wb-tree (left-right-wb-tree left value right))
-                          (simple-vector (make-wb-tree (balance-wb-tree-array-pair left value l-r)
-                                                        v-r r-r)))
+                          (simple-vector
+                           ;; paranoid check, with properly sized
+                           ;; array leaves, left is always a vector
+                           (let ((left (wb-tree-array left)))
+                             (make-wb-tree (balance-wb-tree-array-pair left value l-r)
+                                           v-r r-r))))
                         (left-wb-tree left value right))))
                  ;; close enough
                  (t
