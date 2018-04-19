@@ -167,6 +167,20 @@ flexibility at the cost of runtime overhead and API complexity.
 Sycamore's explicit data structures have low-overhead, optimized
 implementations and a simple, documented API.
 
+
+References
+==========
+
+* Okasaki, Chris. "Purely Functional Data Structures." Cambridge
+  University Press. June 1999. ISBN: 978-0521663502.
+
+* Boehm, H.J., Atkinson, R. and Plass, M., 1995. Ropes: an alternative
+  to strings. Software: Practice and Experience, 25(12), pp.1315-1330.
+
+* Adams, Stephen., 1992. Implementing sets efficiently in a functional
+  language. University of Southampton. Tech Report CSTR 92-10.
+
+
 Name
 ====
 http://en.wikipedia.org/wiki/Platanus_occidentalis
