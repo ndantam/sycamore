@@ -227,11 +227,28 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
 
 (defmethod print-object ((object tree-map) stream)
   (print-unreadable-object (object stream :type t :identity nil)
-    (write (tree-map-alist object)
-           :stream stream)))
-    ;; (format stream "{~{~{~A~^: ~}~^, ~}}"
-    ;;         (map-tree-map :inorder 'list #'list object))))
 
+    ;; (write (tree-map-alist object)
+    ;;        :stream stream)
+
+    ;; (format stream "~@<{~;~:{{~A: ~A}~^ ~}~;}~:@>"
+    ;;         (map-tree-map :inorder 'list #'list object))
+
+    (pprint-logical-block (stream (map-tree-map :inorder 'list #'list object)
+                                  :prefix "{" :suffix "}")
+      (do () (nil)
+        (pprint-exit-if-list-exhausted)
+        (let ((x (pprint-pop)))
+          (pprint-newline :fill stream)
+          (pprint-indent :block 0 stream)
+          (pprint-logical-block (stream x)
+            (write (car x) :stream stream)
+            (write-char #\: stream)
+            (write-char #\Space stream)
+            (write (cadr x) :stream stream))
+          (pprint-exit-if-list-exhausted)
+          (write-char #\, stream)
+          (write-char #\Space stream))))))
 
 ;;;;;;;;;;;;;;;
 ;; TREE-SET ;;
@@ -425,9 +442,28 @@ RETURNS: (values NEW-SET NEW-ITEM)"
 
 (defmethod print-object ((object tree-set) stream)
   (print-unreadable-object (object stream :type t :identity nil)
-    (write (tree-set-list object)
-           :stream stream)))
-    ;(format stream "{~{~A~^, ~}}"
+                                        ;(print (tree-set-list object))
+    ;; Use format instead
+    ;; (pprint-logical-block (stream (tree-set-list object) :prefix "{" :suffix "}")
+    ;;   (pprint-logical-block (stream (tree-set-list object) :prefix "{" :suffix "}")
+    ;;     (do () (nil)
+    ;;       (pprint-exit-if-list-exhausted)
+    ;;       (let ((x (pprint-pop)))
+    ;;         (pprint-newline :fill stream)
+    ;;         (pprint-indent :block 0 stream)
+    ;;         (write-char #\Space stream)
+    ;;         (write x :stream stream)))))
+
+    ;; Doesn't get the spaces right
+    ;; (do-tree-set (x object)
+    ;;   (pprint-newline :fill stream)
+    ;;   (pprint-indent :block 0 stream)
+    ;;   (write-char #\Space stream)
+    ;;   (write x :stream stream))
+
+    (format stream "~@<{~;~{~A~^ ~}~;}~:@>"
+            (tree-set-list object))))
+
 
 ;;;;;;;;;;;;;;;
 ;; Tree-Bag  ;;
