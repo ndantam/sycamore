@@ -64,6 +64,7 @@
    ;; tree sets
    make-tree-set tree-set tree-set-p
    map-tree-set fold-tree-set do-tree-set
+   empty-tree-set
    tree-set-list
    tree-set-count
    tree-set-ref tree-set-position

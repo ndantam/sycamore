@@ -249,6 +249,11 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
   "Create a new tree-set."
   (%make-tree-set compare nil))
 
+(defun empty-tree-set (tree-set)
+  "Create a new empty tree-set."
+  (%make-tree-set (tree-set-%compare tree-set)
+                  nil))
+
 (defun tree-set (compare &rest args)
   "Create a new tree-set containing all items in ARGS."
   (flet ((helper (tree x)
