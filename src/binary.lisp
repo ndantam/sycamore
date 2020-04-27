@@ -118,7 +118,7 @@ RESULT-TYPE: (or 'list nil)"
 
 (defun binary-tree-search-node (tree value compare)
   (declare (type function compare))
-  "Return the node of TREE containing VALUE or NIL of not present."
+  "Return the node of TREE containing VALUE or NIL if not present."
   (labels ((rec (tree)
              (etypecase tree
                (binary-tree
@@ -142,7 +142,7 @@ RESULT-TYPE: (or 'list nil)"
 
 (defun binary-tree-find (tree value compare)
   (declare (type function compare))
-  "Return the node of TREE containing VALUE or NIL of not present."
+  "Return the node of TREE containing VALUE or NIL if not present."
   (labels ((rec (tree)
              (etypecase tree
                (binary-tree
