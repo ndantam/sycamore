@@ -93,7 +93,7 @@
    tree-map-insert-alist
    tree-map-insert-hash-table
    ;; pairing heap
-   #:pairing-heap #:pairing-heap-merge #:pairing-heap-insert #:pairing-heap-remove-min
+   #:pairing-heap #:pairing-heap-find-min #:pairing-heap-merge #:pairing-heap-insert #:pairing-heap-remove-min
    ;; queues
    make-amortized-queue amortized-queue amortized-queue-empty-p
    amortized-enqueue amortized-dequeue amortized-queue-push
