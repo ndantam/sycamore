@@ -163,12 +163,6 @@
       p
       (error "Unrecognized operator '~A'" op))))
 
-(defun precedence (e)
-  (etypecase e
-    (cgen-op (op-precedence (cgen-op-op e)))
-    (number 0)
-    (rope 0)))
-
 (defun cgen-op-symbol (op)
   "Return the canonical symbol of op"
   (declare (type symbol op))
@@ -192,6 +186,12 @@
 
 (defstruct cgen-op
     op)
+
+(defun precedence (e)
+  (etypecase e
+    (cgen-op (op-precedence (cgen-op-op e)))
+    (number 0)
+    (rope 0)))
 
 (defun cgen-op-rope (op)
   "Return the C rope of op"
