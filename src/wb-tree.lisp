@@ -1,9 +1,12 @@
 ;;;; -*- Lisp -*-
 ;;;;
 ;;;; Copyright (c) 2012-2014, Georgia Tech Research Corporation
+;;;; Copyright (c) 2018-2025, Colorado School of Mines
+;;;;
 ;;;; All rights reserved.
 ;;;;
-;;;; Author(s): Neil T. Dantam <ntd@gatech.edu>
+;;;; Author(s): Neil T. Dantam <ndantam@mines.edu>
+;;;;
 ;;;; Georgia Tech Humanoid Robotics Lab
 ;;;; Under Direction of Prof. Mike Stilman
 ;;;;
@@ -150,7 +153,7 @@
        (declare (ignore v))
        (let* ((l-c (wb-tree-count l))
               (r-c (wb-tree-count r))
-              (power +wb-tree-rebalance-log+)
+              (power (1+ +wb-tree-rebalance-log+))
               (balanced (and (<= l-c (ash r-c power))
                              (<= r-c (ash l-c power)))))
          (multiple-value-bind (l-b l-n) (wb-tree-balanced-p l)
@@ -218,6 +221,7 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
     (wb-tree
      (let ((vector (make-array (wb-tree-weight tree)))
            (i 0))
+       (declare (type fixnum i))
        (map-binary-tree-inorder (lambda (x)
                                   (setf (aref vector i) x)
                                   (incf i))
@@ -281,10 +285,10 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                 (replace new-left right :start1 w-l)       ;; fill right into new-left
                 (let ((start (- n-a w-l)))
                   (replace new-right right :start2 (1+ start))
-                  (make-wb-tree new-left (aref right start) new-right))))
-             (t (make-wb-tree (subseq left 0 (1- w-l)) (aref left (1- w-l)) right))))
+                  (%make-wb-tree w-lr new-left (aref right start) new-right))))
+             (t (%make-wb-tree w-lr (subseq left 0 (1- w-l)) (aref left (1- w-l)) right))))
       ;; left bigger or equal
-      (t;(> w-l w-r)
+      (t ; (> w-l w-r)
        (cond ((or (> w-l (ash w-r +wb-tree-rebalance-log+))
                   (< w-r +wb-tree-min-array-length+))
               ;; reshape
@@ -294,8 +298,8 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                 (replace new-right left :start2 (1+ n-a))       ;; fill new-right with rest of left
                 (let ((start (- w-l n-a 1)))
                   (replace new-right right :start1 start)) ;; fill rest of new-right with right
-                (make-wb-tree new-left (aref left n-a) new-right)))
-             (t (make-wb-tree (subseq left 0 (1- w-l)) (aref left (1- w-l)) right)))))))
+                (%make-wb-tree w-lr new-left (aref left n-a) new-right)))
+             (t (%make-wb-tree w-lr (subseq left 0 (1- w-l)) (aref left (1- w-l)) right)))))))
 
 (defun balance-wb-tree-array-pair (left value right)
   (declare (type simple-vector left right))
@@ -314,61 +318,63 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
          (setf (aref new-array w-l) value)
          (replace new-array right :start1 (1+ w-l))
          new-array))
-      ;; reshape
-      (t
-       (cond
-         ;; right too big
-         ((or (> w-r (ash w-l +wb-tree-rebalance-log+))
-              (< w-l +wb-tree-min-array-length+))
-          (let ((new-left (make-array n-a))
-                (new-right (make-array (- w-lr n-a))))
-            (replace new-left left)
-            (setf (aref new-left w-l) value)                 ;; fill value into new-left
-            (replace new-left right :start1 (+ w-l 1))       ;; fill right into new-left
-            (let ((start (- n-a 1 w-l)))
-              (replace new-right right :start2 (1+ start))
-              (make-wb-tree new-left (aref right start) new-right)))) ;; fill right
-         ;; left to big
-         ((or (> w-l (ash w-r +wb-tree-rebalance-log+))
-              (< w-r +wb-tree-min-array-length+))
-          (let ((new-left (make-array n-a))
-                (new-right (make-array (- w-lr n-a))))
-            (replace new-left left)
-            (replace new-right left :start2 (+ n-a 1))       ;; fill new-right with rest of left
-            (let ((start (- w-l n-a 1)))
-              (setf (aref new-right start) value)
-              (replace new-right right :start1 (1+ start))) ;; fill rest of new-right with right
-            (make-wb-tree new-left (aref left n-a) new-right)))
-         ;; close enough
-         (t (make-wb-tree left value right)))))))
+      ;; reshape: right too big
+      ((or (> w-r (ash w-l +wb-tree-rebalance-log+))
+           (< w-l +wb-tree-min-array-length+))
+       (let ((new-left (make-array n-a))
+             (new-right (make-array (- w-lr n-a))))
+         (replace new-left left)
+         (setf (aref new-left w-l) value)                 ;; fill value into new-left
+         (replace new-left right :start1 (+ w-l 1))       ;; fill right into new-left
+         (let ((start (- n-a 1 w-l)))
+           (replace new-right right :start2 (1+ start))
+           (%make-wb-tree (1+ w-lr) new-left (aref right start) new-right))))
+      ;; reshape: left to big
+      ((or (> w-l (ash w-r +wb-tree-rebalance-log+))
+           (< w-r +wb-tree-min-array-length+))
+       (let ((new-left (make-array n-a))
+             (new-right (make-array (- w-lr n-a))))
+         (replace new-left left)
+         (replace new-right left :start2 (+ n-a 1))       ;; fill new-right with rest of left
+         (let ((start (- w-l n-a 1)))
+           (setf (aref new-right start) value)
+           (replace new-right right :start1 (1+ start))) ;; fill rest of new-right with right
+         (%make-wb-tree (1+ w-lr) new-left (aref left n-a) new-right)))
+      (t ;; close enough
+       (%make-wb-tree (1+ w-lr) left value right)))))
 
 
 (defun balance-wb-tree (left value right)
   ;;(declare (optimize (speed 3) (safety 0)))
-;;  (print (list 'balance-wb-tree left value right))
   (labels ((balance-t-v ()
-             (if (> (wb-tree-weight left) (ash (length right) +wb-tree-rebalance-log+))
-                 (with-wb-tree (l-l v-l r-l) left
-                   (if (> (wb-tree-count r-l)
-                          (wb-tree-count l-l))
-                       (etypecase r-l
-                         (wb-tree (right-left-wb-tree left value right))
-                         (simple-vector  (make-wb-tree l-l v-l
-                                                        (balance-wb-tree-array-pair r-l value right))))
-                       (right-wb-tree left value right)))
-                 (make-wb-tree left value right)))
+             (let ((w-l (wb-tree-weight left))
+                   (w-r (length right)))
+               (if (> w-l (ash w-r +wb-tree-rebalance-log+))
+                   (with-wb-tree (l-l v-l r-l) left
+                     (if (> (wb-tree-count r-l)
+                            (wb-tree-count l-l))
+                         (etypecase r-l
+                           (wb-tree (right-left-wb-tree left value right))
+                           (simple-vector
+                            (%make-wb-tree (+ 1 w-l w-r) l-l v-l
+                                           (balance-wb-tree-array-pair r-l value right))))
+                         (right-wb-tree left value right)))
+                   (%make-wb-tree (+ 1 w-l w-r) left value right))))
            (balance-v-t ()
-             (if (> (wb-tree-weight right) (ash (length left) +wb-tree-rebalance-log+))
-                 (with-wb-tree (l-r v-r r-r) right
-                   (if (< (wb-tree-count r-r)
-                          (wb-tree-count l-r))
-                       (etypecase l-r
-                         (wb-tree (left-right-wb-tree left value right))
-                         (simple-vector
-                          (make-wb-tree (balance-wb-tree-array-pair left value l-r)
-                                         v-r r-r)))
-                       (left-wb-tree left value right)))
-                 (make-wb-tree left value right)))
+             (let ((w-r (wb-tree-weight right))
+                   (w-l (length left)))
+               (if (> w-r (ash w-l +wb-tree-rebalance-log+))
+                   (with-wb-tree (l-r v-r r-r) right
+                     (if (< (wb-tree-count r-r)
+                            (wb-tree-count l-r))
+                         (etypecase l-r
+                           (wb-tree (left-right-wb-tree left value right))
+                           (simple-vector
+                            (%make-wb-tree (+ 1 w-l w-r)
+                                           (balance-wb-tree-array-pair left value l-r)
+                                          v-r r-r)))
+                         (left-wb-tree left value right)))
+                   (%make-wb-tree (+ 1 w-l w-r) left value right))))
            (balance-t-t ()
              (let ((w-l (wb-tree-weight left))
                    (w-r (wb-tree-weight right)))
@@ -376,51 +382,54 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                  ;; left too tall
                  ((> w-l (ash w-r +wb-tree-rebalance-log+))
                   (with-wb-tree (l-l v-l r-l) left
+                    (declare (ignore v-l))
                     (if (> (wb-tree-count r-l)
                            (wb-tree-count l-l))
                         (etypecase r-l
                           (wb-tree (right-left-wb-tree left value right))
                           (simple-vector
                            ;; paranoid check, with properly sized
-                           ;; array leaves, right is always a vector
-                           (let ((right (wb-tree-array right)))
-                             (make-wb-tree l-l v-l
-                                           (balance-wb-tree-array-pair r-l value right)))))
+                           ;; array leaves, the smallest right node
+                           ;; implies that r-l is too big to be an
+                           ;; array.  Do something reasonable.
+                           (right-wb-tree left value right)))
                         (right-wb-tree left value right))))
                  ;; right too tall
                  ((> w-r (ash w-l +wb-tree-rebalance-log+))
                   (with-wb-tree (l-r v-r r-r) right
+                    (declare (ignore v-r))
                     (if (< (wb-tree-count r-r)
                            (wb-tree-count l-r))
                         (etypecase l-r
                           (wb-tree (left-right-wb-tree left value right))
                           (simple-vector
                            ;; paranoid check, with properly sized
-                           ;; array leaves, left is always a vector
-                           (let ((left (wb-tree-array left)))
-                             (make-wb-tree (balance-wb-tree-array-pair left value l-r)
-                                           v-r r-r))))
+                           ;; array leaves, the smallest left node
+                           ;; implies that l-r is too big to be an
+                           ;; array.  Do something reasonable.
+                           (left-wb-tree left value right)))
                         (left-wb-tree left value right))))
                  ;; close enough
                  (t
-                  (make-wb-tree left value right))))))
+                  (%make-wb-tree (+ 1 w-l w-r) left value right))))))
     (declare (dynamic-extent (function balance-t-v)
                              (function balance-v-t)
                              (function balance-t-t)))
     ;; Type dispatching
     (let ((result
-           (etypecase left
-             (wb-tree
-              (etypecase right
-                (wb-tree (balance-t-t))
-                (simple-vector (balance-t-v))
-                (null (wb-tree-insert-max left value))))
-             (simple-vector
-              (etypecase right
-                (wb-tree (balance-v-t))
-                (simple-vector (balance-wb-tree-array-pair left value right))
-                (null  (wb-tree-insert-max-array left value))))
-             (null  (wb-tree-insert-min-array right value)))))
+            (etypecase left
+              (wb-tree
+               (etypecase right
+                 (wb-tree (balance-t-t))
+                 (simple-vector (balance-t-v))
+                 (null (wb-tree-insert-max left value))))
+              (simple-vector
+               (etypecase right
+                 (wb-tree (balance-v-t))
+                 (simple-vector
+                  (balance-wb-tree-array-pair left value right))
+                 (null (wb-tree-insert-max-array left value))))
+              (null (wb-tree-insert-min-array right value)))))
       (check-wb-balance result)
       result)))
 
@@ -435,7 +444,7 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
           (setf (aref left 0) value)
           (replace left tree :start1 1)
           (replace right tree :start2 na)
-          (make-wb-tree left (aref tree (1- na)) right))
+          (%make-wb-tree (1+ n) left (aref tree (1- na)) right))
         ;; single array
         (let ((new-array (make-array (1+ n))))
           (setf (aref new-array 0) value)
@@ -462,7 +471,7 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
           (setf (aref right (1- nr)) value)
           (replace left tree)
           (replace right tree :start2 (1+ na))
-          (make-wb-tree left (aref tree na) right))
+          (%make-wb-tree (1+ n) left (aref tree na) right))
         ;; single array
         (let ((new-array (make-array (1+ n))))
           (setf (aref new-array n) value)
@@ -540,17 +549,20 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
         ((< n +wb-tree-max-array-length+)
          (array-tree-insert-at tree value i))
         ((< i n/2)
-         (make-wb-tree (array-tree-insert-at tree value i 0 (1- n/2))
+         (%make-wb-tree (1+ n)
+                        (array-tree-insert-at tree value i 0 (1- n/2))
                         (aref tree (1- n/2))
-                        (subseq tree  n/2)))
+                        (subseq tree n/2)))
         ((> i n/2)
-         (make-wb-tree (subseq tree 0 n/2)
+         (%make-wb-tree (1+ n)
+                        (subseq tree 0 n/2)
                         (aref tree n/2)
                         (array-tree-insert-at tree value i (1+ n/2))))
         (t ;; (= i n/2)
-         (make-wb-tree (subseq tree 0 n/2)
+         (%make-wb-tree (1+ n)
+                        (subseq tree 0 n/2)
                         value
-                        (subseq tree  n/2)))))))
+                        (subseq tree n/2)))))))
 
 
 (defun wb-tree-insert (tree value compare)
@@ -588,17 +600,20 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
         ((< n +wb-tree-max-array-length+)
          (array-tree-insert-at tree value i))
         ((< i n/2)
-         (make-wb-tree (array-tree-insert-at tree value i 0 (1- n/2))
+         (%make-wb-tree (1+ n)
+                        (array-tree-insert-at tree value i 0 (1- n/2))
                         (aref tree (1- n/2))
-                        (subseq tree  n/2)))
+                        (subseq tree n/2)))
         ((> i n/2)
-         (make-wb-tree (subseq tree 0 n/2)
+         (%make-wb-tree (1+ n)
+                        (subseq tree 0 n/2)
                         (aref tree n/2)
                         (array-tree-insert-at tree value i (1+ n/2))))
         (t ;; (= i n/2)
-         (make-wb-tree (subseq tree 0 n/2)
+         (%make-wb-tree (1+ n)
+                        (subseq tree 0 n/2)
                         value
-                        (subseq tree  n/2)))))))
+                        (subseq tree n/2)))))))
 
 
 (defun wb-tree-replace (tree value compare)
@@ -627,7 +642,7 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
     (if present
         ;; replace in tree
         (array-tree-set tree (funcall modify (aref tree i)) i)
-        ;; moidfy default value
+        ;; modify default value
         (multiple-value-bind (value present) (funcall modify default)
           (if present
               ;; insert new value
@@ -638,17 +653,20 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                   ((< n +wb-tree-max-array-length+)
                    (array-tree-insert-at tree value i))
                   ((< i n/2)
-                   (make-wb-tree (array-tree-insert-at tree value i 0 (1- n/2))
+                   (%make-wb-tree (1+ n)
+                                  (array-tree-insert-at tree value i 0 (1- n/2))
                                   (aref tree (1- n/2))
-                                  (subseq tree  n/2)))
+                                  (subseq tree n/2)))
                   ((> i n/2)
-                   (make-wb-tree (subseq tree 0 n/2)
+                   (%make-wb-tree (1+ n)
+                                  (subseq tree 0 n/2)
                                   (aref tree n/2)
                                   (array-tree-insert-at tree value i (1+ n/2))))
                   (t ;; (= i n/2)
-                   (make-wb-tree (subseq tree 0 n/2)
+                   (%make-wb-tree (1+ n)
+                                  (subseq tree 0 n/2)
                                   value
-                                  (subseq tree  n/2)))))
+                                  (subseq tree n/2)))))
               ;; nothing to insert
               tree)))))
 
@@ -835,14 +853,14 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
                 (wb-tree
                  (with-wb-tree (l2 v2 r2 c2) right
                    (cond
-                     ((> c2 (ash c1 +wb-tree-rebalance-log+))
+                     ((> c2 (ash c1 +wb-tree-rebalance-log+)) ; right much bigger
                       (balance-wb-tree (join-wb-tree left value l2 compare)
                                         v2 r2))
-                     ((> c1 (ash c2 +wb-tree-rebalance-log+))
+                     ((> c1 (ash c2 +wb-tree-rebalance-log+)) ; left much bigger
                       (balance-wb-tree l1 v1
                                         (join-wb-tree r1 value right compare)))
-                     (t
-                        (make-wb-tree left value right)))))
+                     (t ; size ok
+                      (%make-wb-tree (+ 1 c1 c2) left value right)))))
                 (simple-vector
                  (balance-wb-tree l1 v1 (join-wb-tree r1 value right compare)))
                 (null (wb-tree-insert-max left value)))))
