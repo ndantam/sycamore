@@ -402,10 +402,18 @@ RETURNS: (values NEW-SET NEW-ITEM)"
                      (tree-set-%compare set-1)))
 
 (defun tree-set-subset-p (set-1 set-2)
-  "Is SET-1 as subset of SET-2?"
+  "Is SET-1 a subset of SET-2?
+RETURNS: T or NIL"
   (wb-tree-subset (tree-set-root set-1)
                   (tree-set-root set-2)
                   (tree-set-%compare set-1)))
+
+(defun tree-set-intersection-p (set-1 set-2)
+  "Do SET-1 and SET-2 intersect?
+RETURNS: T or NIL"
+  (wb-tree-intersection-p (tree-set-root set-1)
+                          (tree-set-root set-2)
+                          (tree-set-%compare set-1)))
 
 ;(declaim (ftype (function (tree-set tree-set) fixnum) tree-set-compare))
 (defun tree-set-compare (tree-1 tree-2)

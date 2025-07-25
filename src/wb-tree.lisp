@@ -1263,6 +1263,34 @@ Leftmost (least) element of TREE has SUBSCRIPT of zero."
     (declare (dynamic-extent (function rec)))
     (rec tree-1 tree-2)))
 
+(defun wb-tree-intersection-p (tree-1 tree-2 compare)
+  (declare (type function compare))
+  (labels ((rec (tree-1 tree-2)
+             (when (and tree-1 tree-2)
+               (with-wb-trees
+                   (l1 v1 r1 c1) tree-1
+                   (l2 v2 r2 c2) tree-2
+                 ;; Traverse the bigger tree
+                 (multiple-value-bind (l1 v1 r1 tree-2 l2 v2 r2)
+                     (if (>= c1 c2)
+                         (values l1 v1 r1
+                                 tree-2 l2 v2 r2)
+                         (values l2 v2 r2
+                                 tree-1 l1 v1 r1))
+                   ;; Compare
+                   (cond-compare (v1 v2 compare)
+                                 ;; v1 < v2
+                                 (or (rec (make-wb-tree l1 v1 nil)
+                                          l2)
+                                     (rec r1 tree-2))
+                                 ;; v1 = v2
+                                 t
+                                 ;; v1 > v2
+                                 (or (rec (make-wb-tree nil v1 r1)
+                                          r2)
+                                     (rec l1 tree-2))))))))
+    (declare (dynamic-extent (function rec)))
+    (rec tree-1 tree-2)))
 
 (declaim (ftype (function ((or wb-tree array null) (or wb-tree array null) function)
                           fixnum)

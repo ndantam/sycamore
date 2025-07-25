@@ -152,12 +152,14 @@
 ;; TREE-SET ;;
 ;;;;;;;;;;;;;;
 
-(defun tree-set-fuzz-generator ()
-  (loop for i below 2
-     collect (loop
-                for i below (1+ (random (expt 2 12)))
-                collect
-                  (random (expt 2 10)))))
+(defun make-tree-set-fuzz-generator (count max)
+  (lambda ()
+    (loop for i below 2
+          collect (loop
+                    for i below (1+ (random count))
+                    collect
+                    (random max)))))
+
 
 (defun tree-set-fuzz-tester (fuzz)
   (let* ((list-1 (remove-duplicates (first fuzz)))
@@ -172,8 +174,6 @@
              (set-result (x)
                (setq set-p-1 x)
                (wb-tree-list x)))
-
-
 
       ;; constructed sets
       (fuzz:do-test ('wb-elements-1 :test #'equal)
@@ -224,6 +224,16 @@
         (set-result (wb-tree-intersection set-1 set-2 #'fixnum-compare)))
       (fuzz:test-true 'wb-intersection-balanced-1 (lambda () (wb-tree-balanced-p set-p-1)))
 
+      ;; intersection-p
+      (fuzz:test-eq 'wb-intersection-p
+                    (lambda () (if (intersection list-1 list-2) t nil))
+                    (lambda () (wb-tree-intersection-p set-1 set-2 #'fixnum-compare)))
+
+      ;; subset-p
+      (fuzz:test-eq 'wb-subset
+                    (lambda () (if (subsetp list-1 list-2) t nil))
+                    (lambda () (wb-tree-subset set-1 set-2 #'fixnum-compare)))
+
       ;; difference
       (fuzz:do-test ('wb-difference :test #'equal)
         (set-sort (set-difference list-1 list-2))
@@ -231,7 +241,16 @@
       (fuzz:test-true 'wb-difference-balanced-1 (lambda () (wb-tree-balanced-p set-p-1))))))
 
 (defun run-tree-set-tests (&key (count 1))
-  (fuzz:run-tests #'tree-set-fuzz-generator
+  (fuzz:run-tests (make-tree-set-fuzz-generator (expt 2 12) (expt 2 12))
                   #'tree-set-fuzz-tester
                   :formatter #'identity
-                  :count count))
+                  :count count)
+  (fuzz:run-tests (make-tree-set-fuzz-generator (expt 2 12) (expt 2 4))
+                  #'tree-set-fuzz-tester
+                  :formatter #'identity
+                  :count count)
+  (fuzz:run-tests (make-tree-set-fuzz-generator (expt 2 10) (expt 2 20))
+                  #'tree-set-fuzz-tester
+                  :formatter #'identity
+                  :count count)
+  t)

@@ -47,7 +47,7 @@
 (defun bench-generate-data (&key
                             (output-1 *bench-data-file-1*)
                             (output-2 *bench-data-file-2*)
-                            (count-1 (expt 2 18))
+                            (count-1 (expt 2 21))
                             (max-1 (* 2 count-1))
                             (count-2 count-1)
                             (max-2 max-1))
@@ -69,7 +69,9 @@
                      &key
                        (list-1 (bench-load *bench-data-file-1*))
                        (list-2 (bench-load *bench-data-file-2*))
-                       insert remove union intersection difference (output *standard-output*) name)
+                       insert remove union intersection intersectionp difference subset
+                       (output *standard-output*)
+                       name)
   (let ((*standard-output* output)
         (obj-1)
         (obj-2))
@@ -125,6 +127,20 @@
       (pre-test "intersection 2 1")
       (time (funcall intersection obj-2 obj-1)))
 
+    ;; intersectionp
+    (when intersectionp
+      (pre-test "intersectionp 1 2")
+      (time (funcall intersectionp obj-1 obj-2))
+      (pre-test "intersectionp 2 1")
+      (time (funcall intersectionp obj-2 obj-1)))
+
+    ;; subset
+    (when subset
+      (pre-test "subset 1 2")
+      (time (funcall subset obj-1 obj-2))
+      (pre-test "subset 2 1")
+      (time (funcall subset obj-2 obj-1)))
+
     ;; difference
     (when difference
       (pre-test "difference 1 2")
@@ -151,8 +167,12 @@
                          (wb-tree-union x y compare))
                 :intersection (lambda (x y)
                                 (wb-tree-intersection x y compare))
+                :intersectionp (lambda (x y)
+                                (wb-tree-intersection-p x y compare))
                 :difference (lambda (x y)
                               (wb-tree-difference x y compare))
+                :subset (lambda (x y)
+                              (wb-tree-subset x y compare))
                 :name "SYCAMORE:WB")))
 
 
@@ -164,6 +184,7 @@
                           (fset:less obj x))
                 :union #'fset:union
                 :intersection #'fset:intersection
+                :subset #'fset:subset?
                 :difference #'fset:set-difference-2
                 :name "FSET"))
 

@@ -74,7 +74,7 @@
    tree-set-remove-min tree-set-remove-max tree-set-remove-position
    tree-set-union tree-set-intersection tree-set-difference
    tree-set-member-p tree-set-find
-   tree-set-equal-p tree-set-subset-p tree-set-compare
+   tree-set-equal-p tree-set-subset-p tree-set-intersection-p tree-set-compare
    tree-set-intersection-difference
    tree-set-intern
    tree-set-max tree-set-min
