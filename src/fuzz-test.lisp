@@ -254,3 +254,50 @@
                   :formatter #'identity
                   :count count)
   t)
+
+;;;;;;;;;;;;;;
+;; HASH-SET ;;
+;;;;;;;;;;;;;;
+
+(defun silly-hash (object)
+  ;; Throw away some bits so we can test for collision handling
+  (logand #xfff (sxhash object)))
+
+(defun hash-set-fuzz-tester (fuzz)
+  (let* ((list-1 (remove-duplicates (first fuzz)))
+         (list-2 (remove-duplicates (second fuzz)))
+         (set-1 (list-hash-set list-1 :hash-function #'silly-hash))
+         (set-2 (list-hash-set list-2 :hash-function #'silly-hash)))
+    (labels ((set-sort (x) (sort (copy-list x) #'<)))
+
+      ;; Construct sets
+      (fuzz:do-test ('hash-elements-1 :test #'equal)
+        (set-sort list-1)
+        (set-sort (hash-set-list set-1)))
+      (fuzz:do-test ('hash-elements-2 :test #'equal)
+        (set-sort list-2)
+        (set-sort (hash-set-list set-2)))
+
+      ;; Member tests
+      (fuzz:do-test ('hash-member-1 :test #'equal)
+                    (loop for x in list-1
+                          collect (if (member x list-2)
+                                      t
+                                      nil))
+                    (loop for x in list-1
+                          collect (hash-set-member-p set-2 x))))))
+
+(defun run-hash-set-tests (&key (count 1))
+  (fuzz:run-tests (make-tree-set-fuzz-generator (expt 2 12) (expt 2 12))
+                  #'hash-set-fuzz-tester
+                  :formatter #'identity
+                  :count count)
+  (fuzz:run-tests (make-tree-set-fuzz-generator (expt 2 12) (expt 2 4))
+                  #'hash-set-fuzz-tester
+                  :formatter #'identity
+                  :count count)
+  (fuzz:run-tests (make-tree-set-fuzz-generator (expt 2 10) (expt 2 20))
+                  #'hash-set-fuzz-tester
+                  :formatter #'identity
+                  :count count)
+  t)

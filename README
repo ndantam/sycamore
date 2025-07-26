@@ -10,6 +10,15 @@ Features
 * Fast, purely functional weight-balanced binary trees.
   - http://en.wikipedia.org/wiki/Weight-balanced_tree
   - Leaf nodes are simple-vectors, greatly reducing tree height.
+* Fast, Hash-Mapped Array Tries (HAMT)
+  - https://en.wikipedia.org/wiki/Hash_array_mapped_trie
+  - Pro: Generally higher-performance than weight-balanced trees for
+    insertion and lookup.
+  - Difference: Requires hashing and test functions (defaults are CL
+    standard SXHASH and EQL), but does not need the total ordering
+    function required by trees.
+  - Con: does not provide fast set operations like intersection,
+    difference, union, that trees can offer.
 * Interfaces for tree Sets and Maps (dictionaries).
 * Ropes
   - http://en.wikipedia.org/wiki/Rope_(data_structure)
@@ -128,6 +137,69 @@ Print a rope:
 
     Hello WORLD!
 
+
+What collection data structure should I use?
+============================================
+
+Concept of Operations
+---------------------
+
+- Two classes of set and map collections: hashes and trees.
+- Hashes require a hash function and an equality function.  The CL
+  standard provides SXHASH and EQ/EQL/EQUAL/EQUALP/=.
+- Trees require a total order (for any two elements A and B, does A
+  come before B, does B come before A, or are A and B equal?)
+- Hashes offer better asymptotic (big-O) and constant factor running
+  times for supported operations (amortized O(1)).  Trees have worse
+  asymptotic running times (O(log(n))), but compared to persistent
+  hashes, constant factors can be pretty good.  Further, trees can
+  offer additional operations beyond what hashes can support.
+
+Q/A
+---
+
+- Q: Is your collection tiny or used outside a performance-critical
+  path?
+
+  - Yes: Use a list.  Or whatever you care to.  For collections that
+    are small and/or not performance-critical, it probably won't much
+    matter.
+
+   - No: Let's discuss!
+
+- Q: Are you very certain you will only ever have one version of your
+  structure that you need? (no sharing between modules, no
+  backtracking, maybe used only within a single, small function)?
+
+  - Yes: A mutable structure such as standard hash-tables may offer
+    the best performance.
+
+  - No: Let's discuss!
+
+- Q: Do you require only insertion, lookup, and removal?  And are your
+  elements/keys hashable and equality-comparable (lisp primitives and
+  lists are hashable/equality-comparable)?
+
+  - Yes: hash-mapped array tries (HAMTs) could offer the best performance
+
+  - No, I need more features and/or I have a different way to compare
+    keys: let's see if trees work for you!
+
+- Q: Do you require set operations (union, difference, intersection),
+  are your elements totally ordered (for any two elements A and B, can
+  you decide if A comes before B or vice versa?), or do you lack a
+  hashing function?
+
+  - Yes: Weight-balanced trees could offer good performance.  They may
+    be slighter slower than HAMTs for construction/lookup, but offer
+    richer set-theoretic capabilities and require comparison rather
+    than hashing functions.
+
+  - No, I need something different than anything you listed: Well,
+    sorry, that's the end of my current ideas.  But drop me a line if
+    you want to talk about data structures!
+
+
 Alternatives
 ============
 
@@ -179,6 +251,8 @@ References
 
 * Adams, Stephen., 1992. Implementing sets efficiently in a functional
   language. University of Southampton. Tech Report CSTR 92-10.
+
+* Bagwell, Phil. Ideal Hash Trees. EPFL Technical Report, 2001.
 
 
 Name

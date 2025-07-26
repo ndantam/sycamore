@@ -37,6 +37,9 @@
 
 (in-package :sycamore)
 
+(ql:quickload :fset)
+
+(ql:quickload :cl-hamt)
 
 (defparameter *bench-data-file-1*
   (make-pathname :directory '(:absolute "tmp") :name "sycamore-bench-1" :type "dat"))
@@ -69,7 +72,7 @@
                      &key
                        (list-1 (bench-load *bench-data-file-1*))
                        (list-2 (bench-load *bench-data-file-2*))
-                       insert remove union intersection intersectionp difference subset
+                       insert remove union intersection intersectionp difference subset find
                        (output *standard-output*)
                        name)
   (let ((*standard-output* output)
@@ -89,6 +92,16 @@
     (pre-test "build object 2")
     (setq obj-2 (time (funcall build list-2)))
 
+    ;; find
+    (when find
+      (pre-test "find 2 in 1")
+      (time (loop for x in list-2
+               do (funcall find obj-1 x)))
+
+      (pre-test "find 1 in 2")
+      (time (loop for x in list-1
+               do  (funcall find obj-2 x))))
+
     ;; insert
     (when insert
       (pre-test "insert 2 into 1")
@@ -101,7 +114,7 @@
                for y =  (funcall insert obj-2 x) then
                  (funcall insert y x))))
     ;; remove
-    (when insert
+    (when remove
       (pre-test "remove 2 from 1")
       (time (loop for x in list-2
                for y =  (funcall remove obj-1 x) then
@@ -163,6 +176,8 @@
                           (wb-tree-insert obj x compare))
                 :remove (lambda (obj x)
                           (wb-tree-remove obj x compare))
+                :find (lambda (obj x)
+                          (binary-tree-find obj x compare))
                 :union (lambda (x y)
                          (wb-tree-union x y compare))
                 :intersection (lambda (x y)
@@ -180,6 +195,8 @@
   (time-general (lambda (a) (fold #'fset:with (fset:empty-set) a))
                 :insert (lambda (obj x)
                           (fset:with obj x))
+                :find (lambda (obj x)
+                          (fset:member? x obj))
                 :remove (lambda (obj x)
                           (fset:less obj x))
                 :union #'fset:union
@@ -187,6 +204,30 @@
                 :subset #'fset:subset?
                 :difference #'fset:set-difference-2
                 :name "FSET"))
+
+
+(defun time-hamt ()
+  (time-general (lambda (a) (list-hash-set a))
+                :insert #'hash-set-insert
+                :find #'hash-set-find
+                :name "SYCAMORE:HAMT"))
+
+(defun time-cl-hamt ()
+  (time-general (lambda (a) (reduce #'cl-hamt:set-insert  a
+                                    :initial-value (cl-hamt:empty-set)))
+                :insert (lambda (obj x) (cl-hamt:set-insert obj x))
+                :find #'cl-hamt:set-lookup
+                :name "CL-HAMT"))
+
+(defun time-hash-table ()
+  (time-general (lambda (a) (let ((hash (make-hash-table)))
+                              (dolist (x a)
+                                (setf (gethash x hash) t))
+                              hash))
+                ;:insert (lambda (obj x) (cl-hamt:set-insert obj x))
+                :find (lambda (hash x)
+                        (gethash x hash))
+                :name "HASH-TABLE"))
 
 (defun time-all (&key count (max count))
   (when (and count max)
