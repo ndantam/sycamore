@@ -525,6 +525,68 @@ RETURNS: T or NIL"
         0)))
 
 
+;;;;;;;;;;;;;;
+;; Hash-Set ;;
+;;;;;;;;;;;;;;
+
+(defstruct (hash-set (:constructor %make-hash-set (%test %hash-function root)))
+  %test
+  %hash-function
+  root)
+
+(defun %update-hash-set (set root)
+  (if (eq (hash-set-root set)
+          root)
+      set
+      (%make-hash-set (hash-set-%test set)
+                      (hash-set-%hash-function set)
+                      root)))
+
+(defun hash-set (&key (test #'eql) (hash-function #'sxhash))
+  (%make-hash-set test hash-function nil))
+
+(defun hash-set-find (set item)
+  (if-let ((root (hash-set-root set)))
+    (hamt-set-find root item
+                   (funcall (hash-set-%hash-function set) item)
+                   (hash-set-%test set))
+    (values nil nil)))
+
+(defun hash-set-member-p (set item)
+  (multiple-value-bind (elt has) (hash-set-find set item)
+    (declare (ignore elt))
+    has))
+
+(defun hash-set-insert (set item)
+  (let ((hash-code (funcall (hash-set-%hash-function set) item)))
+    (%update-hash-set set
+                      (if-let ((root (hash-set-root set)))
+                        ;; Insert into root
+                        (hamt-set-insert root item
+                                         hash-code
+                                         (hash-set-%test set))
+                        ;; empty, make a singleton
+                        (hamt-set-layer-singleton item hash-code hash-code)))))
+
+
+(defun list-hash-set (list &key (test #'eql) (hash-function #'sxhash))
+  (reduce #'hash-set-insert
+          list
+          :initial-value (%make-hash-set test hash-function nil)))
+
+
+(defun hash-set-list (set)
+  "Return list of elements in `SET' in arbitrary order."
+  (when-let ((root (hash-set-root set)))
+    (hamt-set-fold (lambda (list key) (cons key list))
+                   nil
+                   root)))
+
+(defmethod print-object ((object hash-set) stream)
+  (print-unreadable-object (object stream :type t :identity nil)
+    (format stream "~@<{~;~{~A~^ ~}~;}~:@>"
+            (hash-set-list object))))
+
 ;;;;;;;;;;;;;;;
 ;; Tree-Heap ;;
 ;;;;;;;;;;;;;;;

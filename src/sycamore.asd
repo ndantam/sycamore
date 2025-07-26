@@ -53,8 +53,9 @@
                (:file "array" :depends-on ("util"))
                (:file "binary" :depends-on ("util" "array"))
                (:file "wb-tree" :depends-on ("binary" "array"))
+               (:file "hamt" :depends-on ("array"))
                ;;(:file "ttree" :depends-on ("avl"))
-               (:file "interfaces" :depends-on ("wb-tree"))
+               (:file "interfaces" :depends-on ("wb-tree" "hamt"))
                (:file "rope" :depends-on ("util"))
                (:file "cgen" :depends-on ("rope")))
   :long-description
