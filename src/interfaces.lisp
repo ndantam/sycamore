@@ -530,6 +530,8 @@ RETURNS: T or NIL"
 ;; Hash-Set ;;
 ;;;;;;;;;;;;;;
 
+;; TODO: store small sets as lists
+
 (defstruct (hash-set (:constructor %make-hash-set (%test %hash-function root)))
   %test
   %hash-function

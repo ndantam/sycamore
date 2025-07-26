@@ -75,6 +75,8 @@
                        insert remove union intersection intersectionp difference subset find
                        (output *standard-output*)
                        name)
+  #+sbcl
+  (sb-ext:gc :full t)
   (let ((*standard-output* output)
         (obj-1)
         (obj-2))
