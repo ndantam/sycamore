@@ -100,6 +100,10 @@
       (time (loop for x in list-2
                do (funcall find obj-1 x)))
 
+      (pre-test "find 1 in 1")
+      (time (loop for x in list-1
+               do (funcall find obj-1 x)))
+
       (pre-test "find 1 in 2")
       (time (loop for x in list-1
                do  (funcall find obj-2 x))))

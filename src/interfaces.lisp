@@ -530,8 +530,6 @@ RETURNS: T or NIL"
 ;; Hash-Set ;;
 ;;;;;;;;;;;;;;
 
-;; TODO: store small sets as lists
-
 (defstruct (hash-set (:constructor %make-hash-set (%test %hash-function root)))
   %test
   %hash-function
@@ -569,14 +567,20 @@ RETURNS: T or NIL"
                                          hash-code
                                          (hash-set-%test set))
                         ;; empty, make a singleton
-                        (hamt-set-layer-singleton item hash-code hash-code)))))
-
+                        (hamt-set-layer-singleton hash-code item)))))
 
 (defun list-hash-set (list &key (test #'eql) (hash-function #'sxhash))
-  (reduce #'hash-set-insert
-          list
-          :initial-value (%make-hash-set test hash-function nil)))
-
+  (declare (type function test hash-function))
+  (let ((set (%make-hash-set test hash-function nil)))
+    (when list
+      (let ((root (let ((elt (car list)))
+                    (hamt-set-layer-singleton (funcall hash-function elt)
+                                              elt))))
+        (dolist (elt (cdr list))
+          (setq root (hamt-set-ninsert root elt
+                                       (funcall hash-function elt) test)))
+        (setf (hash-set-root set) root)))
+    set))
 
 (defun hash-set-list (set)
   "Return list of elements in `SET' in arbitrary order."
