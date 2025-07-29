@@ -544,21 +544,43 @@ RETURNS: T or NIL"
                       root)))
 
 (defun hash-set (&key (test #'eql) (hash-function #'sxhash))
+  "Create a new HASH-SET.
+TEST: Function to compare items: (lambda (item-1 item-2)) -> Boolean.
+HASH-FUNCTION: Function to compute hash codes: (lambda (item)) -> non-negative-fixnum."
   (%make-hash-set test hash-function nil))
 
-(defun hash-set-find (set item)
+(defun hash-set-find (set item &optional default)
+  "Search `SET' for `ITEM'.
+RETURNS: (values ITEM T) if `ITEM' is in `SET', or
+         (values DEFAULT NIL) if `ITEM' is not in `SET'."
   (if-let ((root (hash-set-root set)))
-    (hamt-set-find root item
-                   (funcall (hash-set-%hash-function set) item)
-                   (hash-set-%test set))
-    (values nil nil)))
+    (multiple-value-bind (result present)
+        (hamt-set-find root item
+                       (funcall (hash-set-%hash-function set) item)
+                       (hash-set-%test set))
+      (if present
+          (values result t)
+          (values default nil)))
+    (values default nil)))
 
 (defun hash-set-member-p (set item)
+  "Test if `ITEM' is a member of `SET'
+RETURNS: T if `ITEM' is in `SET', or
+         NIL if `ITEM' is not in `SET'."
   (multiple-value-bind (elt has) (hash-set-find set item)
     (declare (ignore elt))
     has))
 
+(defun hash-set-empty-p (set)
+  "Test if `SET' is empty.
+RETURNS: T if `SET' contains zero items, or
+         NIL `SET' contains some items."
+  (if (hash-set-root set)
+      t
+      nil))
+
 (defun hash-set-insert (set item)
+  "Insert `ITEM' into `SET'."
   (let ((hash-code (funcall (hash-set-%hash-function set) item)))
     (%update-hash-set set
                       (if-let ((root (hash-set-root set)))
@@ -570,6 +592,7 @@ RETURNS: T or NIL"
                         (hamt-set-layer-singleton hash-code item)))))
 
 (defun list-hash-set (list &key (test #'eql) (hash-function #'sxhash))
+  "Construct a hash-set from a list of elements."
   (declare (type function test hash-function))
   (let ((set (%make-hash-set test hash-function nil)))
     (when list
@@ -583,11 +606,31 @@ RETURNS: T or NIL"
     set))
 
 (defun hash-set-list (set)
-  "Return list of elements in `SET' in arbitrary order."
-  (when-let ((root (hash-set-root set)))
-    (hamt-set-fold (lambda (list key) (cons key list))
-                   nil
-                   root)))
+  "Return a list of elements in `SET'."
+  (hamt-set-fold-right #'cons (hash-set-root set) nil))
+
+(defun map-hash-set (result-type function set)
+  "Apply `FUNCTION' to all elements in `SET'.
+RESULT-TYPE: (or nil 'list 'vector)
+FUNCTION: (lambda (element))."
+  (hamt-set-map result-type function
+                (hash-set-root set)))
+
+(defun fold-hash-set (function initial-value set)
+  "Fold `FUNCTION' over every element of `SET'.
+FUNCTION: (lambda (initial-value element)) -> next-initial-value.
+INITIAL-VALUE: value passed as first argument to initial call to `FUNCTION'.
+SET: a hash-set whose elements are past as the second argument in each call to `FUNCTION'."
+  (hamt-set-fold-left function initial-value
+                      (hash-set-root set)))
+
+(defun fold-right-hash-set (function set initial-value)
+  "Fold `FUNCTION' over every element of `SET'.
+FUNCTION: (lambda (element initial-value)) -> next-initial-value.
+SET: a hash-set whose elements are past as the first argument in each call to `FUNCTION'.
+INITIAL-VALUE: value passed as second argument to initial call to `FUNCTION'."
+  (hamt-set-fold-left function initial-value
+                      (hash-set-root set)))
 
 (defmethod print-object ((object hash-set) stream)
   (print-unreadable-object (object stream :type t :identity nil)
