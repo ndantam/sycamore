@@ -261,7 +261,9 @@
 
 (defun silly-hash (object)
   ;; Throw away some bits so we can test for collision handling
-  (logand #xfff (sxhash object)))
+  ;;(logand #xff (sxhash object))
+  (sxhash object)
+  )
 
 (defun hash-set-fuzz-tester (fuzz)
   (let* ((list-1 (remove-duplicates (first fuzz)))
@@ -285,7 +287,32 @@
                                       t
                                       nil))
                     (loop for x in list-1
-                          collect (hash-set-member-p set-2 x))))))
+                          collect (hash-set-member-p set-2 x)))
+
+      ;; Insert tests
+      (fuzz:do-test ('hash-insert :test #'equal)
+                    (set-sort (let ((h (make-hash-table)))
+                                (dolist (x list-1) (setf (gethash x h) t))
+                                (dolist (x list-2) (setf (gethash x h) t))
+                                (hash-table-keys h)))
+                    (set-sort (hash-set-list
+                                      (reduce #'hash-set-insert
+                                              list-2
+                                              :initial-value set-1))))
+
+      ;; remove tests
+      (fuzz:do-test ('hash-remove :test #'equal)
+                    (set-sort (let ((h (make-hash-table)))
+                                (dolist (x list-1) (setf (gethash x h) t))
+                                (dolist (x list-2) (remhash x h))
+                                (hash-table-keys h)))
+                    (set-sort (hash-set-list
+                                      (reduce #'hash-set-remove
+                                              list-2
+                                              :initial-value set-1))))
+
+
+      )))
 
 (defun run-hash-set-tests (&key (count 1))
   (fuzz:run-tests (make-tree-set-fuzz-generator (expt 2 12) (expt 2 12))

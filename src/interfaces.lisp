@@ -581,15 +581,29 @@ RETURNS: T if `SET' contains zero items, or
 
 (defun hash-set-insert (set item)
   "Insert `ITEM' into `SET'."
-  (let ((hash-code (funcall (hash-set-%hash-function set) item)))
+  (let* ((hash-function (hash-set-%hash-function set))
+         (test (hash-set-%test set))
+         (hash-code (funcall hash-function item)))
+    (if-let ((root (hash-set-root set)))
+      ;; Non-empty
+      (%make-hash-set test hash-function
+                      (hamt-set-insert root item
+                                       hash-code
+                                       test))
+      ;; empty, make a singleton
+      (%make-hash-set test hash-function
+                      (hamt-set-layer-singleton hash-code item)))))
+
+(defun hash-set-remove (set item)
+  "Remove `ITEM' from `SET'."
+  (if-let ((root (hash-set-root set)))
+    ;; remove it
     (%update-hash-set set
-                      (if-let ((root (hash-set-root set)))
-                        ;; Insert into root
-                        (hamt-set-insert root item
-                                         hash-code
-                                         (hash-set-%test set))
-                        ;; empty, make a singleton
-                        (hamt-set-layer-singleton hash-code item)))))
+                      (hamt-set-remove root item
+                                       (funcall (hash-set-%hash-function set) item)
+                                       (hash-set-%test set)))
+    ;; Set is empty, just return it
+    set))
 
 (defun list-hash-set (list &key (test #'eql) (hash-function #'sxhash))
   "Construct a hash-set from a list of elements."
