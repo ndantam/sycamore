@@ -38,9 +38,9 @@
 
 ;; (declaim (optimize (speed 3) (safety 0)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Basic Bit Operations ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Basic Bit Operations ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defconstant +hamt-bits+
   ;; Try to keep the bitmap as a fixnum.  Do fixnums have 32 bits we
@@ -143,11 +143,12 @@
 (declaim (inline hamt-layer-open))
 (defun hamt-layer-open (layer index)
   (declare (type fixnum index)
-           (type simple-vector layer))
-  (let ((new-vector (make-array (length layer))))
-    (replace new-vector layer :end2 index)
-    (replace new-vector layer :start1 (1+ index) :start2 (1+ index))
-    new-vector))
+           (type hamt-layer layer))
+  (let ((new-layer (make-array (length layer))))
+    (replace new-layer layer :end2 index)
+    (let ((j (1+ index)))
+      (replace new-layer layer :start1 j :start2 j))
+    new-layer))
 
 (declaim (inline hamt-layer-nupdate))
 (defun hamt-layer-nupdate (layer index thing)
@@ -270,12 +271,22 @@
     (when hamt
       (rec hamt 0))))
 
-(defmacro check-hamt-set (hamt)
-  (let ((x (gensym)))
-    `(let ((,x ,hamt))
-       ;; uncomment for paranoid checks
-       ;; (hamt-set-check ,hamt)
-       ,x)))
+;; Macro to enable debugging checks
+(defmacro check-hamt-debug (form)
+  (declare (ignore form))
+  nil
+  ;; uncomment for debugging checks
+  ;; form
+  )
+
+(defmacro check-hamt-debug-set (hamt)
+  `(check-hamt-debug (hamt-set-check ,hamt)))
+
+(defmacro check-hamt-debug-member (hamt item hash-code test)
+  `(check-hamt-debug (assert (hamt-set-member ,hamt ,item ,hash-code ,test))))
+
+(defmacro check-hamt-debug-not-member (hamt item hash-code test)
+  `(check-hamt-debug (assert (not (hamt-set-member ,hamt ,item ,hash-code ,test)))))
 
 
 (defun hamt-set-find (hamt key hash-code test)
@@ -312,6 +323,12 @@
              (dynamic-extent (function rec)))
     (rec hamt hash-code)))
 
+
+(defun hamt-set-member (hamt key hash-code test)
+  (multiple-value-bind (v p) (hamt-set-find hamt key hash-code test)
+    (declare (ignore v))
+    p))
+
 (defun hamt-set-layer-singleton (hash-code key)
   (hamt-layer-singleton (hamt-set-entry hash-code key)
                         hash-code))
@@ -321,7 +338,8 @@
                           other-subhash other-entry)
   ;; Insert two distinct elements into a new layer
   (declare (simple-vector hamt))
-  (labels ((rec (hamt index subhash hash-code key
+  (labels ((rec (hamt index
+                 subhash hash-code key
                  other-subhash other-entry)
              (let* ((bit (hamt-bit subhash))
                     (other-bit (hamt-bit other-subhash))
@@ -341,13 +359,12 @@
                   (let ((new-hamt (hamt-layer-1 bitmap nil)))
                     (setf (aref hamt index) new-hamt)
                     (rec new-hamt 1
-                         (hamt-subhash subhash)
-                         hash-code key
-                         (hamt-subhash other-subhash)
-                         other-entry)))))))
+                         (hamt-subhash subhash) hash-code key
+                         (hamt-subhash other-subhash) other-entry)))))))
     (declare (dynamic-extent (function rec)))
     (rec hamt index subhash hash-code key
-         other-subhash other-entry)))
+         other-subhash other-entry)
+    hamt))
 
 
 (defun hamt-set-insert (hamt key hash-code test)
@@ -372,41 +389,40 @@
                    ;; No entry, make a new one
                    (new-entry hamt bit index))))
            (found-bucket (hamt index subhash depth bucket)
-             (if (= hash-code (hamt-bucket-hash-code bucket))
-                 ;; hash collision: check / insert into this bucket
-                 (if (member key (hamt-bucket-list bucket) :test test)
-                     hamt
-                     (update hamt index (hamt-bucket hash-code
-                                                     (cons key (hamt-bucket-list bucket)))))
-                 ;; different hashes: create a new layer
-                 (let ((layer (hamt-layer-singleton
-                               bucket
-                               (hamt-subhash-depth (hamt-bucket-hash-code bucket) depth))))
-                   (update hamt index
-                           (rec layer (hamt-subhash subhash) (1+ depth))))))
+             (let ((other-hash-code (hamt-bucket-hash-code bucket)))
+               (if (= hash-code other-hash-code)
+                   ;; hash collision: check / insert into this bucket
+                   (if (member key (hamt-bucket-list bucket) :test test)
+                       hamt
+                       (update hamt index (hamt-bucket hash-code
+                                                       (cons key (hamt-bucket-list bucket)))))
+                   ;; different hashes: create a new layer
+                   (hamt-set-insert-2 (hamt-layer-open hamt index) index
+                                      (hamt-subhash subhash) hash-code key
+                                      (hamt-subhash-depth other-hash-code depth)
+                                      bucket))))
            (found-layer (hamt index hash-code depth layer)
              (let ((new-layer (rec layer (hamt-subhash hash-code) (1+ depth))))
                (if (eq layer new-layer)
                    hamt
                    (update hamt index new-layer))))
            (found-entry (hamt index subhash depth entry)
-             (if (= (hamt-set-entry-hash-code entry)
-                    hash-code)
+             (let ((other-hash-code (hamt-set-entry-hash-code entry))
+                   (other-key (hamt-set-entry-key entry)))
+             (if (= other-hash-code hash-code)
                  ;; matching hash-code
-                 (if (funcall test key (hamt-set-entry-key entry))
+                 (if (funcall test key other-key)
                      ;; already exists, return original hamt
                      hamt
                      ;; hash collision, create a bucket
                      (update hamt index
                              (hamt-bucket hash-code
-                                          (list key (hamt-set-entry-key entry)))) )
+                                          (list key other-key))) )
                  ;; different hash-codes, create a new layer
-                 (let ((layer (hamt-layer-singleton entry
-                                                    (hamt-subhash-depth
-                                                     (hamt-set-entry-hash-code entry)
-                                                     depth))))
-                   (update hamt index
-                           (rec layer (hamt-subhash subhash) (1+ depth))))))
+                 (hamt-set-insert-2 (hamt-layer-open hamt index) index
+                                    (hamt-subhash subhash) hash-code key
+                                    (hamt-subhash-depth other-hash-code depth)
+                                    entry))))
            (update (hamt index thing)
              (hamt-layer-update hamt index thing))
            (new-entry (layer bit index)
@@ -419,7 +435,8 @@
              (dynamic-extent (function update))
              (dynamic-extent (function new-entry)))
     (let ((result (rec hamt hash-code 1)))
-      (check-hamt-set result)
+      (check-hamt-debug-set result)
+      (check-hamt-debug-member result key hash-code test)
       result)))
 
 
@@ -500,7 +517,8 @@
              (dynamic-extent (function found-entry))
              (dynamic-extent (function update)))
     (let ((result (init hamt hash-code) ))
-      (check-hamt-set result)
+      (check-hamt-debug-set result)
+      (check-hamt-debug-member result key hash-code test)
       result)))
 
 (defun hamt-set-remove (hamt key hash-code test)
@@ -567,7 +585,8 @@
                      (hamt-bucket
                       (hamt-layer-singleton result-0
                                             (hamt-bucket-hash-code result-0))))))
-             (check-hamt-set result-1)
+             (check-hamt-debug-set result-1)
+             (check-hamt-debug-not-member result-1 key hash-code test)
              result-1)))))
 
 ;;; Higher-order functions

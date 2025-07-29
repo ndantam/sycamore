@@ -261,8 +261,8 @@
 
 (defun silly-hash (object)
   ;; Throw away some bits so we can test for collision handling
-  ;;(logand #xff (sxhash object))
-  (sxhash object)
+  ;; (sxhash object)
+  (logand #xfff (sxhash object))
   )
 
 (defun hash-set-fuzz-tester (fuzz)
@@ -279,6 +279,20 @@
       (fuzz:do-test ('hash-elements-2 :test #'equal)
         (set-sort list-2)
         (set-sort (hash-set-list set-2)))
+
+
+      (fuzz:do-test ('hash-insert-elements-1 :test #'equal)
+                    (set-sort list-1)
+                    (set-sort
+                     (hash-set-list (reduce #'hash-set-insert list-1
+                                            :initial-value
+                                            (hash-set :hash-function #'silly-hash)))))
+      (fuzz:do-test ('hash-insert-elements-2 :test #'equal)
+                    (set-sort list-2)
+                    (set-sort
+                     (hash-set-list (reduce #'hash-set-insert list-2
+                                            :initial-value
+                                            (hash-set :hash-function #'silly-hash)))))
 
       ;; Member tests
       (fuzz:do-test ('hash-member-1 :test #'equal)
