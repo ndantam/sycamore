@@ -216,6 +216,7 @@
   (time-general (lambda (a) (list-hash-set a))
                 :insert #'hash-set-insert
                 :find #'hash-set-find
+                :union #'hash-set-union
                 :name "SYCAMORE:HAMT"))
 
 (defun time-cl-hamt ()
