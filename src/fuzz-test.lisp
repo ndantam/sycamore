@@ -261,18 +261,20 @@
 
 (defun silly-hash (object)
   ;; Throw away some bits so we can test for collision handling
-  ;; (sxhash object)
+  ;;(sxhash object)
   (logand #xfff (sxhash object))
+  ;;(logand #xf (sxhash object))
   )
 
 (defun hash-set-fuzz-tester (fuzz)
+  (sb-ext:gc :full t)
   (let* ((list-1 (remove-duplicates (first fuzz)))
          (list-2 (remove-duplicates (second fuzz)))
          (set-1 (list-hash-set list-1 :hash-function #'silly-hash))
          (set-2 (list-hash-set list-2 :hash-function #'silly-hash)))
     (labels ((set-sort (x) (sort (copy-list x) #'<)))
 
-      ;; Construct sets
+      ;; Non-consing Construct
       (fuzz:do-test ('hash-elements-1 :test #'equal)
         (set-sort list-1)
         (set-sort (hash-set-list set-1)))
@@ -281,6 +283,7 @@
         (set-sort (hash-set-list set-2)))
 
 
+      ;; Construct
       (fuzz:do-test ('hash-insert-elements-1 :test #'equal)
                     (set-sort list-1)
                     (set-sort
@@ -294,7 +297,7 @@
                                             :initial-value
                                             (hash-set :hash-function #'silly-hash)))))
 
-      ;; Member tests
+      ;; Member
       (fuzz:do-test ('hash-member-1 :test #'equal)
                     (loop for x in list-1
                           collect (if (member x list-2)
@@ -303,7 +306,7 @@
                     (loop for x in list-1
                           collect (hash-set-member-p set-2 x)))
 
-      ;; Insert tests
+      ;; Insert
       (fuzz:do-test ('hash-insert :test #'equal)
                     (set-sort (let ((h (make-hash-table)))
                                 (dolist (x list-1) (setf (gethash x h) t))
@@ -314,7 +317,7 @@
                                               list-2
                                               :initial-value set-1))))
 
-      ;; remove tests
+      ;; Remove
       (fuzz:do-test ('hash-remove :test #'equal)
                     (set-sort (let ((h (make-hash-table)))
                                 (dolist (x list-1) (setf (gethash x h) t))
@@ -325,6 +328,11 @@
                                               list-2
                                               :initial-value set-1))))
 
+      ;; Union
+      (fuzz:do-test ('hash-union :test #'equal)
+                    (set-sort (union list-1 list-2))
+                    (set-sort (hash-set-list
+                               (hash-set-union set-1 set-2))))
 
       )))
 

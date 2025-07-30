@@ -605,6 +605,19 @@ RETURNS: T if `SET' contains zero items, or
     ;; Set is empty, just return it
     set))
 
+(defun hash-set-union (set-1 set-2)
+  "Union of `SET-1' and `SET-2'."
+  (if-let ((root-1 (hash-set-root set-1)))
+    (if-let ((root-2 (hash-set-root set-2)))
+      (let* ((hash-function (hash-set-%hash-function set-1))
+             (test (hash-set-%test set-2)))
+        (%make-hash-set test hash-function
+                        (hamt-set-union root-1 root-2 test)))
+      ;; null root-2
+      set-1)
+    ;; null root-1
+    set-2))
+
 (defun list-hash-set (list &key (test #'eql) (hash-function #'sxhash))
   "Construct a hash-set from a list of elements."
   (declare (type function test hash-function))
