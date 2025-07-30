@@ -249,27 +249,37 @@
       (null 0))))
 
 (defun hamt-set-check (hamt)
-  (labels ((rec (hamt depth)
-             (let ((n (logcount (hamt-layer-bitmap hamt))))
+  (labels ((rec (hamt depth prefix)
+             (let ((n (logcount (hamt-layer-bitmap hamt)))
+                   (i 1)
+                   (bitmap (hamt-layer-bitmap hamt)))
                (assert (= (1+ n) (length hamt)))
-               (loop for i from 1 below (1+ n)
-                     for thing = (aref hamt i)
-                     do (etypecase thing
-                          (hamt-layer thing (1+ depth))
-                          (hamt-set-entry
-                           (f hamt (hamt-set-entry-hash-code thing) depth))
-                          (hamt-bucket
-                           (f hamt (hamt-bucket-hash-code thing) depth))))))
-           (f (hamt hash-code depth)
-             (multiple-value-bind (bit index present)
-                 (hamt-layer-bitop hamt
-                                   (hamt-subhash-depth hash-code depth))
-               (declare (ignore bit)
-                        (ignore index))
-               ;;(format t "~&bit: ~D, index: ~D, present: ~A" bit index present)
-               (assert present))))
+               (dotimes (k +hamt-size+)
+                 (when (logbitp k bitmap)
+                   (let ((thing (aref hamt i))
+                         (pp (logior (ash k (* depth +hamt-bits+))
+                                     prefix)))
+                     (etypecase thing
+                       (hamt-layer
+                        (rec thing (1+ depth) pp))
+                       (hamt-set-entry
+                        (f hamt k (hamt-set-entry-hash-code thing) depth pp))
+                       (hamt-bucket
+                        (f hamt k (hamt-bucket-hash-code thing) depth pp))))
+                   (incf i)))))
+           (f (hamt bit hash-code depth prefix)
+             (let ((subhash (hamt-subhash-depth hash-code depth))
+                   (prehash (ldb (byte (* (1+ depth) +hamt-bits+) 0)
+                                 prefix)))
+               ;; Check prefix
+               (assert (= prehash prefix))
+               ;; Check present
+               (if-hamt-present
+                   (bit-2) (hamt subhash)
+                   (assert (= bit bit-2)) ; ensure hash-code bit match
+                   (assert nil)))))       ; not present, something broke
     (when hamt
-      (rec hamt 0))))
+      (rec hamt 0 0))))
 
 ;; Macro to enable debugging checks
 (defmacro check-hamt-debug (form)
