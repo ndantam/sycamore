@@ -126,7 +126,7 @@
   "Apply FUNCTION to all elements in TREE-MAP.
 ORDER: (or :inorder :preorder :postorder).
 RESULT-TYPE: (or nil 'list).
-FUNCTION: (lambda (key value))."
+FUNCTION: (FUNCTION key value) -> result"
   (declare (type function function))
   (let ((result
          (flet ((helper (pair)
@@ -530,24 +530,109 @@ RETURNS: T or NIL"
 ;; Hash-Set ;;
 ;;;;;;;;;;;;;;
 
-(defstruct (hash-set (:constructor %make-hash-set (%test %hash-function root)))
-  %test
-  %hash-function
+(defstruct (hash-set (:constructor %make-hash-set (%functions root)))
+  (%functions (cons nil nil) :type cons)
   root)
 
+(defmacro %with-hash-set ((hash-function test) hash-set &body body)
+  (with-gensyms (c)
+    `(let ((,c (hash-set-%functions ,hash-set)))
+       (let ((,hash-function (car ,c))
+             (,test (cdr ,c)))
+         ,@body))))
+
+(declaim (inline %set-hash-set))
+(defun %set-hash-set (set root)
+  (%make-hash-set (hash-set-%functions set)
+                  root))
+
+(declaim (inline %update-hash-set))
 (defun %update-hash-set (set root)
   (if (eq (hash-set-root set)
           root)
       set
-      (%make-hash-set (hash-set-%test set)
-                      (hash-set-%hash-function set)
-                      root)))
+      (%set-hash-set set root)))
 
-(defun hash-set (&key (test #'eql) (hash-function #'sxhash))
-  "Create a new HASH-SET.
-TEST: Function to compare items: (lambda (item-1 item-2)) -> Boolean.
-HASH-FUNCTION: Function to compute hash codes: (lambda (item)) -> non-negative-fixnum."
-  (%make-hash-set test hash-function nil))
+
+(defun %hash-function (test)
+  "Attempt to find a hash function for TEST"
+  (cond
+    ;; SXHASH works for EQL, EQUAL, EQ
+    ((or (eq test #'eql)
+         (eq test #'equal)
+         (eq test #'eq))
+     #'sxhash)
+    ;; SXHASH DOES NOT work for EQUALP and =. Use SBCL's PSXHASH when
+    ;; we can.
+    #+sbcl
+    ((or (eq test #'equalp)
+         (eq test #'=))
+     #'sb-impl::psxhash)
+    ;; Other test.  The caller needs to provide a hash function.
+    (t (error (format nil "Unknown :HASH-FUNCTION for :TEST ~A" test)))))
+
+(let ((c-eql (cons (%hash-function #'eql) #'eql))
+      (c-equal (cons (%hash-function #'equal) #'equal))
+      (c-eq (cons (%hash-function #'eq) #'eq))
+      #+sbcl
+      (c-equalp (cons (%hash-function #'equalp) #'equalp))
+      #+sbcl
+      (c-= (cons (%hash-function #'=) #'=)))
+  (defun %hash-set-functions (hash-function test key)
+    (cond
+      (key ; No descriptor sharing with keys.  But caller can create a
+           ; base empty instance to share.
+       (cons (let ((f (or hash-function (%hash-function test))))
+               (lambda (item)
+                 (funcall f
+                          (funcall key item))))
+             (lambda (item-1 item-2)
+               (funcall test
+                        (funcall key item-1)
+                        (funcall key item-2)))))
+      ((null hash-function)
+        (cond ; try to share a function descriptor
+          ((eq test #'eql) c-eql)
+          ((eq test #'equal) c-equal)
+          ((eq test #'eq) c-eq)
+          #+sbcl
+          ((eq test #'equalp) c-equalp)
+          #+sbcl
+          ((eq test #'=) c-=)
+          (t (cons (%hash-function test)
+                   test))))
+      (t ; General
+       (cons hash-function test)))))
+
+
+(defun make-hash-set (&key (test #'eql) hash-function key)
+  "Create and return new HASH-SET.  The keywords are as follows:
+
+  :TEST
+    Function to compare items: (TEST item-1 item-2) -> BOOLEAN.
+
+  :HASH-FUNCTION
+    Function to compute hash codes:
+    (HASH-FUNCTION item) -> non-negative-fixnum.
+    If not provided, MAKE-HASH-SET will try to find a valid function
+    for TEST.
+
+  :KEY
+    If provided, apply `TEST' and `HASH-FUNCTION' to `(FUNCALL KEY
+    ITEM)'.
+
+Note 1: It is required that when (TEST ITEM-1 ITEM-2) is true,
+HASH-FUNCTION will return the same value for both ITEM-1 and ITEM-2.
+
+Note 2: ANSI Common Lisp DOES NOT require #'SXHASH to return the same
+value for two numbers that are #'= but of different types, or for two
+objects that are #'EQUALP, but not #'EQUAL. MAKE-HASH-SET will attempt
+to use implementation-specific hashing functions for those
+tests. However, if either the implementation specific function is not
+known to MAKE-HASH-SET or the caller is using some other TEST, then
+the caller must provide a valid HASH-FUNCTION."
+  (%make-hash-set (%hash-set-functions hash-function test key)
+                  nil))
 
 (defun hash-set-find (set item &optional default)
   "Search `SET' for `ITEM'.
@@ -555,9 +640,10 @@ RETURNS: (values ITEM T) if `ITEM' is in `SET', or
          (values DEFAULT NIL) if `ITEM' is not in `SET'."
   (if-let ((root (hash-set-root set)))
     (multiple-value-bind (result present)
-        (hamt-set-find root item
-                       (funcall (hash-set-%hash-function set) item)
-                       (hash-set-%test set))
+        (%with-hash-set (hash-function test) set
+          (hamt-set-find root item
+                         (funcall hash-function item)
+                         test))
       (if present
           (values result t)
           (values default nil)))
@@ -581,27 +667,27 @@ RETURNS: T if `SET' contains zero items, or
 
 (defun hash-set-insert (set item)
   "Insert `ITEM' into `SET'."
-  (let* ((hash-function (hash-set-%hash-function set))
-         (test (hash-set-%test set))
-         (hash-code (funcall hash-function item)))
-    (if-let ((root (hash-set-root set)))
-      ;; Non-empty
-      (%make-hash-set test hash-function
-                      (hamt-set-insert root item
-                                       hash-code
-                                       test))
-      ;; empty, make a singleton
-      (%make-hash-set test hash-function
-                      (hamt-set-layer-singleton hash-code item)))))
+  (%with-hash-set (hash-function test) set
+    (let ((hash-code (funcall hash-function item)))
+      (if-let ((root (hash-set-root set)))
+        ;; Non-empty
+        (%update-hash-set set
+                          (hamt-set-insert root item
+                                           hash-code
+                                           test))
+        ;; empty, make a singleton
+        (%set-hash-set set
+                       (hamt-set-layer-singleton hash-code item))))))
 
 (defun hash-set-remove (set item)
   "Remove `ITEM' from `SET'."
   (if-let ((root (hash-set-root set)))
     ;; remove it
-    (%update-hash-set set
-                      (hamt-set-remove root item
-                                       (funcall (hash-set-%hash-function set) item)
-                                       (hash-set-%test set)))
+    (%with-hash-set (hash-function test) set
+      (%update-hash-set set
+                        (hamt-set-remove root item
+                                         (funcall hash-function item)
+                                         test)))
     ;; Set is empty, just return it
     set))
 
@@ -609,19 +695,20 @@ RETURNS: T if `SET' contains zero items, or
   "Union of `SET-1' and `SET-2'."
   (if-let ((root-1 (hash-set-root set-1)))
     (if-let ((root-2 (hash-set-root set-2)))
-      (let* ((hash-function (hash-set-%hash-function set-1))
-             (test (hash-set-%test set-2)))
-        (%make-hash-set test hash-function
-                        (hamt-set-union root-1 root-2 test)))
+      (%with-hash-set (hash-function test) set-1
+        (declare (ignore hash-function))
+        (%set-hash-set set-1
+                       (hamt-set-union root-1 root-2 test)))
       ;; null root-2
       set-1)
     ;; null root-1
     set-2))
 
-(defun list-hash-set (list &key (test #'eql) (hash-function #'sxhash))
+(defun list-hash-set (list &key (test #'eql) hash-function key)
   "Construct a hash-set from a list of elements."
   (declare (type function test hash-function))
-  (let ((set (%make-hash-set test hash-function nil)))
+  (let ((set (%make-hash-set (%hash-set-functions hash-function test key)
+                             nil)))
     (when list
       (let ((root (let ((elt (car list)))
                     (hamt-set-layer-singleton (funcall hash-function elt)
