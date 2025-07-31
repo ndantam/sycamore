@@ -70,8 +70,8 @@
   (the hamt-bit (1- (logcount (logxor bitmap (1- bitmap))))))
 
 (declaim (inline hamt-index))
-(defun hamt-index (bitmap bit) (logcount (ldb (byte bit 0)
-                                              (the non-negative-fixnum bitmap))))
+(defun hamt-index (bitmap bit) (1+ (logcount (ldb (byte bit 0)
+                                              (the non-negative-fixnum bitmap)))))
 (declaim (inline hamt-subhash))
 (defun hamt-subhash (hash-code) (ash (the non-negative-fixnum hash-code)
                                      (- +hamt-bits+)))
@@ -145,9 +145,8 @@
          nil)
         ((= n 3)
          ;; Downgrade layers with a single entry/bucket to just the
-         ;; entry/bucket.  But we keep layers with a single sublayer or
-         ;; else we would have to reconstruct the trie based on the
-         ;; altered depth.
+         ;; entry/bucket.  But keep layers with a single sublayer
+         ;; as-is.
          (let ((thing (aref layer (- n index))))
            (etypecase thing
              (hamt-layer
@@ -198,7 +197,7 @@
             (,bit (hamt-bit ,subhash))
             (,bitmap (hamt-layer-bitmap ,layer-var))
             (,present (logbitp ,bit ,bitmap))
-            ,@(when index `((,index (1+ (hamt-index ,bitmap ,bit))))))
+            ,@(when index `((,index (hamt-index ,bitmap ,bit)))))
        (if ,present
            (let* (,@(when thing `((,thing (aref ,layer-var ,index)))))
              ,present-case)
@@ -281,22 +280,21 @@
 (defun hamt-set-check (hamt)
   (labels ((rec (hamt depth prefix)
              (let ((n (logcount (hamt-layer-bitmap hamt)))
-                   (i 1)
+                   (i 0)
                    (bitmap (hamt-layer-bitmap hamt)))
                (assert (= (1+ n) (length hamt)))
-               (dotimes (k +hamt-size+)
-                 (when (logbitp k bitmap)
-                   (let ((thing (aref hamt i))
-                         (pp (logior (ash k (* depth +hamt-bits+))
-                                     prefix)))
-                     (etypecase thing
-                       (hamt-layer
-                        (rec thing (1+ depth) pp))
-                       (hamt-set-entry
-                        (f hamt k thing (hamt-set-entry-hash-code thing) depth pp))
-                       (hamt-bucket
-                        (f hamt k thing (hamt-bucket-hash-code thing) depth pp))))
-                   (incf i)))))
+               (do-hamt-bits (k bitmap)
+                 (let ((thing (aref hamt (incf i)))
+                       (pp (logior (ash k (* depth +hamt-bits+))
+                                   prefix)))
+                   (assert (= i (hamt-index bitmap k)))
+                   (etypecase thing
+                     (hamt-layer
+                      (rec thing (1+ depth) pp))
+                     (hamt-set-entry
+                      (f hamt k thing (hamt-set-entry-hash-code thing) depth pp))
+                     (hamt-bucket
+                      (f hamt k thing (hamt-bucket-hash-code thing) depth pp)))))))
            (f (hamt bit thing hash-code depth prefix)
              (let ((subhash (hamt-subhash-depth hash-code depth))
                    (prehash (ldb (byte (* (1+ depth) +hamt-bits+) 0)
@@ -305,10 +303,22 @@
                (assert (= prehash prefix))
                ;; Check present
                (if-hamt-present
-                   (bit-2) (hamt subhash)
-                   (assert (= bit bit-2)) ; ensure hash-code bit match
+                   (bit-2 index thing-2) (hamt subhash)
+                   (progn
+                     (unless (and (= bit bit-2)
+                                  (eq thing thing-2))
+                       (break))
+                     (assert (= bit bit-2)) ; ensure hash-code bit match
+                     (assert (eq thing thing-2)))
                    (progn ; not present, something broke
                      (format *error-output* "~&Failed not-present: ~A" thing)
+                     (format *error-output* "~&layer: ~A" hamt)
+                     (format *error-output* "~&depth: ~D" depth)
+                     (format *error-output* "~&bitmap: #b~b" (hamt-layer-bitmap hamt))
+                     (format *error-output* "~&bit: ~D" bit)
+                     (format *error-output* "~&bit-2: ~D" bit-2)
+                     (format *error-output* "~&index: ~D" index)
+                     (break)
                      (assert (and 'not-present nil)))))))
     (when hamt
       (rec hamt 0 0))))
@@ -810,10 +820,124 @@
                              (function f-b-b)
                              (function f-b-e)))
     (let ((result (f-l-l set-1 set-2 0)))
-      ;; (hamt-set-check result)
+      ;; (hamt-set-check result) ; debugging check
       (check-hamt-debug-set result)
       result)))
 
+
+(defun hamt-set-intersection (set-1 set-2 test)
+  (declare (type hamt-layer set-1 set-2)
+           (type function test))
+  (labels ((rec (t1 t2 depth)
+             (etypecase t1
+               (hamt-layer (etypecase t2
+                             (hamt-layer (f-l-l t1 t2 depth))
+                             (hamt-set-entry (f-l-e t1 t2 depth))
+                             (hamt-bucket (f-l-b t1 t2 depth))))
+               (hamt-set-entry (etypecase t2
+                                 (hamt-layer (f-l-e t2 t1 depth))
+                                 (hamt-set-entry (f-e-e t1 t2))
+                                 (hamt-bucket (f-b-e t2 t1))))
+               (hamt-bucket (etypecase t2
+                              (hamt-layer (f-l-b t2 t1 depth))
+                              (hamt-set-entry (f-b-e t1 t2))
+                              (hamt-bucket (f-b-b t1 t2))))))
+           (f-l-l (l1 l2 depth)
+             (declare (type (hamt-layer) l1 l2)
+                      (type (hamt-depth) depth))
+             (let* ((b1 (hamt-layer-bitmap l1))
+                    (b2 (hamt-layer-bitmap l2))
+                    (bb (logand b1 b2))
+                    (temp (make-array (1+ (logcount bb)))))
+               (declare (dynamic-extent temp))
+               ;; Find children
+               (do-hamt-bits (k bb)
+                 (if-let ((child (rec (aref l1 (hamt-index b1 k))
+                                      (aref l2 (hamt-index b2 k))
+                                      (1+ depth))))
+                   (setf (aref temp (hamt-index bb k)) child)
+                   (setq bb (logandc2 bb (ash 1 k)))))
+               ;; Fill in new array
+               (let ((j (logcount bb)))
+                 (cond ((> j 1)
+                        (f-l-finish temp bb j))
+                       ((= j 1)
+                        ;; Try to downgrade singleton layers to entries
+                        ;; or buckets.  However, if the singleton layer
+                        ;; contains a sublayer, keep the layer as-is.
+                        (let ((thing (aref temp 1)))
+                          (etypecase thing
+                            (hamt-layer (f-l-finish temp bb j))
+                            (hamt-set-entry thing)
+                            (hamt-bucket thing))))
+                       (t nil)))))
+           (f-l-finish (temp bb j)
+             (let ((result (subseq temp 0 (1+ j))))
+               (setf (aref result 0) bb)
+               result))
+           (f-l-e (layer entry depth)
+             (declare (type hamt-layer layer)
+                      (type hamt-set-entry entry)
+                      (type hamt-depth depth))
+             (if-hamt-present
+                 (bit index other) (layer (hamt-subhash-depth
+                                           (hamt-set-entry-hash-code entry)
+                                           depth))
+                 (etypecase other
+                   (hamt-layer (f-l-e other entry (1+ depth)))
+                   (hamt-set-entry (f-e-e other entry))
+                   (hamt-bucket (f-b-e other entry)))
+                 nil))
+           (f-l-b (layer bucket depth)
+             (declare (type hamt-layer layer)
+                      (type hamt-bucket bucket))
+             (if-hamt-present
+                 (bit index other) (layer (hamt-subhash-depth
+                                           (hamt-bucket-hash-code bucket)
+                                           depth))
+                 (etypecase other
+                   (hamt-layer (f-l-b other bucket (1+ depth)))
+                   (hamt-set-entry (f-b-e bucket other))
+                   (hamt-bucket (f-b-b other bucket)))
+                 nil))
+           (f-e-e (e1 e2)
+             (declare (type (hamt-set-entry) e1 e2))
+             (when (and (= (hamt-set-entry-hash-code e1)
+                           (hamt-set-entry-hash-code e2))
+                        (funcall test
+                                 (hamt-set-entry-key e1)
+                                 (hamt-set-entry-key e2)))
+               e1))
+           (f-b-b (b1 b2)
+             (declare (type hamt-bucket b1 b2))
+             (let ((h1 (hamt-bucket-hash-code b1)))
+               (when (= h1 (hamt-bucket-hash-code b2))
+                 (when-let ((list (intersection (hamt-bucket-list b1)
+                                                (hamt-bucket-list b2)
+                                                :test test)))
+                   (if (null (cdr list))
+                       (hamt-set-entry h1 (car list))
+                       (hamt-bucket h1 list))))))
+           (f-b-e (bucket entry)
+             (declare (type hamt-bucket bucket)
+                      (type hamt-set-entry entry))
+             (when (and (= (hamt-bucket-hash-code bucket)
+                           (hamt-set-entry-hash-code entry))
+                        (member (hamt-set-entry-key entry)
+                                (hamt-bucket-list bucket)
+                                :test test))
+               entry)))
+    (let ((result (f-l-l set-1 set-2 0)))
+      (etypecase result
+        (hamt-layer
+         ;; (hamt-set-check result) ; debugging check
+         (check-hamt-debug-set result)
+         result)
+        (hamt-set-entry (hamt-layer-singleton result
+                                              (hamt-set-entry-hash-code result)))
+        (hamt-bucket (hamt-layer-singleton result
+                                           (hamt-bucket-hash-code result)))
+        (null nil)))))
 
 
 ;;; Higher-order functions

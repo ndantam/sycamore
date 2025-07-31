@@ -261,8 +261,8 @@
 
 (defun silly-hash (object)
   ;; Throw away some bits so we can test for collision handling
-  ;;(sxhash object)
-  (logand #xfff (sxhash object))
+  (sxhash object)
+  ;;(logand #xfff (sxhash object))
   ;;(logand #xf (sxhash object))
   )
 
@@ -282,6 +282,8 @@
         (set-sort list-2)
         (set-sort (hash-set-list set-2)))
 
+       (hamt-set-check (hash-set-root set-1))
+       (hamt-set-check (hash-set-root set-2))
 
       ;; Construct
       (fuzz:do-test ('hash-insert-elements-1 :test #'equal)
@@ -333,6 +335,11 @@
                     (set-sort (union list-1 list-2))
                     (set-sort (hash-set-list
                                (hash-set-union set-1 set-2))))
+      ;; Intersection
+      (fuzz:do-test ('hash-intersection :test #'equal)
+                    (set-sort (intersection list-1 list-2))
+                    (set-sort (hash-set-list
+                               (hash-set-intersection set-1 set-2))))
 
       )))
 

@@ -631,6 +631,8 @@ to use implementation-specific hashing functions for those
 tests. However, if either the implementation specific function is not
 known to MAKE-HASH-SET or the caller is using some other TEST, then
 the caller must provide a valid HASH-FUNCTION."
+  (declare (type function test)
+           (type (or function null) hash-function key))
   (%make-hash-set (%hash-set-functions hash-function test key)
                   nil))
 
@@ -704,19 +706,34 @@ RETURNS: T if `SET' contains zero items, or
     ;; null root-1
     set-2))
 
+(defun hash-set-intersection (set-1 set-2)
+  "Intersection of `SET-1' and `SET-2'."
+  (if-let ((root-1 (hash-set-root set-1)))
+    (if-let ((root-2 (hash-set-root set-2)))
+      (%with-hash-set (hash-function test) set-1
+        (declare (ignore hash-function))
+        (%set-hash-set set-1
+                       (hamt-set-intersection root-1 root-2 test)))
+      ;; null root-2
+      set-2)
+    ;; null root-1
+    set-1))
+
 (defun list-hash-set (list &key (test #'eql) hash-function key)
   "Construct a hash-set from a list of elements."
-  (declare (type function test hash-function))
+  (declare (type function test)
+           (type (or function null) hash-function key))
   (let ((set (%make-hash-set (%hash-set-functions hash-function test key)
                              nil)))
-    (when list
-      (let ((root (let ((elt (car list)))
-                    (hamt-set-layer-singleton (funcall hash-function elt)
-                                              elt))))
-        (dolist (elt (cdr list))
-          (setq root (hamt-set-ninsert root elt
-                                       (funcall hash-function elt) test)))
-        (setf (hash-set-root set) root)))
+    (%with-hash-set (hash-function test) set
+      (when list
+        (let ((root (let ((elt (car list)))
+                      (hamt-set-layer-singleton (funcall hash-function elt)
+                                                elt))))
+          (dolist (elt (cdr list))
+            (setq root (hamt-set-ninsert root elt
+                                         (funcall hash-function elt) test)))
+          (setf (hash-set-root set) root))))
     set))
 
 (defun hash-set-list (set)
