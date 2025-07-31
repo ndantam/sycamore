@@ -289,13 +289,13 @@
                     (set-sort
                      (hash-set-list (reduce #'hash-set-insert list-1
                                             :initial-value
-                                            (hash-set :hash-function #'silly-hash)))))
+                                            (make-hash-set :hash-function #'silly-hash)))))
       (fuzz:do-test ('hash-insert-elements-2 :test #'equal)
                     (set-sort list-2)
                     (set-sort
                      (hash-set-list (reduce #'hash-set-insert list-2
                                             :initial-value
-                                            (hash-set :hash-function #'silly-hash)))))
+                                            (make-hash-set :hash-function #'silly-hash)))))
 
       ;; Member
       (fuzz:do-test ('hash-member-1 :test #'equal)
