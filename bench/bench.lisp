@@ -218,6 +218,7 @@
                 :find #'hash-set-find
                 :union #'hash-set-union
                 :intersection #'hash-set-intersection
+                :intersectionp #'hash-set-intersection-p
                 :name "SYCAMORE:HAMT"))
 
 (defun time-cl-hamt ()

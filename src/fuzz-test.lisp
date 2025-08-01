@@ -341,6 +341,12 @@
                     (set-sort (hash-set-list
                                (hash-set-intersection set-1 set-2))))
 
+
+      ;; intersection-p
+      (fuzz:test-eq 'hash-intersection-p
+                    (lambda () (if (intersection list-1 list-2) t nil))
+                    (lambda () (hash-set-intersection-p set-1 set-2)))
+
       )))
 
 (defun run-hash-set-tests (&key (count 1))
