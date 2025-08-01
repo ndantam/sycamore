@@ -939,6 +939,93 @@
                                            (hamt-bucket-hash-code result)))
         (null nil)))))
 
+(defun hamt-set-intersection-p (set-1 set-2 test)
+  (declare (type hamt-layer set-1 set-2)
+           (type function test))
+  (labels ((rec (t1 t2 depth)
+             (etypecase t1
+               (hamt-layer (etypecase t2
+                             (hamt-layer (f-l-l t1 t2 depth))
+                             (hamt-set-entry (f-l-e t1 t2 depth))
+                             (hamt-bucket (f-l-b t1 t2 depth))))
+               (hamt-set-entry (etypecase t2
+                                 (hamt-layer (f-l-e t2 t1 depth))
+                                 (hamt-set-entry (f-e-e t1 t2))
+                                 (hamt-bucket (f-b-e t2 t1))))
+               (hamt-bucket (etypecase t2
+                              (hamt-layer (f-l-b t2 t1 depth))
+                              (hamt-set-entry (f-b-e t1 t2))
+                              (hamt-bucket (f-b-b t1 t2))))))
+           (f-l-l-bit (b1 b2 bb l1 l2 depth)
+             (declare (type simple-vector l1 l2)
+                      (type hamt-depth depth))
+             (unless (zerop bb)
+               (let ((bit (hamt-bitmap-least bb)))
+                 (or (and (logbitp bit bb)
+                          (rec (aref l1 (hamt-index b1 bit))
+                               (aref l2 (hamt-index b2 bit))
+                               (1+ depth)))
+                     (f-l-l-bit b1 b2
+                                (logandc2 bb (ash 1 bit))
+                                l1 l2 depth)))))
+           (f-l-l (l1 l2 depth)
+             (declare (type (hamt-layer) l1 l2)
+                      (type (hamt-depth) depth))
+             (let ((b1 (hamt-layer-bitmap l1))
+                   (b2 (hamt-layer-bitmap l2)))
+               (f-l-l-bit b1 b2 (logand b1 b2) l1 l2 depth)))
+           (f-l-e (layer entry depth)
+             (declare (type hamt-layer layer)
+                      (type hamt-set-entry entry)
+                      (type hamt-depth depth))
+             (if-hamt-present
+                 (bit index other) (layer (hamt-subhash-depth
+                                           (hamt-set-entry-hash-code entry)
+                                           depth))
+                 (etypecase other
+                   (hamt-layer (f-l-e other entry (1+ depth)))
+                   (hamt-set-entry (f-e-e other entry))
+                   (hamt-bucket (f-b-e other entry)))
+                 nil))
+           (f-l-b (layer bucket depth)
+             (declare (type hamt-layer layer)
+                      (type hamt-bucket bucket))
+             (if-hamt-present
+                 (bit index other) (layer (hamt-subhash-depth
+                                           (hamt-bucket-hash-code bucket)
+                                           depth))
+                 (etypecase other
+                   (hamt-layer
+                    (f-l-b other bucket (1+ depth)))
+                   (hamt-set-entry
+                    (f-b-e bucket other))
+                   (hamt-bucket
+                    (f-b-b other bucket)))
+                 nil))
+           (f-e-e (e1 e2)
+             (declare (type (hamt-set-entry) e1 e2))
+             (and (= (hamt-set-entry-hash-code e1)
+                     (hamt-set-entry-hash-code e2))
+                  (funcall test
+                           (hamt-set-entry-key e1)
+                           (hamt-set-entry-key e2))))
+           (f-b-b (b1 b2)
+             (declare (type hamt-bucket b1 b2))
+             (and (= (hamt-bucket-hash-code b1)
+                     (hamt-bucket-hash-code b2))
+                  (intersection (hamt-bucket-list b1)
+                                (hamt-bucket-list b2)
+                                :test test)))
+           (f-b-e (bucket entry)
+             (declare (type hamt-bucket bucket)
+                      (type hamt-set-entry entry))
+             (and (= (hamt-bucket-hash-code bucket)
+                     (hamt-set-entry-hash-code entry))
+                  (member (hamt-set-entry-key entry)
+                          (hamt-bucket-list bucket)
+                          :test test))))
+    (when (f-l-l set-1 set-2 0)
+      t)))
 
 ;;; Higher-order functions
 

@@ -719,6 +719,20 @@ RETURNS: T if `SET' contains zero items, or
     ;; null root-1
     set-1))
 
+(defun hash-set-intersection-p (set-1 set-2)
+  "Do `SET-1' and `SET-2' intersect?"
+  (let ((root-1 (hash-set-root set-1))
+        (root-2 (hash-set-root set-2)))
+    (if root-1
+        (if root-2
+            (%with-hash-set (hash-function test) set-1
+              (declare (ignore hash-function))
+              (hamt-set-intersection-p root-1 root-2 test))
+            nil)
+        (if root-2
+            nil
+            t))))
+
 (defun list-hash-set (list &key (test #'eql) hash-function key)
   "Construct a hash-set from a list of elements."
   (declare (type function test)
