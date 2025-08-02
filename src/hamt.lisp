@@ -59,28 +59,34 @@
 (deftype hamt-index () `(unsigned-byte ,(1+ +hamt-bits+)))
 (deftype hamt-hash-code () `non-negative-fixnum)
 
+(declaim (inline hamt-popcount))
+(defun hamt-popcount (n)
+  (declare (optimize (speed 3) (safety 0))
+           (type hamt-bitmap n))
+  (the non-negative-fixnum (%bit-popcnt n)))
+
+(declaim (inline hamt-bitmap-least))
+(defun hamt-bitmap-least (bitmap)
+  (declare (optimize (speed 3) (safety 0))
+           (type fixnum bitmap))
+  (the hamt-bit (%bit-ctz bitmap)))
+
 (declaim (inline hamt-bit))
 (defun hamt-bit (hash-code)
   (declare (optimize (speed 3) (safety 0))
            (type hamt-hash-code hash-code))
   (the hamt-bit (ldb (byte +hamt-bits+ 0) hash-code)))
 
-(declaim (inline hamt-bitmap-least))
-(defun hamt-bitmap-least (bitmap)
-  (declare (optimize (speed 3) (safety 0))
-           (type hamt-bitmap bitmap))
-  ;; Simulate BSF/CTZ.  Takes a few more instructions, but testing
-  ;; vs. an SBCL VOP for BSF didn't show much difference.  Let's keep
-  ;; it simple and portable.
-  (the hamt-bit (1- (logcount (logxor bitmap (1- bitmap))))))
-
 (declaim (inline hamt-index))
 (defun hamt-index (bitmap bit)
   (declare (optimize (speed 3) (safety 0))
            (type hamt-bitmap bitmap)
            (type hamt-bit bit))
-  (1+ (logcount (ldb (byte bit 0)
-                     bitmap))))
+  (let (;; (b (logandc2 bitmap (ash -1 bit)))
+        ;; (b (logand bitmap (1- (ash 1 bit))))
+        (b (ldb (byte bit 0) bitmap))
+        )
+    (1+ (hamt-popcount b))))
 
 (declaim (inline hamt-subhash))
 (defun hamt-subhash (hash-code)
@@ -88,14 +94,22 @@
            (type hamt-hash-code hash-code))
   (ash hash-code (- +hamt-bits+)))
 
+(defmacro %hamt-subhash-depth (hash-code depth)
+  (case +hamt-bits+
+    (5 ` (ash (ash ,hash-code
+                   (- (ash ,depth 2)))
+              (- ,depth)))
+    (4 `(ash ,hash-code (- (ash ,depth 2))))
+    (otherwise `(ash ,hash-code (the fixnum (* ,depth (- +hamt-bits+)))))))
+
 (declaim (inline hamt-subhash-depth))
 (defun hamt-subhash-depth (hash-code depth)
   (declare (optimize (speed 3) (safety 0))
            (type hamt-hash-code hash-code)
            (type hamt-depth depth))
   (the hamt-hash-code
-       (ash hash-code
-            (the fixnum (- (* depth +hamt-bits+))))))
+       (%hamt-subhash-depth hash-code depth)))
+
 
 ;;;;;;;;;;;;;
 ;;; Types ;;;
@@ -136,7 +150,6 @@
     (let ((j (1+ index)))
       (replace new-layer layer :start1 j :start2 j))
     new-layer))
-
 
 (declaim (inline hamt-layer-test-update))
 (defun hamt-layer-test-update (layer index old-thing new-thing)
@@ -227,7 +240,7 @@
 (defmacro do-hamt-bits ((var bitmap &optional result) &body body)
   (with-gensyms (bitmap-var)
     `(do ((,bitmap-var ,bitmap))
-         ((= ,bitmap-var 0) ,result)
+         ((zerop ,bitmap-var) ,result)
        (let ((,var (hamt-bitmap-least ,bitmap-var)))
          (progn ,@body)
          (setq ,bitmap-var (logandc2 ,bitmap-var (ash 1,var)))))))
@@ -299,7 +312,7 @@
 (defun hamt-set-check (hamt)
   (labels ((rec (hamt depth prefix)
              (declare (type hamt-depth depth))
-             (let ((n (logcount (hamt-layer-bitmap hamt)))
+             (let ((n (hamt-popcount (hamt-layer-bitmap hamt)))
                    (i 0)
                    (bitmap (hamt-layer-bitmap hamt)))
                (assert (= (1+ n) (length hamt)))
@@ -709,7 +722,7 @@
              (let* ((b1 (hamt-layer-bitmap l1))
                     (b2 (hamt-layer-bitmap l2))
                     (bb (logior b1 b2))
-                    (ll (make-array (1+ (logcount bb)))))
+                    (ll (make-array (1+ (hamt-popcount bb)))))
                (setf (aref ll 0) bb)
                ;; Entries in both
                (do-hamt-bits (k (logand b1 b2))
@@ -870,7 +883,7 @@
              (let* ((b1 (hamt-layer-bitmap l1))
                     (b2 (hamt-layer-bitmap l2))
                     (bb (logand b1 b2))
-                    (temp (make-array (1+ (logcount bb)))))
+                    (temp (make-array (1+ (hamt-popcount bb)))))
                (declare (dynamic-extent temp))
                ;; Find children
                (do-hamt-bits (k bb)
@@ -880,7 +893,7 @@
                    (setf (aref temp (hamt-index bb k)) child)
                    (setq bb (logandc2 bb (ash 1 k)))))
                ;; Fill in new array
-               (let ((j (logcount bb)))
+               (let ((j (hamt-popcount bb)))
                  (cond ((> j 1)
                         (f-l-finish temp bb j))
                        ((= j 1)
