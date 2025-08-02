@@ -39,7 +39,7 @@
 
 (asdf:defsystem sycamore
   :version "0.0.20120604"
-  :description "A fast, purely functional data structure library"
+  :description "Fast, purely functional data structures"
   :depends-on (:cl-ppcre :alexandria)
   :license :bsd-3
   :homepage "http://ndantam.github.io/sycamore"
@@ -53,12 +53,21 @@
                (:file "array" :depends-on ("util"))
                (:file "binary" :depends-on ("util" "array"))
                (:file "wb-tree" :depends-on ("binary" "array"))
-               (:file "hamt" :depends-on ("array"))
+
+               (:module bits
+                :depends-on ("package")
+                :components
+                ((:file "bits-generic")
+                 #+(and sbcl x86-64)
+                 (:file "bits-sbcl-x86-64")))
+
+               (:file "hamt" :depends-on ("array" bits))
                ;;(:file "ttree" :depends-on ("avl"))
                (:file "interfaces" :depends-on ("wb-tree" "hamt"))
                (:file "rope" :depends-on ("util"))
                (:file "cgen" :depends-on ("rope")))
   :long-description
-  "Sycamore is a purely functional data structure library in Common
-Lisp.  It include fast, weight-balanced binary trees, set and
-map (dictionary) interfaces, pairing heaps, and amortized queues."  )
+  "Sycamore is a fast, purely functional data structure library in
+Common Lisp.  It include hash array mapped tries, weight-balanced
+binary trees, set and map (dictionary) interfaces, pairing heaps, and
+amortized queues."  )
