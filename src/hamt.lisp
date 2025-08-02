@@ -1062,6 +1062,110 @@
     (when (f-l-l set-1 set-2 0)
       t)))
 
+(defun hamt-set-subset-p (set-1 set-2 test)
+  (declare (type hamt-layer set-1 set-2)
+           (type function test))
+  (labels ((rec (t1 t2 depth)
+             (etypecase t1
+               (hamt-layer (etypecase t2
+                             (hamt-layer (f-l-l t1 t2 depth))
+                             (hamt-set-entry (f-l-x t1 t2 depth))
+                             (hamt-bucket (f-l-x t1 t2 depth))))
+               (hamt-set-entry (etypecase t2
+                                 (hamt-layer (f-e-l t1 t2 depth))
+                                 (hamt-set-entry (f-e-e t1 t2))
+                                 (hamt-bucket (f-e-b t1 t2))))
+               (hamt-bucket (etypecase t2
+                              (hamt-layer (f-b-l t1 t2 depth))
+                              (hamt-set-entry (f-b-e t1 t2))
+                              (hamt-bucket (f-b-b t1 t2))))))
+           (f-l-l-bit (b1 b2 bb l1 l2 depth)
+             (declare (type simple-vector l1 l2)
+                      (type hamt-depth depth))
+             (if (zerop bb)
+                 t
+                 (let ((bit (hamt-bitmap-least bb)))
+                   (and (logbitp bit b2)
+                        (rec (aref l1 (hamt-index b1 bit))
+                             (aref l2 (hamt-index b2 bit))
+                             (1+ depth))
+                        (f-l-l-bit b1 b2
+                                   (logandc2 bb (ash 1 bit))
+                                   l1 l2 depth)))))
+           (f-l-l (l1 l2 depth)
+             (declare (type (hamt-layer) l1 l2)
+                      (type (hamt-depth) depth))
+             (let ((b1 (hamt-layer-bitmap l1))
+                   (b2 (hamt-layer-bitmap l2)))
+               (when (zerop (logandc2 b1 b2)) ; does b1 have bits unset in b2?
+                 (f-l-l-bit b1 b2 b1 l1 l2 depth))))
+           (f-e-l (entry layer depth)
+             (declare (type hamt-layer layer)
+                      (type hamt-set-entry entry)
+                      (type hamt-depth depth))
+             (if-hamt-present
+                 (bit index other) (layer (hamt-subhash-depth
+                                           (hamt-set-entry-hash-code entry)
+                                           depth))
+                 (etypecase other
+                   (hamt-layer (f-e-l entry other (1+ depth)))
+                   (hamt-set-entry (f-e-e entry other))
+                   (hamt-bucket (f-e-b entry other)))
+                 nil))
+           (f-l-x (layer thing depth)
+             (declare (type hamt-layer layer))
+             (case (length layer)
+               ;; somehow empty layer
+               (1 t)
+               ;; singleton layer, recurse for paranoid check
+               (2 (rec (aref layer 1) thing (1+ depth)))
+               ;; layer with two hash-codes cannot be subset of single hash-code thing
+               (otherwise nil)))
+           (f-b-l (bucket layer depth)
+             (declare (type hamt-layer layer)
+                      (type hamt-bucket bucket))
+             (if-hamt-present
+                 (bit index other) (layer (hamt-subhash-depth
+                                           (hamt-bucket-hash-code bucket)
+                                           depth))
+                 (etypecase other
+                   (hamt-layer (f-b-l bucket other (1+ depth)))
+                   (hamt-set-entry (f-b-e bucket other))
+                   (hamt-bucket (f-b-b bucket other)))
+                 nil))
+           (f-e-e (e1 e2)
+             (declare (type (hamt-set-entry) e1 e2))
+             (and (= (hamt-set-entry-hash-code e1)
+                     (hamt-set-entry-hash-code e2))
+                  (funcall test
+                           (hamt-set-entry-key e1)
+                           (hamt-set-entry-key e2))))
+           (f-b-b (b1 b2)
+             (declare (type hamt-bucket b1 b2))
+             (and (= (hamt-bucket-hash-code b1)
+                     (hamt-bucket-hash-code b2))
+                  (subsetp (hamt-bucket-list b1)
+                           (hamt-bucket-list b2)
+                           :test test)))
+           (f-e-b (entry bucket)
+             (declare (type hamt-set-entry entry)
+                      (type hamt-bucket bucket))
+             (and (= (hamt-bucket-hash-code bucket)
+                     (hamt-set-entry-hash-code entry))
+                  (member (hamt-set-entry-key entry)
+                          (hamt-bucket-list bucket)
+                          :test test)))
+           (f-b-e (bucket entry)
+             ;; Paranoid check for empty and singleton buckets
+             (let ((list (hamt-bucket-list bucket)))
+               (or (null list)
+                   (and (= (hamt-bucket-hash-code bucket)
+                           (hamt-set-entry-hash-code entry))
+                        (null (cdr list))
+                        (funcall test (car list) entry))))))
+    (when (f-l-l set-1 set-2 0)
+      t)))
+
 ;;; Higher-order functions
 
 (declaim (inline %hamt-set-map-nil))

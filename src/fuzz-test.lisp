@@ -347,6 +347,11 @@
                     (lambda () (if (intersection list-1 list-2) t nil))
                     (lambda () (hash-set-intersection-p set-1 set-2)))
 
+      ;; subset-p
+      (fuzz:test-eq 'hash-subset-p
+                    (lambda () (if (subsetp list-1 list-2) t nil))
+                    (lambda () (hash-set-subset-p set-1 set-2)))
+
       )))
 
 (defun run-hash-set-tests (&key (count 1))

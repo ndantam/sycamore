@@ -733,6 +733,17 @@ RETURNS: T if `SET' contains zero items, or
             nil
             t))))
 
+(defun hash-set-subset-p (set-1 set-2)
+  "Is `SET-1' a subset of `SET-2'?
+RETURNS: T or NIL"
+  (if-let ((root-1 (hash-set-root set-1)))
+    (if-let ((root-2 (hash-set-root set-2)))
+      (%with-hash-set (hash-function test) set-1
+        (declare (ignore hash-function))
+        (hamt-set-subset-p root-1 root-2 test))
+      nil)
+    t))
+
 (defun list-hash-set (list &key (test #'eql) hash-function key)
   "Construct a hash-set from a list of elements."
   (declare (type function test)
