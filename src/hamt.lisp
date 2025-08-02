@@ -50,37 +50,50 @@
       4))
 (defconstant +hamt-size+ (expt 2 +hamt-bits+))
 (defconstant +hamt-mask+ (1- +hamt-size+))
-(deftype hamt-bitmap ()
-  `(unsigned-byte ,(expt 2 +hamt-bits+)))
-
 (defconstant +hamt-maxdepth+ (1+ (ceiling (/ (integer-length most-positive-fixnum)
                                              +hamt-bits+))))
 
-(deftype hamt-depth ()
-  `(unsigned-byte ,(integer-length +hamt-maxdepth+)))
-
-(deftype hamt-bit ()
-  `(unsigned-byte ,+hamt-bits+))
+(deftype hamt-bitmap () `(unsigned-byte ,(expt 2 +hamt-bits+)))
+(deftype hamt-depth () `(unsigned-byte ,(integer-length +hamt-maxdepth+)))
+(deftype hamt-bit () `(unsigned-byte ,+hamt-bits+))
+(deftype hamt-index () `(unsigned-byte ,(1+ +hamt-bits+)))
+(deftype hamt-hash-code () `non-negative-fixnum)
 
 (declaim (inline hamt-bit))
-(defun hamt-bit (hash-code) (the hamt-bit (ldb (byte +hamt-bits+ 0) hash-code)))
+(defun hamt-bit (hash-code)
+  (declare (optimize (speed 3) (safety 0))
+           (type hamt-hash-code hash-code))
+  (the hamt-bit (ldb (byte +hamt-bits+ 0) hash-code)))
 
 (declaim (inline hamt-bitmap-least))
 (defun hamt-bitmap-least (bitmap)
+  (declare (optimize (speed 3) (safety 0))
+           (type hamt-bitmap bitmap))
+  ;; Simulate BSF/CTZ.  Takes a few more instructions, but testing
+  ;; vs. an SBCL VOP for BSF didn't show much difference.  Let's keep
+  ;; it simple and portable.
   (the hamt-bit (1- (logcount (logxor bitmap (1- bitmap))))))
 
 (declaim (inline hamt-index))
-(defun hamt-index (bitmap bit) (1+ (logcount (ldb (byte bit 0)
-                                              (the non-negative-fixnum bitmap)))))
+(defun hamt-index (bitmap bit)
+  (declare (optimize (speed 3) (safety 0))
+           (type hamt-bitmap bitmap)
+           (type hamt-bit bit))
+  (1+ (logcount (ldb (byte bit 0)
+                     bitmap))))
+
 (declaim (inline hamt-subhash))
-(defun hamt-subhash (hash-code) (ash (the non-negative-fixnum hash-code)
-                                     (- +hamt-bits+)))
+(defun hamt-subhash (hash-code)
+  (declare (optimize (speed 3) (safety 0))
+           (type hamt-hash-code hash-code))
+  (ash hash-code (- +hamt-bits+)))
 
 (declaim (inline hamt-subhash-depth))
 (defun hamt-subhash-depth (hash-code depth)
   (declare (optimize (speed 3) (safety 0))
-           (type fixnum hash-code depth))
-  (the non-negative-fixnum
+           (type hamt-hash-code hash-code)
+           (type hamt-depth depth))
+  (the hamt-hash-code
        (ash hash-code
             (the fixnum (- (* depth +hamt-bits+))))))
 
@@ -91,7 +104,15 @@
 ;;; Layers
 ;;;
 ;;; Represent layers with simple vectors to avoid indirection of a
-;;; separate table.
+;;; separate table.  The first element is the bitmap.  Succesive
+;;; elements are the layer's children.
+;;;
+;;; Entry hashes and keys are stored in cons cells or structs
+;;; referenced from the layer array.  Storing outside the layer means
+;;; the layer itself needs only one pointer for each child.  We pay
+;;; once for the indirection when we reach the leaf, but we save on
+;;; reallocation per-layer compared to storing both hashes and keys in
+;;; the layer array.
 
 (deftype hamt-layer () 'simple-vector)
 
@@ -107,7 +128,7 @@
 
 (declaim (inline hamt-layer-update))
 (defun hamt-layer-update (layer index thing)
-  (declare (type fixnum index)
+  (declare (type hamt-index index)
            (type hamt-layer layer))
   (let ((new-layer (make-array (length layer))))
     (replace new-layer layer :end2 index)
@@ -126,7 +147,8 @@
 (declaim (inline hamt-layer-remove))
 (defun hamt-layer-remove (layer depth bit index)
   (declare (type hamt-layer layer)
-           (type fixnum bit index)
+           (type hamt-bit bit)
+           (type hamt-index index)
            (ignore depth))
   (let* ((n (length layer)))
     (flet ((f ()
@@ -148,11 +170,10 @@
          ;; entry/bucket.  But keep layers with a single sublayer
          ;; as-is.
          (let ((thing (aref layer (- n index))))
-           (etypecase thing
+           (typecase thing
              (hamt-layer
               (f))
-             (hamt-set-entry thing)
-             (hamt-bucket thing))))
+             (t thing))))
         (t
          ;; general case
          (f))))))
@@ -224,7 +245,6 @@
   (vector (ash 1 (hamt-bit subhash))
           entry))
 
-
 ;;; Buckets
 ;;;
 ;;; Handle hash collisions via chaining.
@@ -242,9 +262,8 @@
 ;;; hash-tables.
 
 (defstruct (hamt-bucket (:constructor hamt-bucket (hash-code list)))
-  (hash-code 0 :type non-negative-fixnum)
+  (hash-code 0 :type hamt-hash-code)
   (list nil :type list))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;
 ;;; Set Operations ;;;
@@ -279,6 +298,7 @@
 
 (defun hamt-set-check (hamt)
   (labels ((rec (hamt depth prefix)
+             (declare (type hamt-depth depth))
              (let ((n (logcount (hamt-layer-bitmap hamt)))
                    (i 0)
                    (bitmap (hamt-layer-bitmap hamt)))
@@ -342,7 +362,7 @@
 
 
 (defun hamt-set-find (hamt key hash-code test)
-  (declare (type non-negative-fixnum hash-code)
+  (declare (type hamt-hash-code hash-code)
            (function test))
   (labels ((find-list (list)
              (if list
@@ -356,7 +376,7 @@
                  (bit index thing) (hamt subhash)
                  ;; Got entry
                  (etypecase thing
-                   (hamt-layer (rec thing (hamt-subhash (the non-negative-fixnum
+                   (hamt-layer (rec thing (hamt-subhash (the hamt-hash-code
                                                              subhash))))
                    (hamt-set-entry
                     (if (and (= hash-code (hamt-set-entry-hash-code thing))
@@ -388,7 +408,8 @@
                            subhash-1 e1
                            subhash-2 e2)
   ;; Insert two distinct elements into a new layer
-  (declare (simple-vector hamt))
+  (declare (type simple-vector hamt)
+           (type hamt-hash-code subhash-1 subhash-2))
   (labels ((rec (hamt index subhash-1 subhash-2 depth)
              (declare (type hamt-depth depth))
              (let* ((bit-1 (hamt-bit subhash-1))
@@ -424,7 +445,7 @@
 
 
 (defun hamt-set-insert (hamt key hash-code test)
-  (declare (type non-negative-fixnum hash-code)
+  (declare (type hamt-hash-code hash-code)
            (type function test))
   (labels ((rec (hamt hash-code depth)
              (declare (type fixnum depth))
@@ -493,7 +514,7 @@
 
 
 (defun hamt-set-ninsert (hamt key hash-code test)
-  (declare (type non-negative-fixnum hash-code)
+  (declare (type hamt-hash-code hash-code)
            (type function test)
            (type hamt-layer hamt))
   ;;(declare (optimize (speed 3) (safety 0)))
@@ -574,9 +595,10 @@
       result)))
 
 (defun hamt-set-remove (hamt key hash-code test)
-  (declare (type function test))
+  (declare (type function test)
+           (type hamt-hash-code hash-code))
   (labels ((rec (hamt subhash depth)
-             ;;(declare (type fixnum depth))
+             (declare (type hamt-depth depth))
              ;;(assert (< depth 32))
              (if-hamt-present
                  (bit index thing) (hamt subhash)
