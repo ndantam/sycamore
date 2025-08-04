@@ -219,6 +219,7 @@
                 :union #'hash-set-union
                 :intersection #'hash-set-intersection
                 :intersectionp #'hash-set-intersection-p
+                :difference #'hash-set-difference
                 :subset #'hash-set-subset-p
                 :name "SYCAMORE:HAMT"))
 

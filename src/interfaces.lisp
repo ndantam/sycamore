@@ -719,6 +719,19 @@ RETURNS: T if `SET' contains zero items, or
     ;; null root-1
     set-1))
 
+(defun hash-set-difference (set-1 set-2)
+  "Difference of `SET-1' and `SET-2'."
+  (if-let ((root-1 (hash-set-root set-1)))
+    (if-let ((root-2 (hash-set-root set-2)))
+      (%with-hash-set (hash-function test) set-1
+        (declare (ignore hash-function))
+        (%set-hash-set set-1
+                       (hamt-set-difference root-1 root-2 test)))
+      ;; null root-2
+      set-1)
+    ;; null root-1
+    set-1))
+
 (defun hash-set-intersection-p (set-1 set-2)
   "Do `SET-1' and `SET-2' intersect?"
   (let ((root-1 (hash-set-root set-1))

@@ -335,12 +335,18 @@
                     (set-sort (union list-1 list-2))
                     (set-sort (hash-set-list
                                (hash-set-union set-1 set-2))))
+
       ;; Intersection
       (fuzz:do-test ('hash-intersection :test #'equal)
                     (set-sort (intersection list-1 list-2))
                     (set-sort (hash-set-list
                                (hash-set-intersection set-1 set-2))))
 
+      ;; Difference
+      (fuzz:do-test ('hash-difference :test #'equal)
+                    (set-sort (set-difference list-1 list-2))
+                    (set-sort (hash-set-list
+                               (hash-set-difference set-1 set-2))))
 
       ;; intersection-p
       (fuzz:test-eq 'hash-intersection-p
