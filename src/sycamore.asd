@@ -62,7 +62,6 @@
                  (:file "bits-sbcl-x86-64")))
 
                (:file "hamt" :depends-on ("array" bits))
-               ;;(:file "ttree" :depends-on ("avl"))
                (:file "interfaces" :depends-on ("wb-tree" "hamt"))
                (:file "rope" :depends-on ("util"))
                (:file "cgen" :depends-on ("rope")))

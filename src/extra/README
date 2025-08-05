@@ -1,0 +1,4 @@
+This directory contains test and experimental code for different
+algorithm and data structure variations.  Generally, these variations
+turned out to be less efficient than what is loaded into Sycamore.
+This code is here only for reference.
