@@ -59,6 +59,53 @@
 (sycamore:rope-write (sycamore:rope "Hello" #\Space 'World!)
                      :escape nil :stream *standard-output*)
 
+
+;;;;;;;;;;;;;;;;;
+;;; HASH SETS ;;;
+;;;;;;;;;;;;;;;;;
+
+;; Create a set with default EQL test
+(sycamore:make-hash-set)
+
+;; Create a set with default EQL test and initial elements from a list
+(sycamore:list-hash-set '(1 2 -10 40))
+
+;; Create a set with EQUALP test
+(sycamore:list-hash-set '(1 1.0 2.0 2) :test #'equalp)
+
+;; Insertion
+(sycamore:hash-set-insert (sycamore:list-hash-set '(1 2))
+                          0)
+
+;; Lookup
+(sycamore:hash-set-find (sycamore:list-hash-set '(0 1 2))
+                        0)
+
+;; Removal
+(sycamore:hash-set-remove (sycamore:list-hash-set '(1 2 0))
+                          0)
+
+;; Union
+(sycamore:hash-set-union (sycamore:list-hash-set '(1 2 0))
+                         (sycamore:list-hash-set '(1 0 3)))
+
+;; Intersection
+(sycamore:hash-set-intersection (sycamore:list-hash-set '(1 2 0))
+                                (sycamore:list-hash-set '(1 0 3)))
+
+;; Difference
+(sycamore:hash-set-difference (sycamore:list-hash-set '(1 2 0))
+                              (sycamore:list-hash-set '(1 0 3)))
+
+;; Map set
+(sycamore:map-hash-set 'list #'1+
+                       (sycamore:list-hash-set '(1 2 0)))
+
+;; Fold set
+(sycamore:fold-hash-set (lambda (list item) (cons item list))
+                        nil
+                        (sycamore:list-hash-set '(1 2 0)))
+
 ;;;;;;;;;;;;;;;;;
 ;;; TREE SETS ;;;
 ;;;;;;;;;;;;;;;;;
@@ -75,6 +122,10 @@
 ;; Insertion
 (sycamore:tree-set-insert (sycamore:tree-set #'compare 1 2)
                           0)
+
+;; Lookup
+(sycamore:tree-set-find (sycamore:tree-set #'compare 1 2 0)
+                        0)
 
 ;; Removal
 (sycamore:tree-set-remove (sycamore:tree-set #'compare 1 2 0)

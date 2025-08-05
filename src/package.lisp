@@ -117,6 +117,25 @@
    :rope<=
    :rope>
    :rope>=
+
+   ;; hash-set
+   :hash-set
+   :make-hash-set
+   :hash-set-find
+   :hash-set-empty-p
+   :hash-set-insert
+   :hash-set-remove
+   :hash-set-union
+   :hash-set-intersection
+   :hash-set-difference
+   :hash-set-intersection-p
+   :hash-set-subset-p
+   :list-hash-set
+   :hash-set-list
+   :map-hash-set
+   :fold-hash-set
+   :fold-right-hash-set
+
    ;; misc
    or-compare))
 

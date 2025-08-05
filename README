@@ -1,23 +1,26 @@
 SYCAMORE
 ========
 
-A fast, purely functional data structure library in Common Lisp.
+Fast, purely functional data structures in Common Lisp.
 
 API Documentation: http://ndantam.github.io/sycamore
 
+Comprehensive Set Benchmarks: https://ndantam.github.io/sycamore/bench.html
+
 Features
 ========
-* Fast, purely functional weight-balanced binary trees.
+* Fast, purely functional weight-balanced binary trees (WB-trees).
   - http://en.wikipedia.org/wiki/Weight-balanced_tree
   - Leaf nodes are simple-vectors, greatly reducing tree height.
 * Fast, purely functional Hash Array Mapped Tries (HAMT).
   - https://en.wikipedia.org/wiki/Hash_array_mapped_trie
+  - One simple-vector per layer (bitmap+children) reduces indirection.
   - SBCL VOPs (when available) enable single machine instructions for
     the POPCNT and CTZ operations commonly performed by HAMTs.
-  - Pro: Generally higher-performance than weight-balanced trees.
-  - Difference: Requires hashing and test functions (defaults are CL
-    standard SXHASH and EQL), but does not need the total ordering
-    function required by trees.
+  - Generally higher-performance than WB-trees.
+  - Requires hashing and test functions (defaults are CL standard
+    SXHASH and EQL), but does not need the total ordering function
+    required by trees.
 * Interfaces for tree Sets and Maps (dictionaries).
 * Ropes
   - http://en.wikipedia.org/wiki/Rope_(data_structure)
@@ -36,8 +39,86 @@ Examples
 
 See also `./example.lisp`
 
-Sets
-----
+Hash Sets
+---------
+
+Create a set with default EQL test:
+
+    CL-USER> (sycamore:make-hash-set)
+
+    #<SYCAMORE:HASH-SET {}>
+
+Create a set with default EQL test and initial elements from a list:
+
+    CL-USER> (sycamore:list-hash-set '(1 2 -10 40))
+
+    #<SYCAMORE:HASH-SET {40 1 -10 2}>
+
+Create a set with EQUALP test:
+
+    CL-USER> (sycamore:list-hash-set '(1 1.0 2.0 2) :test #'equalp)
+
+    #<SYCAMORE:HASH-SET {1 2.0}>
+
+Insertion:
+
+    CL-USER> (sycamore:hash-set-insert (sycamore:list-hash-set '(1 2))
+                                       0)
+    #<SYCAMORE:HASH-SET {1 2 0}>
+
+Lookup:
+
+    CL-USER> (sycamore:hash-set-find (sycamore:list-hash-set '(0 1 2))
+
+    0
+    T
+
+Removal:
+
+    CL-USER> (sycamore:hash-set-remove (sycamore:list-hash-set '(1 2 0))
+                                       0)
+
+    #<SYCAMORE:HASH-SET {1 2}>
+
+Union:
+
+    CL-USER> (sycamore:hash-set-union (sycamore:list-hash-set '(1 2 0))
+                                      (sycamore:list-hash-set '(1 0 3)))
+
+
+    #<SYCAMORE:HASH-SET {3 1 2 0}>
+
+Intersection:
+
+    CL-USER> (sycamore:hash-set-intersection (sycamore:list-hash-set '(1 2 0))
+                                             (sycamore:list-hash-set '(1 0 3)))
+
+    #<SYCAMORE:HASH-SET {1 0}>
+
+Difference:
+
+    CL-USER> (sycamore:hash-set-difference (sycamore:list-hash-set '(1 2 0))
+                                           (sycamore:list-hash-set '(1 0 3)))
+
+    #<SYCAMORE:HASH-SET {2}>
+
+Map set:
+
+    CL-USER> (sycamore:map-hash-set 'list #'1+
+                                    (sycamore:list-hash-set '(1 2 0)))
+
+    (2 3 1)
+
+Fold set:
+
+    CL-USER> (sycamore:fold-hash-set (lambda (list item) (cons item list))
+                                     nil
+                                     (sycamore:list-hash-set '(1 2 0)))
+
+    (1 2 0)
+
+Tree Sets
+---------
 
 Define an ordering function:
 
@@ -52,40 +133,47 @@ Create a set for integers:
 
     CL-USER> (sycamore:tree-set #'compare 1 2 -10 40)
 
-    #<TREE-SET (-10 1 2 40)>
+    #<TREE-SET {-10 1 2 40}>
 
 Insertion:
 
     CL-USER> (sycamore:tree-set-insert (sycamore:tree-set #'compare 1 2)
                                        0)
-    #<TREE-SET (0 1 2)>
+    #<TREE-SET {0 1 2}>
+
+Lookup:
+
+    CL-USER> (sycamore:tree-set-find (sycamore:tree-set #'compare 1 2 0)
+                                     0)
+    0
+    T
 
 Removal:
 
     CL-USER> (sycamore:tree-set-remove (sycamore:tree-set #'compare 1 2 0)
                                        0)
-    #<TREE-SET (1 2)>
+    #<TREE-SET {1 2}>
 
 Union operation:
 
     CL-USER> (sycamore:tree-set-union (sycamore:tree-set #'compare 1 2)
                                       (sycamore:tree-set #'compare 1 0 3))
 
-    #<TREE-SET (0 1 2 3)>
+    #<TREE-SET {0 1 2 3}>
 
 Intersection operation:
 
     CL-USER> (sycamore:tree-set-intersection (sycamore:tree-set #'compare 1 2)
                                              (sycamore:tree-set #'compare 1 0 3))
 
-    #<TREE-SET (1)>
+    #<TREE-SET {1}>
 
 Difference operation:
 
     CL-USER> (sycamore:tree-set-difference (sycamore:tree-set #'compare 1 2)
                                            (sycamore:tree-set #'compare 1 0 3))
 
-    #<TREE-SET (2)>
+    #<TREE-SET {2}>
 
 Map set:
 
@@ -195,8 +283,8 @@ Q/A
     implementation in Sycamore assumes that hash-codes are FIXNUMs
     (aligning with ANSI CL SXHASH).  This limitation may be addressed
     in the future by adding support for larger (e.g., bit-vector)
-    hash-codes, but for now weight-balanced trees may be best for
-    adversarial cases.
+    hash-codes, but for now WB-trees may be best for adversarial
+    cases.
 
 - Q: Are your keys not hashable but totally ordered (for any two
   elements A and B: you can decide if A and B are equal or if A comes
@@ -213,20 +301,70 @@ Alternatives
 There are many other Common Lisp data structure libraries.  Here are a
 few alternatives and their trade-offs relative to Sycamore.
 
+ANSI CL Hash Tables
+-------------------
+
+Mutable hash tables are very fast.  If you don't need persistence or
+set operations (union, intersection, difference, subset), then a
+mutable hash table could be a good choice.  Included benchmarks show
+that SBCL's hash tables are around twice as fast as Sycamore HAMTs for
+construction and lookup.
+
 FSet
 ----
-https://common-lisp.net/project/fset/Site/FSet-CL.html
+https://gitlab.common-lisp.net/fset/fset
 
 FSet implements finite sets with a CLOS-based set interface, while
-Sycamore's finite sets take a parameter for a comparison function.
-Both used weight-balanced trees with minor algorithmic differences.
-Generic vs. explicit comparison functions is both an aesthetic and
-performance issue.  FSet's generic comparison functions do not need to
-be passed explicitly, while Sycamore's explicit comparison function
-parameter makes it easier to compare the same type differently if
-needed, e.g., lexicographic vs. fast string comparison.
+Sycamore's finite sets take a parameter for a comparison function or
+for hashing and test functions.  Both offer weight-balanced trees
+(WB-trees) with minor algorithmic differences.  Sycamore also offers
+hash array mapped tries (HAMTs), while this appears to be a planned
+feature of FSET.  Generic vs. explicit comparison functions are an
+aesthetic, flexibility, and performance issue.  FSet's generic
+comparison functions do not need to be passed explicitly, while
+Sycamore requires explicit comparison or test and hashing function
+parameters (but follows ANSI CL defaults for test and hashing
+functions).  Explicit functions permit comparing the same type
+differently if needed (e.g., lexicographic vs. fast string
+comparison), and explicit functions are more efficient than CLOS
+method dispatch.
 
-Included benchmarks show that Sycamore is 30-50% faster than FSet.
+The FSET author has a blog post comparing FSET and Sycamore:
+https://scottlburson2.blogspot.com/2024/10/comparison-fset-vs-sycamore.html.
+A further difference noted in the post is that FSET has a notion of
+equivalent-but-unequal (or unordered), giving examples of integer 1
+vs. floating point 1.0 and uninterned symbols with the same name but
+that are in fact different symbols.  In contrast Sycamore sets require
+either a total order (trees) or hashing and test functions (HAMTs),
+but which may be different for different collections.  Let's consider
+the ANSI CL hash-tables `(make-hash-table :test #'eql)` and
+`(make-hash-table :test #'equalp)`, where 1 and 1.0 are distinct under
+EQL, but the same under EQUALP.  That is, different use cases may
+require different notions of equality not admitted by a global,
+type-dispatched comparison.  For trees, we could totally order for
+EQUALP by numeric difference or we could totally order for EQL
+considering first type and then numeric difference.  For HAMTs, ANSI
+CL SXHASH works for EQL, and on SBCL, PSXHASH works for EQUALP.
+Totally ordering uninterned symbols seems trickier, and SBCL's SXHASH
+provides the same hash codes for uninterned symbols with identical
+names but that are not EQL, leading to chaining in Sycamore's HAMTs
+(perhaps one could hash uninterned symbols considering their address,
+but this seems inexpressible in portable CL, let alone conflicting
+with SXHASH's specified behavior of producing identical hash codes for
+symbols cross Lisp images).  Admittedly, writing comparison functions
+for tree sets may require some (usually modest) effort, but aligning
+with ANSI CL behavior for HAMT hashing functions covers common cases
+simply and efficiently.
+
+Included benchmarks show that Sycamore HAMTs are 2-10x faster than
+FSet, and Sycamore WB-trees are 1.5-3x faster than FSET.
+
+CL-HAMT
+-------
+https://github.com/danshapero/cl-hamt
+
+CL-HAMT is an implementation of hash array mapped tries. Included
+benchmarks show that Sycamore HAMTs are 10x faster than CL-HAMT.
 
 CL-Containers
 -------------
@@ -269,4 +407,14 @@ References
 
 Name
 ====
+
 http://en.wikipedia.org/wiki/Platanus_occidentalis
+
+    Oh, the moonlight's fair tonight along the Wabash,
+    From the fields there comes the breath of newmown hay.
+    Through the sycamores the candle lights are gleaming,
+    On the banks of the Wabash, far away.
+
+        - Paul Dresser
+          "On the Banks of the Wabash, Far Away"
+          1897
