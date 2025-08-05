@@ -14,3 +14,5 @@
 /share/run-test.sh.trs
 /test-driver
 /test-suite.log
+/bench.md
+/bench-data/
