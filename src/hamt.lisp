@@ -416,7 +416,7 @@
   `(check-hamt-debug (assert (not (hamt-set-member ,hamt ,item ,hash-code ,test)))))
 
 
-(defun hamt-set-find (hamt key hash-code test)
+(defun hamt-set-find (hamt key hash-code test default)
   (declare (type hamt-hash-code hash-code)
            (function test))
   (labels ((find-list (list)
@@ -424,7 +424,7 @@
                  (if (funcall test key (car list))
                      (values (car list) t)
                      (find-list (cdr list)))
-                 (values nil nil)))
+                 (values default nil)))
            (rec (hamt subhash)
              (declare (type hamt-layer hamt))
              (if-hamt-present
@@ -437,20 +437,20 @@
                     (if (and (= hash-code (hamt-set-entry-hash-code thing))
                              (funcall test key (hamt-set-entry-key thing)))
                         (values (hamt-set-entry-key thing) t)
-                        (values nil nil)))
+                        (values default nil)))
                    (hamt-bucket
                     (if (= hash-code (hamt-bucket-hash-code thing))
                         (find-list (hamt-bucket-list thing))
                         (values nil nil))))
                  ;; No entry
-                 (values nil nil))))
+                 (values default nil))))
     (declare (dynamic-extent (function find-list))
              (dynamic-extent (function rec)))
     (rec hamt hash-code)))
 
 
 (defun hamt-set-member (hamt key hash-code test)
-  (multiple-value-bind (v p) (hamt-set-find hamt key hash-code test)
+  (multiple-value-bind (v p) (hamt-set-find hamt key hash-code test nil)
     (declare (ignore v))
     p))
 
@@ -565,6 +565,74 @@
       (check-hamt-debug-member result key hash-code test)
       result)))
 
+(defun hamt-set-replace (hamt key hash-code test)
+  (declare (type hamt-hash-code hash-code)
+           (type function test))
+  (labels ((rec (hamt hash-code bit-depth)
+             (declare (type hamt-bit-depth bit-depth))
+             ;;(assert (< depth 32))
+             (if-hamt-present
+                 (bit index thing) (hamt hash-code)
+                 (etypecase thing
+                   (hamt-layer (found-layer hamt index
+                                            hash-code bit-depth thing))
+                   (hamt-set-entry (found-entry hamt index
+                                                hash-code bit-depth thing))
+                   (hamt-bucket (found-bucket hamt index
+                                              hash-code bit-depth thing)))
+                 ;; No entry, make a new one
+                 (new-entry hamt bit index)))
+           (found-bucket (hamt index subhash bit-depth bucket)
+             (declare (type hamt-layer hamt)
+                      (type hamt-bucket bucket))
+             (let ((other-hash-code (hamt-bucket-hash-code bucket)))
+               (if (= hash-code other-hash-code)
+                   ;; Collision or already exists
+                   (hamt-bucket hash-code
+                                (cons key (remove key (hamt-bucket-list bucket) :test test)))
+                   ;; different hashes: create a new layer
+                   (hamt-set-insert-2 hamt index
+                                      (hamt-subhash subhash)
+                                      (hamt-set-entry hash-code key)
+                                      (hamt-bit-depth-subhash other-hash-code bit-depth)
+                                      bucket))))
+           (found-layer (hamt index hash-code bit-depth layer)
+             (declare (type hamt-layer hamt layer))
+             (hamt-layer-update hamt index
+                                (rec layer (hamt-subhash hash-code)
+                                     (+ +hamt-bits+ bit-depth))))
+           (found-entry (hamt index subhash bit-depth entry)
+             (declare (type hamt-layer hamt)
+                      (hamt-set-entry entry))
+             (let ((other-hash-code (hamt-set-entry-hash-code entry))
+                   (other-key (hamt-set-entry-key entry)))
+               (if (= other-hash-code hash-code)
+                   ;; matching hash-code
+                   (hamt-layer-update hamt index
+                                      (if (funcall test key other-key)
+                                          ;; already exists, replace it
+                                          (hamt-set-entry hash-code key)
+                                          ;; hash collision, create a bucket
+                                          (hamt-bucket hash-code
+                                                       (list key other-key))))
+                   ;; different hash-codes, create a new layer
+                   (hamt-set-insert-2 hamt index
+                                      (hamt-subhash subhash)
+                                      (hamt-set-entry hash-code key)
+                                      (hamt-bit-depth-subhash other-hash-code bit-depth)
+                                      entry))))
+           (new-entry (layer bit index)
+             (hamt-layer-insert layer bit index
+                                (hamt-set-entry hash-code key))))
+    (declare (dynamic-extent (function rec))
+             (dynamic-extent (function found-bucket))
+             (dynamic-extent (function found-layer))
+             (dynamic-extent (function found-entry))
+             (dynamic-extent (function new-entry)))
+    (let ((result (rec hamt hash-code +hamt-bits+)))
+      (check-hamt-debug-set result)
+      (check-hamt-debug-member result key hash-code test)
+      result)))
 
 
 (defun hamt-set-ninsert (hamt key hash-code test)
@@ -630,6 +698,92 @@
                      ;; hash collision, create a bucket
                      (update hamt index
                              (hamt-bucket hash-code (list key other-key))))
+                   ;; different hash-codes, create new layer(s)
+                   (hamt-set-ninsert-2 hamt index
+                                       (hamt-subhash subhash)
+                                       (hamt-set-entry hash-code key)
+                                       (hamt-bit-depth-subhash other-hash-code bit-depth)
+                                       entry))))
+           (update (hamt index thing)
+             (hamt-layer-nupdate hamt index thing)))
+    (declare (dynamic-extent (function init))
+             (dynamic-extent (function rec))
+             (dynamic-extent (function rec-present))
+             (dynamic-extent (function found-bucket))
+             (dynamic-extent (function found-entry))
+             (dynamic-extent (function update)))
+    (let ((result (init hamt hash-code)))
+      (check-hamt-debug-set result)
+      (check-hamt-debug-member result key hash-code test)
+      result)))
+
+(defun hamt-set-nreplace (hamt key hash-code test)
+  (declare (type hamt-hash-code hash-code)
+           (type function test)
+           (type hamt-layer hamt))
+  ;;(declare (optimize (speed 3) (safety 0)))
+  (labels ((init (hamt subhash)
+             (if-hamt-present
+                 (bit index thing) (hamt subhash)
+                 (progn (rec-present hamt subhash +hamt-bits+ index thing)
+                        hamt)
+                 (hamt-layer-insert hamt
+                                    bit index
+                                    (hamt-set-entry hash-code key))))
+           (rec (parent pindex hamt subhash bit-depth)
+             (declare (type hamt-bit-depth bit-depth))
+             ;; Tail-recursive insertion: Pass along the cell of a
+             ;; parent to overwrite.
+             ;;
+             ;; - Base case of not present: overwrite the parent cell by
+             ;;   adding a new entry to the current layer.
+             ;; - Base case of entry/bucket: ovewrite the current layer
+             ;;   cell with new sublayer(s).  Or push to bucket if a
+             ;;   hash collision.
+             ;; - Recursive case of sublayer: tail-recurse on the
+             ;;   sublayer, passing current layer and index as the new
+             ;;   parent / parent index.
+             (if-hamt-present
+                 (bit index thing) (hamt subhash)
+                 (rec-present hamt subhash bit-depth index thing)
+                 (update parent pindex
+                         (hamt-layer-insert hamt
+                                            bit index
+                                            (hamt-set-entry hash-code key)))))
+           (rec-present (hamt subhash bit-depth index thing)
+             (etypecase thing
+               (hamt-layer ; tail-recursive layer insertion
+                (rec hamt index
+                     thing (hamt-subhash subhash) (+ +hamt-bits+ bit-depth)))
+               (hamt-set-entry (found-entry hamt index
+                                            subhash bit-depth thing))
+               (hamt-bucket (found-bucket hamt index
+                                          subhash bit-depth thing))))
+           (found-bucket (hamt index subhash bit-depth bucket)
+             (if (= hash-code (hamt-bucket-hash-code bucket))
+                 ;; hash collision: check / insert into this bucket
+                 (progn
+                   (setf (hamt-bucket-list bucket)
+                         (cons key (remove key (hamt-bucket-list bucket) :test test)))
+                   hamt)
+                 ;; different hashe-codes: create a new layer
+                 (hamt-set-ninsert-2 hamt index
+                                     (hamt-subhash subhash)
+                                     (hamt-set-entry hash-code key)
+                                     (hamt-bit-depth-subhash (hamt-bucket-hash-code bucket)
+                                                             bit-depth)
+                                     bucket)))
+           (found-entry (hamt index subhash bit-depth entry)
+             (let ((other-hash-code (hamt-set-entry-hash-code entry))
+                   (other-key (hamt-set-entry-key entry)))
+               (if (= other-hash-code hash-code)
+                   ;; matching hash-code
+                   (update hamt index
+                           (if (funcall test key other-key)
+                               ;; Match, replace
+                               (hamt-set-entry hash-code key)
+                               ;; hash collision, create a bucket
+                               (hamt-bucket hash-code (list key other-key))))
                    ;; different hash-codes, create new layer(s)
                    (hamt-set-ninsert-2 hamt index
                                        (hamt-subhash subhash)

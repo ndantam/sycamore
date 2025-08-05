@@ -40,6 +40,67 @@
 
 ;(declaim (optimize (speed 3) (safety 0)))
 
+
+;;;;;;;;;;;;;;;;;;;;
+;; Common Helpers ;;
+;;;;;;;;;;;;;;;;;;;;
+
+(defun %print-object-set (object stream function)
+  ;; FUNCTION : object -> list
+  (print-unreadable-object (object stream :type t :identity nil)
+                                        ;(print (tree-set-list object))
+    ;; Use format instead
+    ;; (pprint-logical-block (stream (tree-set-list object) :prefix "{" :suffix "}")
+    ;;   (pprint-logical-block (stream (tree-set-list object) :prefix "{" :suffix "}")
+    ;;     (do () (nil)
+    ;;       (pprint-exit-if-list-exhausted)
+    ;;       (let ((x (pprint-pop)))
+    ;;         (pprint-newline :fill stream)
+    ;;         (pprint-indent :block 0 stream)
+    ;;         (write-char #\Space stream)
+    ;;         (write x :stream stream)))))
+
+    ;; Doesn't get the spaces right
+    ;; (do-tree-set (x object)
+    ;;   (pprint-newline :fill stream)
+    ;;   (pprint-indent :block 0 stream)
+    ;;   (write-char #\Space stream)
+    ;;   (write x :stream stream))
+
+    (format stream "~@<{~;~{~A~^ ~}~;}~:@>"
+            (funcall function object))))
+
+(defun %print-object-map (object stream function)
+  ;; FUNCTION : OBJECT -> alist
+  (print-unreadable-object (object stream :type t :identity nil)
+
+    ;; (write (tree-map-alist object)
+    ;;        :stream stream)
+
+    ;; (format stream "~@<{~;~:{{~A: ~A}~^ ~}~;}~:@>"
+    ;;         (map-tree-map :inorder 'list #'list object))
+
+    (pprint-logical-block (stream (funcall function object)
+                                  :prefix "{" :suffix "}")
+      (do () (nil)
+        (pprint-exit-if-list-exhausted)
+        (let ((x (pprint-pop)))
+          (pprint-newline :fill stream)
+          (pprint-indent :block 0 stream)
+          (pprint-logical-block (stream x)
+            (write (car x) :stream stream)
+            (write-char #\: stream)
+            (write-char #\Space stream)
+            (write (cdr x) :stream stream))
+          (pprint-exit-if-list-exhausted)
+          (write-char #\, stream)
+          (write-char #\Space stream))))))
+
+(defmacro with-map-key ((map-key key) &body body)
+  `(let ((,map-key (cons ,key nil)))
+     (declare (dynamic-extent ,map-key))
+     ,@body))
+
 ;;;;;;;;;;;;;;;;;;;;
 ;; Top containter ;;
 ;;;;;;;;;;;;;;;;;;;;
@@ -96,30 +157,29 @@
            (tree-map-insert ,place ,key ,value))))
 
 (defun tree-map-remove (tree-map key)
-  "Insert KEY from TREE-MAP, returning the new tree-map."
+  "Remove KEY from TREE-MAP, returning the new tree-map."
   (%make-tree-map (tree-map-compare tree-map)
-                  (wb-tree-remove (tree-map-root tree-map)
-                                   (cons key nil)
-                                   (tree-map-compare tree-map))))
+                  (with-map-key (map-key key)
+                    (wb-tree-remove (tree-map-root tree-map)
+                                    map-key
+                                    (tree-map-compare tree-map)))))
 
 (defun tree-map-find (tree-map key &optional default)
   "Find value indexed by KEY in TREE-MAP."
-  (let ((map-key (cons key nil)))
-    (declare (dynamic-extent map-key))
     (multiple-value-bind (cons present)
-        (binary-tree-find (tree-map-root tree-map)
-                          map-key
-                          (tree-map-compare tree-map))
+        (with-map-key (map-key key)
+          (binary-tree-find (tree-map-root tree-map)
+                            map-key
+                            (tree-map-compare tree-map)))
       (if present
           (values (cdr cons) (car cons) t)
-          (values default key nil)))))
+          (values default key nil))))
 
 (defun tree-map-contains (tree-map key)
   "Test if a key is present in tree-map"
-  (let ((key (cons key nil)))
-    (declare (dynamic-extent key))
+  (with-map-key (map-key key)
     (binary-tree-member-p (tree-map-root tree-map)
-                          key
+                          map-key
                           (tree-map-compare tree-map))))
 
 (defun map-tree-map (order result-type function tree-map)
@@ -144,16 +204,17 @@ FUNCTION: (FUNCTION key value) -> result"
          (assert nil))))))
 
 (defmacro do-tree-map (((key value) map &optional result) &body body)
-  `(progn
-     (map-tree-map :inorder nil
-                   (lambda (,key ,value)
-                     ,@body)
-                   ,map)
-     ,result))
+  (with-gensyms (f)
+    `(flet ((,f (,key ,value) ,@body))
+       (declare (dynamic-extent (function ,f)))
+       (map-tree-map :inorder nil
+                     (function ,f)
+                     ,map)
+     ,result)))
 
 (defun fold-tree-map (function initial-value tree-map)
   "Fold FUNCTION over members of the map
-FUNCTION: (lambda (accumulated-value key value))."
+FUNCTION: (FUNCTION initial-value key value) -> initial-value"
   (declare (type function function))
   (flet ((helper (accum pair)
            (funcall function accum (car pair) (cdr pair))))
@@ -193,7 +254,7 @@ FUNCTION: (lambda (accumulated-value key value))."
   tree-map)
 
 (defun hash-table-tree-map (hash-table compare)
-  "Returns a tree-map containing the keys and values of the hash-table list HASH-TABLE."
+  "Returns a tree-map containing the keys and values of the hash-table HASH-TABLE."
   (tree-map-insert-hash-table (make-tree-map compare) hash-table))
 
 (defun tree-map-alist (tree-map)
@@ -212,44 +273,18 @@ Hash table is initialized using the HASH-TABLE-INITARGS."
                  (apply #'make-hash-table hash-table-initargs)
                  tree-map))
 
-
 (defun tree-map-values (tree-map)
-  (fold-tree-map (lambda (a k v)
-                   (declare (ignore k))
-                   (cons v a))
-                 nil tree-map))
+  (map-binary-tree :inorder 'list
+                   #'cdr
+                   (tree-map-root tree-map)))
 
 (defun tree-map-keys (tree-map)
-  (fold-tree-map (lambda (a k v)
-                   (declare (ignore v))
-                   (cons k a))
-                 nil tree-map))
-
+  (map-binary-tree :inorder 'list
+                   #'car
+                   (tree-map-root tree-map)))
 
 (defmethod print-object ((object tree-map) stream)
-  (print-unreadable-object (object stream :type t :identity nil)
-
-    ;; (write (tree-map-alist object)
-    ;;        :stream stream)
-
-    ;; (format stream "~@<{~;~:{{~A: ~A}~^ ~}~;}~:@>"
-    ;;         (map-tree-map :inorder 'list #'list object))
-
-    (pprint-logical-block (stream (map-tree-map :inorder 'list #'list object)
-                                  :prefix "{" :suffix "}")
-      (do () (nil)
-        (pprint-exit-if-list-exhausted)
-        (let ((x (pprint-pop)))
-          (pprint-newline :fill stream)
-          (pprint-indent :block 0 stream)
-          (pprint-logical-block (stream x)
-            (write (car x) :stream stream)
-            (write-char #\: stream)
-            (write-char #\Space stream)
-            (write (cadr x) :stream stream))
-          (pprint-exit-if-list-exhausted)
-          (write-char #\, stream)
-          (write-char #\Space stream))))))
+  (%print-object-map object stream #'tree-map-alist))
 
 ;;;;;;;;;;;;;;;
 ;; TREE-SET ;;
@@ -450,29 +485,7 @@ RETURNS: T or NIL"
   (binary-tree-min (tree-set-root set)))
 
 (defmethod print-object ((object tree-set) stream)
-  (print-unreadable-object (object stream :type t :identity nil)
-                                        ;(print (tree-set-list object))
-    ;; Use format instead
-    ;; (pprint-logical-block (stream (tree-set-list object) :prefix "{" :suffix "}")
-    ;;   (pprint-logical-block (stream (tree-set-list object) :prefix "{" :suffix "}")
-    ;;     (do () (nil)
-    ;;       (pprint-exit-if-list-exhausted)
-    ;;       (let ((x (pprint-pop)))
-    ;;         (pprint-newline :fill stream)
-    ;;         (pprint-indent :block 0 stream)
-    ;;         (write-char #\Space stream)
-    ;;         (write x :stream stream)))))
-
-    ;; Doesn't get the spaces right
-    ;; (do-tree-set (x object)
-    ;;   (pprint-newline :fill stream)
-    ;;   (pprint-indent :block 0 stream)
-    ;;   (write-char #\Space stream)
-    ;;   (write x :stream stream))
-
-    (format stream "~@<{~;~{~A~^ ~}~;}~:@>"
-            (tree-set-list object))))
-
+  (%print-object-set object stream #'tree-set-list))
 
 ;;;;;;;;;;;;;;;
 ;; Tree-Bag  ;;
@@ -553,7 +566,6 @@ RETURNS: T or NIL"
       set
       (%set-hash-set set root)))
 
-
 (defun %hash-function (test)
   "Attempt to find a hash function for TEST"
   (cond
@@ -614,8 +626,8 @@ RETURNS: T or NIL"
   :HASH-FUNCTION
     Function to compute hash codes:
     (HASH-FUNCTION item) -> non-negative-fixnum.
-    If not provided, MAKE-HASH-SET will try to find a valid function
-    for TEST.
+    If not provided, MAKE-HASH-SET will try to find a valid hash
+    function for TEST.
 
   :KEY
     If provided, apply `TEST' and `HASH-FUNCTION' to `(FUNCALL KEY
@@ -636,28 +648,32 @@ the caller must provide a valid HASH-FUNCTION."
   (%make-hash-set (%hash-set-functions hash-function test key)
                   nil))
 
+(defun empty-hash-set (set)
+  "Create an empty hash-set"
+  (%make-hash-set (hash-set-%functions set)
+                  nil))
+
 (defun hash-set-find (set item &optional default)
   "Search `SET' for `ITEM'.
 RETURNS: (values ITEM T) if `ITEM' is in `SET', or
          (values DEFAULT NIL) if `ITEM' is not in `SET'."
   (if-let ((root (hash-set-root set)))
-    (multiple-value-bind (result present)
-        (%with-hash-set (hash-function test) set
-          (hamt-set-find root item
-                         (funcall hash-function item)
-                         test))
-      (if present
-          (values result t)
-          (values default nil)))
+    (%with-hash-set (hash-function test) set
+      (hamt-set-find root item
+                     (funcall hash-function item)
+                     test
+                     default))
     (values default nil)))
 
 (defun hash-set-member-p (set item)
   "Test if `ITEM' is a member of `SET'
 RETURNS: T if `ITEM' is in `SET', or
          NIL if `ITEM' is not in `SET'."
-  (multiple-value-bind (elt has) (hash-set-find set item)
-    (declare (ignore elt))
-    has))
+  (when-let ((root (hash-set-root set)))
+    (%with-hash-set (hash-function test) set
+      (hamt-set-member root item
+                       (funcall hash-function item)
+                       test))))
 
 (defun hash-set-empty-p (set)
   "Test if `SET' is empty.
@@ -802,9 +818,219 @@ INITIAL-VALUE: value passed as second argument to initial call to `FUNCTION'."
                       (hash-set-root set)))
 
 (defmethod print-object ((object hash-set) stream)
-  (print-unreadable-object (object stream :type t :identity nil)
-    (format stream "~@<{~;~{~A~^ ~}~;}~:@>"
-            (hash-set-list object))))
+  (%print-object-set object stream #'hash-set-list))
+
+;;;;;;;;;;;;;;
+;; Hash-Map ;;
+;;;;;;;;;;;;;;
+
+;; For now, let's reuse the HAMT sets as-is, but we might get better
+;; performance by not memoizing hash-codes.
+
+(defstruct (hash-map (:constructor %make-hash-map (%functions root)))
+  (%functions (cons nil nil) :type cons)
+  root)
+
+(flet ((comp2 (hash-function test)
+         (cons hash-function
+               (lambda (x y) (funcall test (car x) (car y))))))
+  (flet ((comp (test) (comp2 (%hash-function test) test)))
+    (let ((c-eql (comp #'eql))
+          (c-equal (comp #'equal))
+          (c-eq (comp #'eq))
+          #+sbcl
+          (c-equalp (comp #'equalp))
+          #+sbcl
+          (c-= (comp #'=)))
+      (defun %hash-map-functions (hash-function test)
+        (cond
+          ((null hash-function)
+           (cond ; try to share a function descriptor
+             ((eq test #'eql) c-eql)
+             ((eq test #'equal) c-equal)
+             ((eq test #'eq) c-eq)
+             #+sbcl
+             ((eq test #'equalp) c-equalp)
+             #+sbcl
+             ((eq test #'=) c-=)
+             (t (comp2 (%hash-function test)
+                       test))))
+          (t ; General
+           (comp2 hash-function test)))))))
+
+(defun make-hash-map (&key (test #'eql) hash-function)
+  "Create and return new HASH-mAP.  The keywords are as follows:
+
+  :TEST
+    Function to compare items: (TEST key-1 key-2) -> BOOLEAN.
+
+  :HASH-FUNCTION
+    Function to compute hash codes:
+    (HASH-FUNCTION key) -> non-negative-fixnum.
+    If not provided, MAKE-HASH-SET will try to find a valid hash
+    function for TEST."
+  (declare (type function test)
+           (type (or function null) hash-function))
+  (%make-hash-map (%hash-map-functions hash-function test)
+                  nil))
+
+(defmacro %with-hash-map ((hash-function test) hash-map &body body)
+  (with-gensyms (c)
+    `(let ((,c (hash-map-%functions ,hash-map)))
+       (let ((,hash-function (car ,c))
+             (,test (cdr ,c)))
+         ,@body))))
+
+(defun empty-hash-map (hash-map)
+  "Create a new empty hash-map."
+  (%make-hash-map (hash-map-%functions hash-map)
+                  nil))
+
+(defun %update-hash-map (hash-map root)
+  (%make-hash-map (hash-map-%functions hash-map)
+                  root))
+
+(defun hash-map-insert (hash-map key value)
+  "Insert `KEY'=>`VALUE' into `HASH-MAP', returning the new hash-map."
+  (%with-hash-map (hash-function test) hash-map
+    (let ((hash-code (funcall hash-function key))
+          (item (cons key value)))
+      (if-let ((root (hash-map-root hash-map)))
+        (%make-hash-map (hash-map-%functions hash-map)
+                        (hamt-set-replace root
+                                          item
+                                          hash-code
+                                          test))
+        (%update-hash-map hash-map
+                          (hamt-set-layer-singleton hash-code item))))))
+
+(defun hash-map-remove (hash-map key)
+  "Remove `KEY' from `HASH-MAP', returning the new hash-map."
+  (if-let ((root (hash-map-root hash-map)))
+    ;; Non-empty
+    (%with-hash-map (hash-function test) hash-map
+      (%update-hash-map hash-map
+                        (with-map-key (map-key key)
+                          (hamt-set-remove root map-key
+                                           (funcall hash-function key)
+                                           test))))
+    ;; Empty
+    hash-map))
+
+(defun hash-map-find (hash-map key &optional default)
+  "Find value indexed by `KEY' in `HASH-MAP'
+RETURNS: (values VALUE T) if `KEY' is in `HASH-MAP', or
+         (values DEFAULT NIL) if `KEY' is not in `HASH-MAP'."
+  (if-let ((root (hash-map-root hash-map)))
+    ;; Non-empty
+    (multiple-value-bind (c present)
+        (%with-hash-map (hash-function test) hash-map
+          (with-map-key (map-key key)
+            (hamt-set-find root map-key
+                           (funcall hash-function key)
+                           test
+                           default)))
+      (values (if present
+                  (cdr c)
+                  default)
+              present))
+    ;; Empty
+    (values default nil)))
+
+(defun hash-map-contains (hash-map key)
+  "Test if a `KEY' is present in `HASH-MAP'"
+  (when-let ((root (hash-map-root hash-map)))
+    (%with-hash-map (hash-function test) hash-map
+      (with-map-key (map-key key)
+        (hamt-set-member root map-key
+                         (funcall hash-function key)
+                         test)))))
+
+(defun map-hash-map (result-type function hash-map)
+  "Apply `FUNCTION' to all elements in `HASH-MAP'.
+RESULT-TYPE: (or nil 'list 'vector).
+FUNCTION: (FUNCTION key value) -> result"
+  (flet ((helper (item) (funcall function (car item) (cdr item))))
+    (declare (dynamic-extent (function helper)))
+    (hamt-set-map result-type #'helper (hash-map-root hash-map))))
+
+(defmacro do-hash-map (((key value) hash-map &optional result) &body body)
+  (with-gensyms (f)
+    `(flet ((,f (,key ,value) ,@body))
+       (declare (dynamic-extent (function ,f)))
+       (map-hash-map nil (function ,f) ,hash-map)
+       ,result)))
+
+(defun fold-hash-map (function initial-value hash-map)
+  "Fold `FUNCTION' over members of the `HASH-MAP'
+FUNCTION: (FUNCTION (initial-value key value)) -> initial-value"
+  (declare (type function function))
+  (flet ((helper (initial-value item)
+           (funcall function initial-value (car item) (cdr item))))
+    (declare (dynamic-extent (function helper)))
+    (hamt-set-fold-left #'helper initial-value (hash-map-root hash-map))))
+
+(defun hash-map-alist (hash-map)
+  "Return an association list of all elements in the hash-map."
+  (hamt-set-fold-right #'cons (hash-map-root hash-map) nil))
+
+(defun alist-hash-map (alist &key (test #'eql) hash-function)
+  "Returns a hash-map from keys and values of association list `ALIST'"
+  (declare (type function test)
+           (type (or function null) hash-function))
+  (let ((hash-map (%make-hash-map (%hash-map-functions hash-function test)
+                                  nil)))
+    (%with-hash-map (hash-function test) hash-map
+      (when alist
+        (let ((root (let* ((elt (car alist))
+                           (key (car elt))
+                           (item (cons key (cdr elt)))) ;; copy the alist element to be safe
+                      (hamt-set-layer-singleton (funcall hash-function key)
+                                                item))))
+          (dolist (elt (cdr alist))
+            (let* ((key (car elt))
+                   (item (cons key (cdr elt))))
+              (setq root (hamt-set-nreplace root item
+                                            (funcall hash-function key) test))))
+          (setf (hash-map-root hash-map) root))))
+    hash-map))
+
+(defun hash-map-hash-table (hash-map &rest hash-table-initargs)
+  "Returns a hash table containing the keys and values of `HASH-MAP'.
+Hash table is initialized using the HASH-TABLE-INITARGS."
+  (declare (type hash-map hash-map)
+           (dynamic-extent hash-table-initargs))
+  (let ((h (apply #'make-hash-table hash-table-initargs)))
+    (do-hash-map ((k v) hash-map h)
+      (setf (gethash k h) v))))
+
+(defun hash-table-hash-map (hash-table &key (test #'eql) hash-function)
+  "Returns a hash-map containing the keys and values of the hash-table `HASH-TABLE'."
+  (declare (type function test)
+           (type (or function null) hash-function))
+  (let ((hash-map (%make-hash-map (%hash-map-functions hash-function test)
+                                  nil)))
+    (%with-hash-map (hash-function test) hash-map
+      (let ((root nil))
+        (loop for k being the hash-key of hash-table
+                using (hash-value v)
+              for item = (cons k v)
+              for hash-code = (funcall hash-function k)
+              do (setq root
+                       (if root
+                           (hamt-set-ninsert root item hash-code test)
+                           (hamt-set-layer-singleton hash-code item))))
+        (setf (hash-map-root hash-map) root)))
+    hash-map))
+
+(defun hash-map-values (hash-map)
+  (hamt-set-map-list #'cdr (hash-map-root hash-map)))
+
+(defun hash-map-keys (hash-map)
+  (hamt-set-map-list #'car (hash-map-root hash-map)))
+
+(defmethod print-object ((object hash-map) stream)
+  (%print-object-map object stream #'hash-map-alist))
 
 ;;;;;;;;;;;;;;;
 ;; Tree-Heap ;;

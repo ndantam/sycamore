@@ -136,6 +136,24 @@
    :fold-hash-set
    :fold-right-hash-set
 
+   ;; hash-map
+   :hash-map
+   :make-hash-map
+   :empty-hash-map
+   :hash-map-insert
+   :hash-map-remove
+   :hash-map-find
+   :hash-map-contains
+   :map-hash-map
+   :do-hash-map
+   :fold-hash-map
+   :hash-map-alist
+   :alist-hash-map
+   :hash-map-values
+   :hash-map-keys
+   :hash-map-hash-table
+   :hash-table-hash-map
+
    ;; misc
    or-compare))
 
