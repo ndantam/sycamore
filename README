@@ -314,50 +314,17 @@ FSet
 ----
 https://gitlab.common-lisp.net/fset/fset
 
-FSet implements finite sets with a CLOS-based set interface, while
-Sycamore's finite sets take a parameter for a comparison function or
-for hashing and test functions.  Both offer weight-balanced trees
-(WB-trees) with minor algorithmic differences.  Sycamore also offers
-hash array mapped tries (HAMTs), while this appears to be a planned
-feature of FSET.  Generic vs. explicit comparison functions are an
-aesthetic, flexibility, and performance issue.  FSet's generic
-comparison functions do not need to be passed explicitly, while
-Sycamore requires explicit comparison or test and hashing function
-parameters (but follows ANSI CL defaults for test and hashing
-functions).  Explicit functions permit comparing the same type
-differently if needed (e.g., lexicographic vs. fast string
-comparison), and explicit functions are more efficient than CLOS
-method dispatch.
+FSet implements finite sets using a data structure similar to (and
+which in part inspired) Sycamore's WB-tree implementation.  FSet trees
+support partial orders, whereas Sycamore trees assume a total order
+(Sycamore HAMTs don't require any order).  FSet uses a single, global
+ordering for elements via a generic function, while Sycamore orders
+elements with a per-collection COMPARE parameter or hashes elements
+with per-collection HASH-FUNCTION and TEST parameters (defaulting to
+ANSI CL SXHASH and EQL).
 
-The FSET author has a blog post comparing FSET and Sycamore:
-https://scottlburson2.blogspot.com/2024/10/comparison-fset-vs-sycamore.html.
-A further difference noted in the post is that FSET has a notion of
-equivalent-but-unequal (or unordered), giving examples of integer 1
-vs. floating point 1.0 and uninterned symbols with the same name but
-that are in fact different symbols.  In contrast Sycamore sets require
-either a total order (trees) or hashing and test functions (HAMTs),
-but which may be different for different collections.  Let's consider
-the ANSI CL hash-tables `(make-hash-table :test #'eql)` and
-`(make-hash-table :test #'equalp)`, where 1 and 1.0 are distinct under
-EQL, but the same under EQUALP.  That is, different use cases may
-require different notions of equality not admitted by a global,
-type-dispatched comparison.  For trees, we could totally order for
-EQUALP by numeric difference or we could totally order for EQL
-considering first type and then numeric difference.  For HAMTs, ANSI
-CL SXHASH works for EQL, and on SBCL, PSXHASH works for EQUALP.
-Totally ordering uninterned symbols seems trickier, and SBCL's SXHASH
-provides the same hash codes for uninterned symbols with identical
-names but that are not EQL, leading to chaining in Sycamore's HAMTs
-(perhaps one could hash uninterned symbols considering their address,
-but this seems inexpressible in portable CL, let alone conflicting
-with SXHASH's specified behavior of producing identical hash codes for
-symbols cross Lisp images).  Admittedly, writing comparison functions
-for tree sets may require some (usually modest) effort, but aligning
-with ANSI CL behavior for HAMT hashing functions covers common cases
-simply and efficiently.
-
-Included benchmarks show that Sycamore HAMTs are 2-10x faster than
-FSet, and Sycamore WB-trees are 1.5-3x faster than FSET.
+Included benchmarks show that Sycamore WB-trees are 1.5-3x faster than
+FSET, and Sycamore HAMTs are 2-10x faster than FSet.
 
 CL-HAMT
 -------
