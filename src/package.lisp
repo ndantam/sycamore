@@ -147,6 +147,8 @@
    :map-hash-map
    :do-hash-map
    :fold-hash-map
+   :fold-hash-map-keys
+   :fold-hash-map-values
    :hash-map-alist
    :alist-hash-map
    :hash-map-values

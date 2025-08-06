@@ -970,6 +970,24 @@ FUNCTION: (FUNCTION (initial-value key value)) -> initial-value"
     (declare (dynamic-extent (function helper)))
     (hamt-set-fold-left #'helper initial-value (hash-map-root hash-map))))
 
+(defun fold-hash-map-keys (function initial-value hash-map)
+  "Fold `FUNCTION' over members of the `HASH-MAP'
+FUNCTION: (FUNCTION (initial-value key)) -> initial-value"
+  (declare (type function function))
+  (flet ((helper (initial-value item)
+           (funcall function initial-value (car item))))
+    (declare (dynamic-extent (function helper)))
+    (hamt-set-fold-left #'helper initial-value (hash-map-root hash-map))))
+
+(defun fold-hash-map-values (function initial-value hash-map)
+  "Fold `FUNCTION' over members of the `HASH-MAP'
+FUNCTION: (FUNCTION (initial-value value)) -> initial-value"
+  (declare (type function function))
+  (flet ((helper (initial-value item)
+           (funcall function initial-value (cdr item))))
+    (declare (dynamic-extent (function helper)))
+    (hamt-set-fold-left #'helper initial-value (hash-map-root hash-map))))
+
 (defun hash-map-alist (hash-map)
   "Return an association list of all elements in the hash-map."
   (hamt-set-fold-right #'cons (hash-map-root hash-map) nil))
