@@ -3,7 +3,7 @@
 
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-  <title>SYCAMORE - Purely Functional Trees, Etc.</title>
+  <title>SYCAMORE - Fast, purely functional data structures</title>
   <style type="text/css">
   pre { padding:5px; background-color:#e0e0e0 }
   body { font-family: sans; background-color: white;}
@@ -25,16 +25,21 @@
   </style>
 </head><body>
 
-<h2> SYCAMORE - Purely Functional Trees, Etc.</h2>
+<h2> SYCAMORE - Fast, purely functional data structures</h2>
 
 <blockquote>
 <br>&nbsp;<br><h3><a name=abstract class=none>Abstract</a></h3>
-<p>Sycamore is a purely functional data structure library in Common
-Lisp.  It include fast, weight-balanced binary trees, set and
-map (dictionary) interfaces, pairing heaps, and amortized queues.</p>SYCAMORE is available under the <a href="http://opensource.org/licenses/BSD-3-Clause">3-Clause BSD license</a>.<p> <span class='download'>Download Source:</span> <code>git clone <a href="https://github.com/ndantam/sycamore">https://github.com/ndantam/sycamore</a></code></blockquote><br>&nbsp;<br><h3><a class=none name="contents">Contents</a></h3>
+<p>Sycamore is a fast, purely functional data structure library in
+Common Lisp.  It include hash array mapped tries, weight-balanced
+binary trees, set and map (dictionary) interfaces, pairing heaps, and
+amortized queues.</p>SYCAMORE is available under the <a href="http://opensource.org/licenses/BSD-3-Clause">3-Clause BSD license</a>.<p> <span class='download'>Download Source:</span> <code>git clone <a href="https://github.com/ndantam/sycamore">https://github.com/ndantam/sycamore</a></code></blockquote><br>&nbsp;<br><h3><a class=none name="contents">Contents</a></h3>
 <ol>
   <li><a href="#dictionary">The SYCAMORE dictionary</a>
     <ol>
+      <li><a href="#%rope"><code>%rope</code></a>
+      <li><a href="#*rope-print*"><code>*rope-print*</code></a>
+      <li><a href="#alist-hash-map"><code>alist-hash-map</code></a>
+      <li><a href="#alist-tree-map"><code>alist-tree-map</code></a>
       <li><a href="#amortized-dequeue"><code>amortized-dequeue</code></a>
       <li><a href="#amortized-enqueue"><code>amortized-enqueue</code></a>
       <li><a href="#amortized-queue"><code>amortized-queue</code></a>
@@ -42,18 +47,88 @@ map (dictionary) interfaces, pairing heaps, and amortized queues.</p>SYCAMORE is
       <li><a href="#amortized-queue-empty-p"><code>amortized-queue-empty-p</code></a>
       <li><a href="#amortized-queue-list"><code>amortized-queue-list</code></a>
       <li><a href="#amortized-queue-push"><code>amortized-queue-push</code></a>
+      <li><a href="#do-hash-map"><code>do-hash-map</code></a>
+      <li><a href="#do-tree-map"><code>do-tree-map</code></a>
       <li><a href="#do-tree-set"><code>do-tree-set</code></a>
+      <li><a href="#empty-hash-map"><code>empty-hash-map</code></a>
+      <li><a href="#empty-tree-map"><code>empty-tree-map</code></a>
+      <li><a href="#empty-tree-set"><code>empty-tree-set</code></a>
+      <li><a href="#fold-hash-map"><code>fold-hash-map</code></a>
+      <li><a href="#fold-hash-map-keys"><code>fold-hash-map-keys</code></a>
+      <li><a href="#fold-hash-map-values"><code>fold-hash-map-values</code></a>
+      <li><a href="#fold-hash-set"><code>fold-hash-set</code></a>
+      <li><a href="#fold-right-hash-set"><code>fold-right-hash-set</code></a>
+      <li><a href="#fold-tree-map"><code>fold-tree-map</code></a>
       <li><a href="#fold-tree-set"><code>fold-tree-set</code></a>
+      <li><a href="#hash-map"><code>hash-map</code></a>
+      <li><a href="#hash-map-alist"><code>hash-map-alist</code></a>
+      <li><a href="#hash-map-contains"><code>hash-map-contains</code></a>
+      <li><a href="#hash-map-find"><code>hash-map-find</code></a>
+      <li><a href="#hash-map-hash-table"><code>hash-map-hash-table</code></a>
+      <li><a href="#hash-map-insert"><code>hash-map-insert</code></a>
+      <li><a href="#hash-map-keys"><code>hash-map-keys</code></a>
+      <li><a href="#hash-map-remove"><code>hash-map-remove</code></a>
+      <li><a href="#hash-map-values"><code>hash-map-values</code></a>
+      <li><a href="#hash-set"><code>hash-set</code></a>
+      <li><a href="#hash-set-difference"><code>hash-set-difference</code></a>
+      <li><a href="#hash-set-empty-p"><code>hash-set-empty-p</code></a>
+      <li><a href="#hash-set-find"><code>hash-set-find</code></a>
+      <li><a href="#hash-set-insert"><code>hash-set-insert</code></a>
+      <li><a href="#hash-set-intersection"><code>hash-set-intersection</code></a>
+      <li><a href="#hash-set-intersection-p"><code>hash-set-intersection-p</code></a>
+      <li><a href="#hash-set-list"><code>hash-set-list</code></a>
+      <li><a href="#hash-set-remove"><code>hash-set-remove</code></a>
+      <li><a href="#hash-set-subset-p"><code>hash-set-subset-p</code></a>
+      <li><a href="#hash-set-union"><code>hash-set-union</code></a>
+      <li><a href="#hash-table-hash-map"><code>hash-table-hash-map</code></a>
+      <li><a href="#hash-table-tree-map"><code>hash-table-tree-map</code></a>
+      <li><a href="#list-hash-set"><code>list-hash-set</code></a>
       <li><a href="#make-amortized-queue"><code>make-amortized-queue</code></a>
+      <li><a href="#make-hash-map"><code>make-hash-map</code></a>
+      <li><a href="#make-hash-set"><code>make-hash-set</code></a>
       <li><a href="#make-tree-map"><code>make-tree-map</code></a>
       <li><a href="#make-tree-set"><code>make-tree-set</code></a>
+      <li><a href="#map-hash-map"><code>map-hash-map</code></a>
+      <li><a href="#map-hash-set"><code>map-hash-set</code></a>
       <li><a href="#map-tree-map"><code>map-tree-map</code></a>
       <li><a href="#map-tree-set"><code>map-tree-set</code></a>
+      <li><a href="#object-rope"><code>object-rope</code></a>
       <li><a href="#or-compare"><code>or-compare</code></a>
+      <li><a href="#output-rope"><code>output-rope</code></a>
+      <li><a href="#rope"><code>rope</code></a>
+      <li><a href="#rope-compare-fast"><code>rope-compare-fast</code></a>
+      <li><a href="#rope-compare-lexographic"><code>rope-compare-lexographic</code></a>
+      <li><a href="#rope-length"><code>rope-length</code></a>
+      <li><a href="#rope-map"><code>rope-map</code></a>
+      <li><a href="#rope-parenthesize"><code>rope-parenthesize</code></a>
+      <li><a href="#rope-pathname"><code>rope-pathname</code></a>
+      <li><a href="#rope-ref"><code>rope-ref</code></a>
+      <li><a href="#rope-split"><code>rope-split</code></a>
+      <li><a href="#rope-string"><code>rope-string</code></a>
+      <li><a href="#rope-write"><code>rope-write</code></a>
+      <li><a href="#rope/="><code>rope/=</code></a>
+      <li><a href="#rope<"><code>rope<</code></a>
+      <li><a href="#rope<="><code>rope<=</code></a>
+      <li><a href="#rope="><code>rope=</code></a>
+      <li><a href="#rope>"><code>rope></code></a>
+      <li><a href="#rope>="><code>rope>=</code></a>
+      <li><a href="#ropep"><code>ropep</code></a>
+      <li><a href="#sexp-rope"><code>sexp-rope</code></a>
+      <li><a href="#subrope"><code>subrope</code></a>
+      <li><a href="#tree-map"><code>tree-map</code></a>
+      <li><a href="#tree-map-alist"><code>tree-map-alist</code></a>
+      <li><a href="#tree-map-contains"><code>tree-map-contains</code></a>
       <li><a href="#tree-map-count"><code>tree-map-count</code></a>
       <li><a href="#tree-map-find"><code>tree-map-find</code></a>
+      <li><a href="#tree-map-hash-table"><code>tree-map-hash-table</code></a>
       <li><a href="#tree-map-insert"><code>tree-map-insert</code></a>
+      <li><a href="#tree-map-insert-alist"><code>tree-map-insert-alist</code></a>
+      <li><a href="#tree-map-insert-hash-table"><code>tree-map-insert-hash-table</code></a>
+      <li><a href="#tree-map-insert-map"><code>tree-map-insert-map</code></a>
+      <li><a href="#tree-map-insertf"><code>tree-map-insertf</code></a>
+      <li><a href="#tree-map-keys"><code>tree-map-keys</code></a>
       <li><a href="#tree-map-remove"><code>tree-map-remove</code></a>
+      <li><a href="#tree-map-values"><code>tree-map-values</code></a>
       <li><a href="#tree-set"><code>tree-set</code></a>
       <li><a href="#tree-set"><code>tree-set</code></a>
       <li><a href="#tree-set-compare"><code>tree-set-compare</code></a>
@@ -62,10 +137,15 @@ map (dictionary) interfaces, pairing heaps, and amortized queues.</p>SYCAMORE is
       <li><a href="#tree-set-equal-p"><code>tree-set-equal-p</code></a>
       <li><a href="#tree-set-find"><code>tree-set-find</code></a>
       <li><a href="#tree-set-insert"><code>tree-set-insert</code></a>
+      <li><a href="#tree-set-insertf"><code>tree-set-insertf</code></a>
+      <li><a href="#tree-set-intern"><code>tree-set-intern</code></a>
       <li><a href="#tree-set-intersection"><code>tree-set-intersection</code></a>
       <li><a href="#tree-set-intersection-difference"><code>tree-set-intersection-difference</code></a>
+      <li><a href="#tree-set-intersection-p"><code>tree-set-intersection-p</code></a>
       <li><a href="#tree-set-list"><code>tree-set-list</code></a>
+      <li><a href="#tree-set-max"><code>tree-set-max</code></a>
       <li><a href="#tree-set-member-p"><code>tree-set-member-p</code></a>
+      <li><a href="#tree-set-min"><code>tree-set-min</code></a>
       <li><a href="#tree-set-p"><code>tree-set-p</code></a>
       <li><a href="#tree-set-position"><code>tree-set-position</code></a>
       <li><a href="#tree-set-ref"><code>tree-set-ref</code></a>
@@ -73,6 +153,7 @@ map (dictionary) interfaces, pairing heaps, and amortized queues.</p>SYCAMORE is
       <li><a href="#tree-set-remove-max"><code>tree-set-remove-max</code></a>
       <li><a href="#tree-set-remove-min"><code>tree-set-remove-min</code></a>
       <li><a href="#tree-set-remove-position"><code>tree-set-remove-position</code></a>
+      <li><a href="#tree-set-replace"><code>tree-set-replace</code></a>
       <li><a href="#tree-set-subset-p"><code>tree-set-subset-p</code></a>
       <li><a href="#tree-set-union"><code>tree-set-union</code></a>
     </ol>
@@ -81,6 +162,57 @@ map (dictionary) interfaces, pairing heaps, and amortized queues.</p>SYCAMORE is
   <li><a href="#ack">Acknowledgements</a>
 </ol><br>&nbsp;<br><h3><a class=none name="dictionary">The SYCAMORE dictionary</a></h3>
 
+
+
+<!-- Entry for %ROPE -->
+
+<p><br>[Function]<br><a class=none name='%rope'><b>%rope</b> <i>first second</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Construct a rope from FIRST and SECOND.
+FIRST: an object of rope or sequence type
+SECOND: an object of rope or sequence type
+RETURNS: a rope concatenating FIRST and SECOND
+
+</blockquote>
+
+<!-- End of entry for %ROPE -->
+
+
+<!-- Entry for *ROPE-PRINT* -->
+
+<p><br>[Special variable]<br><a class=none name='*rope-print*'><b>*rope-print*</b></a>
+<blockquote><br>
+
+How to print ropes, one of (or :rope :string :structure)
+
+</blockquote>
+
+<!-- End of entry for *ROPE-PRINT* -->
+
+
+<!-- Entry for ALIST-HASH-MAP -->
+
+<p><br>[Function]<br><a class=none name='alist-hash-map'><b>alist-hash-map</b> <i>alist <tt>&amp;key</tt> test hash-function</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Returns a hash-map from keys and values of association list `ALIST&#039;
+
+</blockquote>
+
+<!-- End of entry for ALIST-HASH-MAP -->
+
+
+<!-- Entry for ALIST-TREE-MAP -->
+
+<p><br>[Function]<br><a class=none name='alist-tree-map'><b>alist-tree-map</b> <i>alist compare</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Returns a tree-map containing the keys and values of the association list ALIST.
+
+</blockquote>
+
+<!-- End of entry for ALIST-TREE-MAP -->
 
 
 <!-- Entry for AMORTIZED-DEQUEUE -->
@@ -169,6 +301,30 @@ Add ELEMENT to the front of QUEUE.
 <!-- End of entry for AMORTIZED-QUEUE-PUSH -->
 
 
+<!-- Entry for DO-HASH-MAP -->
+
+<p><br>[Macro]<br><a class=none name='do-hash-map'><b>do-hash-map</b> <i>((key value) hash-map <tt>&amp;optional</tt> result) declaration* statement*</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for DO-HASH-MAP -->
+
+
+<!-- Entry for DO-TREE-MAP -->
+
+<p><br>[Macro]<br><a class=none name='do-tree-map'><b>do-tree-map</b> <i>((key value) map <tt>&amp;optional</tt> result) declaration* statement*</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for DO-TREE-MAP -->
+
+
 <!-- Entry for DO-TREE-SET -->
 
 <p><br>[Macro]<br><a class=none name='do-tree-set'><b>do-tree-set</b> <i>(var set <tt>&amp;optional</tt> result) declaration* statement*</i> =&gt; <i>result</i></a>
@@ -179,6 +335,124 @@ Add ELEMENT to the front of QUEUE.
 </blockquote>
 
 <!-- End of entry for DO-TREE-SET -->
+
+
+<!-- Entry for EMPTY-HASH-MAP -->
+
+<p><br>[Function]<br><a class=none name='empty-hash-map'><b>empty-hash-map</b> <i>hash-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Create a new empty hash-map.
+
+</blockquote>
+
+<!-- End of entry for EMPTY-HASH-MAP -->
+
+
+<!-- Entry for EMPTY-TREE-MAP -->
+
+<p><br>[Function]<br><a class=none name='empty-tree-map'><b>empty-tree-map</b> <i>tree-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Create a new empty tree-map.
+
+</blockquote>
+
+<!-- End of entry for EMPTY-TREE-MAP -->
+
+
+<!-- Entry for EMPTY-TREE-SET -->
+
+<p><br>[Function]<br><a class=none name='empty-tree-set'><b>empty-tree-set</b> <i>tree-set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Create a new empty tree-set.
+
+</blockquote>
+
+<!-- End of entry for EMPTY-TREE-SET -->
+
+
+<!-- Entry for FOLD-HASH-MAP -->
+
+<p><br>[Function]<br><a class=none name='fold-hash-map'><b>fold-hash-map</b> <i>function initial-value hash-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Fold `FUNCTION&#039; over members of the `HASH-MAP&#039;
+FUNCTION: (FUNCTION (initial-value key value)) -&gt; initial-value
+
+</blockquote>
+
+<!-- End of entry for FOLD-HASH-MAP -->
+
+
+<!-- Entry for FOLD-HASH-MAP-KEYS -->
+
+<p><br>[Function]<br><a class=none name='fold-hash-map-keys'><b>fold-hash-map-keys</b> <i>function initial-value hash-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Fold `FUNCTION&#039; over members of the `HASH-MAP&#039;
+FUNCTION: (FUNCTION (initial-value key)) -&gt; initial-value
+
+</blockquote>
+
+<!-- End of entry for FOLD-HASH-MAP-KEYS -->
+
+
+<!-- Entry for FOLD-HASH-MAP-VALUES -->
+
+<p><br>[Function]<br><a class=none name='fold-hash-map-values'><b>fold-hash-map-values</b> <i>function initial-value hash-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Fold `FUNCTION&#039; over members of the `HASH-MAP&#039;
+FUNCTION: (FUNCTION (initial-value value)) -&gt; initial-value
+
+</blockquote>
+
+<!-- End of entry for FOLD-HASH-MAP-VALUES -->
+
+
+<!-- Entry for FOLD-HASH-SET -->
+
+<p><br>[Function]<br><a class=none name='fold-hash-set'><b>fold-hash-set</b> <i>function initial-value set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Fold `FUNCTION&#039; over every element of `SET&#039;.
+FUNCTION: (lambda (initial-value element)) -&gt; next-initial-value.
+INITIAL-VALUE: value passed as first argument to initial call to `FUNCTION&#039;.
+SET: a hash-set whose elements are past as the second argument in each call to `FUNCTION&#039;.
+
+</blockquote>
+
+<!-- End of entry for FOLD-HASH-SET -->
+
+
+<!-- Entry for FOLD-RIGHT-HASH-SET -->
+
+<p><br>[Function]<br><a class=none name='fold-right-hash-set'><b>fold-right-hash-set</b> <i>function set initial-value</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Fold `FUNCTION&#039; over every element of `SET&#039;.
+FUNCTION: (lambda (element initial-value)) -&gt; next-initial-value.
+SET: a hash-set whose elements are past as the first argument in each call to `FUNCTION&#039;.
+INITIAL-VALUE: value passed as second argument to initial call to `FUNCTION&#039;.
+
+</blockquote>
+
+<!-- End of entry for FOLD-RIGHT-HASH-SET -->
+
+
+<!-- Entry for FOLD-TREE-MAP -->
+
+<p><br>[Function]<br><a class=none name='fold-tree-map'><b>fold-tree-map</b> <i>function initial-value tree-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Fold FUNCTION over members of the map
+FUNCTION: (FUNCTION initial-value key value) -&gt; initial-value
+
+</blockquote>
+
+<!-- End of entry for FOLD-TREE-MAP -->
 
 
 <!-- Entry for FOLD-TREE-SET -->
@@ -193,6 +467,290 @@ Fold FUNCTION over every element of SET.
 <!-- End of entry for FOLD-TREE-SET -->
 
 
+<!-- Entry for HASH-MAP -->
+
+<p><br>[Standard class]<br><a class=none name='hash-map'><b>hash-map</b></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for HASH-MAP -->
+
+
+<!-- Entry for HASH-MAP-ALIST -->
+
+<p><br>[Function]<br><a class=none name='hash-map-alist'><b>hash-map-alist</b> <i>hash-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Return an association list of all elements in the hash-map.
+
+</blockquote>
+
+<!-- End of entry for HASH-MAP-ALIST -->
+
+
+<!-- Entry for HASH-MAP-CONTAINS -->
+
+<p><br>[Function]<br><a class=none name='hash-map-contains'><b>hash-map-contains</b> <i>hash-map key</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Test if a `KEY&#039; is present in `HASH-MAP&#039;
+
+</blockquote>
+
+<!-- End of entry for HASH-MAP-CONTAINS -->
+
+
+<!-- Entry for HASH-MAP-FIND -->
+
+<p><br>[Function]<br><a class=none name='hash-map-find'><b>hash-map-find</b> <i>hash-map key <tt>&amp;optional</tt> default</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Find value indexed by `KEY&#039; in `HASH-MAP&#039;
+RETURNS: (values VALUE T) if `KEY&#039; is in `HASH-MAP&#039;, or
+         (values DEFAULT NIL) if `KEY&#039; is not in `HASH-MAP&#039;.
+
+</blockquote>
+
+<!-- End of entry for HASH-MAP-FIND -->
+
+
+<!-- Entry for HASH-MAP-HASH-TABLE -->
+
+<p><br>[Function]<br><a class=none name='hash-map-hash-table'><b>hash-map-hash-table</b> <i>hash-map <tt>&amp;rest</tt> hash-table-initargs</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Returns a hash table containing the keys and values of `HASH-MAP&#039;.
+Hash table is initialized using the HASH-TABLE-INITARGS.
+
+</blockquote>
+
+<!-- End of entry for HASH-MAP-HASH-TABLE -->
+
+
+<!-- Entry for HASH-MAP-INSERT -->
+
+<p><br>[Function]<br><a class=none name='hash-map-insert'><b>hash-map-insert</b> <i>hash-map key value</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Insert `KEY&#039;=&gt;`VALUE&#039; into `HASH-MAP&#039;, returning the new hash-map.
+
+</blockquote>
+
+<!-- End of entry for HASH-MAP-INSERT -->
+
+
+<!-- Entry for HASH-MAP-KEYS -->
+
+<p><br>[Function]<br><a class=none name='hash-map-keys'><b>hash-map-keys</b> <i>hash-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for HASH-MAP-KEYS -->
+
+
+<!-- Entry for HASH-MAP-REMOVE -->
+
+<p><br>[Function]<br><a class=none name='hash-map-remove'><b>hash-map-remove</b> <i>hash-map key</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Remove `KEY&#039; from `HASH-MAP&#039;, returning the new hash-map.
+
+</blockquote>
+
+<!-- End of entry for HASH-MAP-REMOVE -->
+
+
+<!-- Entry for HASH-MAP-VALUES -->
+
+<p><br>[Function]<br><a class=none name='hash-map-values'><b>hash-map-values</b> <i>hash-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for HASH-MAP-VALUES -->
+
+
+<!-- Entry for HASH-SET -->
+
+<p><br>[Standard class]<br><a class=none name='hash-set'><b>hash-set</b></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for HASH-SET -->
+
+
+<!-- Entry for HASH-SET-DIFFERENCE -->
+
+<p><br>[Function]<br><a class=none name='hash-set-difference'><b>hash-set-difference</b> <i>set-1 set-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Difference of `SET-1&#039; and `SET-2&#039;.
+
+</blockquote>
+
+<!-- End of entry for HASH-SET-DIFFERENCE -->
+
+
+<!-- Entry for HASH-SET-EMPTY-P -->
+
+<p><br>[Function]<br><a class=none name='hash-set-empty-p'><b>hash-set-empty-p</b> <i>set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Test if `SET&#039; is empty.
+RETURNS: T if `SET&#039; contains zero items, or
+         NIL `SET&#039; contains some items.
+
+</blockquote>
+
+<!-- End of entry for HASH-SET-EMPTY-P -->
+
+
+<!-- Entry for HASH-SET-FIND -->
+
+<p><br>[Function]<br><a class=none name='hash-set-find'><b>hash-set-find</b> <i>set item <tt>&amp;optional</tt> default</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Search `SET&#039; for `ITEM&#039;.
+RETURNS: (values ITEM T) if `ITEM&#039; is in `SET&#039;, or
+         (values DEFAULT NIL) if `ITEM&#039; is not in `SET&#039;.
+
+</blockquote>
+
+<!-- End of entry for HASH-SET-FIND -->
+
+
+<!-- Entry for HASH-SET-INSERT -->
+
+<p><br>[Function]<br><a class=none name='hash-set-insert'><b>hash-set-insert</b> <i>set item</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Insert `ITEM&#039; into `SET&#039;.
+
+</blockquote>
+
+<!-- End of entry for HASH-SET-INSERT -->
+
+
+<!-- Entry for HASH-SET-INTERSECTION -->
+
+<p><br>[Function]<br><a class=none name='hash-set-intersection'><b>hash-set-intersection</b> <i>set-1 set-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Intersection of `SET-1&#039; and `SET-2&#039;.
+
+</blockquote>
+
+<!-- End of entry for HASH-SET-INTERSECTION -->
+
+
+<!-- Entry for HASH-SET-INTERSECTION-P -->
+
+<p><br>[Function]<br><a class=none name='hash-set-intersection-p'><b>hash-set-intersection-p</b> <i>set-1 set-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Do `SET-1&#039; and `SET-2&#039; intersect?
+
+</blockquote>
+
+<!-- End of entry for HASH-SET-INTERSECTION-P -->
+
+
+<!-- Entry for HASH-SET-LIST -->
+
+<p><br>[Function]<br><a class=none name='hash-set-list'><b>hash-set-list</b> <i>set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Return a list of elements in `SET&#039;.
+
+</blockquote>
+
+<!-- End of entry for HASH-SET-LIST -->
+
+
+<!-- Entry for HASH-SET-REMOVE -->
+
+<p><br>[Function]<br><a class=none name='hash-set-remove'><b>hash-set-remove</b> <i>set item</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Remove `ITEM&#039; from `SET&#039;.
+
+</blockquote>
+
+<!-- End of entry for HASH-SET-REMOVE -->
+
+
+<!-- Entry for HASH-SET-SUBSET-P -->
+
+<p><br>[Function]<br><a class=none name='hash-set-subset-p'><b>hash-set-subset-p</b> <i>set-1 set-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Is `SET-1&#039; a subset of `SET-2&#039;?
+RETURNS: T or NIL
+
+</blockquote>
+
+<!-- End of entry for HASH-SET-SUBSET-P -->
+
+
+<!-- Entry for HASH-SET-UNION -->
+
+<p><br>[Function]<br><a class=none name='hash-set-union'><b>hash-set-union</b> <i>set-1 set-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Union of `SET-1&#039; and `SET-2&#039;.
+
+</blockquote>
+
+<!-- End of entry for HASH-SET-UNION -->
+
+
+<!-- Entry for HASH-TABLE-HASH-MAP -->
+
+<p><br>[Function]<br><a class=none name='hash-table-hash-map'><b>hash-table-hash-map</b> <i>hash-table <tt>&amp;key</tt> test hash-function</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Returns a hash-map containing the keys and values of the hash-table `HASH-TABLE&#039;.
+
+</blockquote>
+
+<!-- End of entry for HASH-TABLE-HASH-MAP -->
+
+
+<!-- Entry for HASH-TABLE-TREE-MAP -->
+
+<p><br>[Function]<br><a class=none name='hash-table-tree-map'><b>hash-table-tree-map</b> <i>hash-table compare</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Returns a tree-map containing the keys and values of the hash-table HASH-TABLE.
+
+</blockquote>
+
+<!-- End of entry for HASH-TABLE-TREE-MAP -->
+
+
+<!-- Entry for LIST-HASH-SET -->
+
+<p><br>[Function]<br><a class=none name='list-hash-set'><b>list-hash-set</b> <i>list <tt>&amp;key</tt> test hash-function key</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Construct a hash-set from a list of elements.
+
+</blockquote>
+
+<!-- End of entry for LIST-HASH-SET -->
+
+
 <!-- Entry for MAKE-AMORTIZED-QUEUE -->
 
 <p><br>[Function]<br><a class=none name='make-amortized-queue'><b>make-amortized-queue</b> <i></i> =&gt; <i>result</i></a>
@@ -203,6 +761,63 @@ Make a new queue.
 </blockquote>
 
 <!-- End of entry for MAKE-AMORTIZED-QUEUE -->
+
+
+<!-- Entry for MAKE-HASH-MAP -->
+
+<p><br>[Function]<br><a class=none name='make-hash-map'><b>make-hash-map</b> <i><tt>&amp;key</tt> test hash-function</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Create and return new HASH-mAP.  The keywords are as follows:
+
+  :TEST
+    Function to compare items: (TEST key-1 key-2) -&gt; BOOLEAN.
+
+  :HASH-FUNCTION
+    Function to compute hash codes:
+    (HASH-FUNCTION key) -&gt; non-negative-fixnum.
+    If not provided, MAKE-HASH-SET will try to find a valid hash
+    function for TEST.
+
+</blockquote>
+
+<!-- End of entry for MAKE-HASH-MAP -->
+
+
+<!-- Entry for MAKE-HASH-SET -->
+
+<p><br>[Function]<br><a class=none name='make-hash-set'><b>make-hash-set</b> <i><tt>&amp;key</tt> test hash-function key</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Create and return new HASH-SET.  The keywords are as follows:
+
+  :TEST
+    Function to compare items: (TEST item-1 item-2) -&gt; BOOLEAN.
+
+  :HASH-FUNCTION
+    Function to compute hash codes:
+    (HASH-FUNCTION item) -&gt; non-negative-fixnum.
+    If not provided, MAKE-HASH-SET will try to find a valid hash
+    function for TEST.
+
+  :KEY
+    If provided, apply `TEST&#039; and `HASH-FUNCTION&#039; to `(FUNCALL KEY
+    ITEM)&#039;.
+
+Note 1: It is required that when (TEST ITEM-1 ITEM-2) is true,
+HASH-FUNCTION will return the same value for both ITEM-1 and ITEM-2.
+
+Note 2: ANSI Common Lisp DOES NOT require #&#039;SXHASH to return the same
+value for two numbers that are #&#039;= but of different types, or for two
+objects that are #&#039;EQUALP, but not #&#039;EQUAL. MAKE-HASH-SET will attempt
+to use implementation-specific hashing functions for those
+tests. However, if either the implementation specific function is not
+known to MAKE-HASH-SET or the caller is using some other TEST, then
+the caller must provide a valid HASH-FUNCTION.
+
+</blockquote>
+
+<!-- End of entry for MAKE-HASH-SET -->
 
 
 <!-- Entry for MAKE-TREE-MAP -->
@@ -229,6 +844,34 @@ Create a new tree-set.
 <!-- End of entry for MAKE-TREE-SET -->
 
 
+<!-- Entry for MAP-HASH-MAP -->
+
+<p><br>[Function]<br><a class=none name='map-hash-map'><b>map-hash-map</b> <i>result-type function hash-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Apply `FUNCTION&#039; to all elements in `HASH-MAP&#039;.
+RESULT-TYPE: (or nil &#039;list &#039;vector).
+FUNCTION: (FUNCTION key value) -&gt; result
+
+</blockquote>
+
+<!-- End of entry for MAP-HASH-MAP -->
+
+
+<!-- Entry for MAP-HASH-SET -->
+
+<p><br>[Function]<br><a class=none name='map-hash-set'><b>map-hash-set</b> <i>result-type function set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Apply `FUNCTION&#039; to all elements in `SET&#039;.
+RESULT-TYPE: (or nil &#039;list &#039;vector)
+FUNCTION: (lambda (element)).
+
+</blockquote>
+
+<!-- End of entry for MAP-HASH-SET -->
+
+
 <!-- Entry for MAP-TREE-MAP -->
 
 <p><br>[Function]<br><a class=none name='map-tree-map'><b>map-tree-map</b> <i>order result-type function tree-map</i> =&gt; <i>result</i></a>
@@ -237,7 +880,7 @@ Create a new tree-set.
 Apply FUNCTION to all elements in TREE-MAP.
 ORDER: (or :inorder :preorder :postorder).
 RESULT-TYPE: (or nil &#039;list).
-FUNCTION: (lambda (key value)).
+FUNCTION: (FUNCTION key value) -&gt; result
 
 </blockquote>
 
@@ -256,6 +899,198 @@ Apply FUNCTION to every element of SET.
 <!-- End of entry for MAP-TREE-SET -->
 
 
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Generic function]<br><a class=none name='object-rope'><b>object-rope</b> <i>object</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object cgen-subscript)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object cgen-binop)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object cgen-unop-post)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object cgen-unop-pre)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object cgen-block)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>object</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object pathname)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object double-float)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object float)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object array)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object list)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object symbol)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object character)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object rope-node)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
+<!-- Entry for OBJECT-ROPE -->
+
+<p><br>[Method]<br><a class=none><b>object-rope</b> <i>(object string)</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OBJECT-ROPE -->
+
+
 <!-- Entry for OR-COMPARE -->
 
 <p><br>[Macro]<br><a class=none name='or-compare'><b>or-compare</b> <i><tt>&amp;rest</tt> comparisons</i> =&gt; <i>result</i></a>
@@ -266,6 +1101,321 @@ Short-circuit evaluatation of arguments, returning the first one that is nonzero
 </blockquote>
 
 <!-- End of entry for OR-COMPARE -->
+
+
+<!-- Entry for OUTPUT-ROPE -->
+
+<p><br>[Function]<br><a class=none name='output-rope'><b>output-rope</b> <i>object place <tt>&amp;key</tt> if-exists</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for OUTPUT-ROPE -->
+
+
+<!-- Entry for ROPE -->
+
+<p><br>[Function]<br><a class=none name='rope'><b>rope</b> <i><tt>&amp;rest</tt> args</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Concatenate all ropes in ARGS.
+
+Arguments of sequence type will be flattened and concatanted into the
+rope.  Other non-rope arguments will be coerced to a rope type by
+calling the OBJECT-ROPE generic function.
+
+
+RETURNS: a rope
+
+</blockquote>
+
+<!-- End of entry for ROPE -->
+
+
+<!-- Entry for ROPE-COMPARE-FAST -->
+
+<p><br>[Function]<br><a class=none name='rope-compare-fast'><b>rope-compare-fast</b> <i>rope-1 rope-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Compare ropes quickly.
+
+The resulting order is not necessarily lexographic.
+
+</blockquote>
+
+<!-- End of entry for ROPE-COMPARE-FAST -->
+
+
+<!-- Entry for ROPE-COMPARE-LEXOGRAPHIC -->
+
+<p><br>[Function]<br><a class=none name='rope-compare-lexographic'><b>rope-compare-lexographic</b> <i>rope-1 rope-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Compare ropes lexographically.
+
+</blockquote>
+
+<!-- End of entry for ROPE-COMPARE-LEXOGRAPHIC -->
+
+
+<!-- Entry for ROPE-LENGTH -->
+
+<p><br>[Function]<br><a class=none name='rope-length'><b>rope-length</b> <i>rope</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Return the number of characters in rope
+
+</blockquote>
+
+<!-- End of entry for ROPE-LENGTH -->
+
+
+<!-- Entry for ROPE-MAP -->
+
+<p><br>[Function]<br><a class=none name='rope-map'><b>rope-map</b> <i>function sequence <tt>&amp;key</tt> start end separator</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Apply FUNCTION to each element of SEQUENCE and collect results into a rope.
+
+FUNCTION: (lambda (x)) =&gt; ROPE
+SEQUENCE: a sequence
+START: initial position in SEQUENCE
+END: final position in SEQUENCE
+SEPARATOR: a rope to splice between the items of SEQUENCE
+
+RETURNS: a rope
+
+</blockquote>
+
+<!-- End of entry for ROPE-MAP -->
+
+
+<!-- Entry for ROPE-PARENTHESIZE -->
+
+<p><br>[Function]<br><a class=none name='rope-parenthesize'><b>rope-parenthesize</b> <i>rope</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Return the parenthesized ROPE.
+
+</blockquote>
+
+<!-- End of entry for ROPE-PARENTHESIZE -->
+
+
+<!-- Entry for ROPE-PATHNAME -->
+
+<p><br>[Function]<br><a class=none name='rope-pathname'><b>rope-pathname</b> <i>rope</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Convert the rope to a pathname.
+
+</blockquote>
+
+<!-- End of entry for ROPE-PATHNAME -->
+
+
+<!-- Entry for ROPE-REF -->
+
+<p><br>[Function]<br><a class=none name='rope-ref'><b>rope-ref</b> <i>rope i</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Return the character at position I.
+
+</blockquote>
+
+<!-- End of entry for ROPE-REF -->
+
+
+<!-- Entry for ROPE-SPLIT -->
+
+<p><br>[Function]<br><a class=none name='rope-split'><b>rope-split</b> <i>separator sequence <tt>&amp;key</tt> start end</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for ROPE-SPLIT -->
+
+
+<!-- Entry for ROPE-STRING -->
+
+<p><br>[Function]<br><a class=none name='rope-string'><b>rope-string</b> <i>rope <tt>&amp;key</tt> element-type</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Convert the rope to a string.
+
+</blockquote>
+
+<!-- End of entry for ROPE-STRING -->
+
+
+<!-- Entry for ROPE-WRITE -->
+
+<p><br>[Function]<br><a class=none name='rope-write'><b>rope-write</b> <i>rope <tt>&amp;key</tt> escape stream</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Write ROPE to STREAM.
+
+</blockquote>
+
+<!-- End of entry for ROPE-WRITE -->
+
+
+<!-- Entry for ROPE/= -->
+
+<p><br>[Function]<br><a class=none name='rope/='><b>rope/=</b> <i>rope-1 rope-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for ROPE/= -->
+
+
+<!-- Entry for ROPE< -->
+
+<p><br>[Function]<br><a class=none name='rope<'><b>rope<</b> <i>rope-1 rope-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for ROPE< -->
+
+
+<!-- Entry for ROPE<= -->
+
+<p><br>[Function]<br><a class=none name='rope<='><b>rope<=</b> <i>rope-1 rope-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for ROPE<= -->
+
+
+<!-- Entry for ROPE= -->
+
+<p><br>[Function]<br><a class=none name='rope='><b>rope=</b> <i>rope-1 rope-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for ROPE= -->
+
+
+<!-- Entry for ROPE> -->
+
+<p><br>[Function]<br><a class=none name='rope>'><b>rope></b> <i>rope-1 rope-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for ROPE> -->
+
+
+<!-- Entry for ROPE>= -->
+
+<p><br>[Function]<br><a class=none name='rope>='><b>rope>=</b> <i>rope-1 rope-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for ROPE>= -->
+
+
+<!-- Entry for ROPEP -->
+
+<p><br>[Function]<br><a class=none name='ropep'><b>ropep</b> <i>object</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for ROPEP -->
+
+
+<!-- Entry for SEXP-ROPE -->
+
+<p><br>[Function]<br><a class=none name='sexp-rope'><b>sexp-rope</b> <i>sexp <tt>&amp;key</tt> symbol-function</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Construct a rope representing S-Expression SEXP.
+
+SYMBOL-FUNCTION: A function to transform symbols in the rope.
+                 (lambda (symbol)) =&gt; rope
+RETURNS: a rope
+
+</blockquote>
+
+<!-- End of entry for SEXP-ROPE -->
+
+
+<!-- Entry for SUBROPE -->
+
+<p><br>[Function]<br><a class=none name='subrope'><b>subrope</b> <i>rope <tt>&amp;key</tt> start end copy</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Return the subrope of ROPE,
+beginning with element number START
+and continuing up to element number END.
+
+START: initial element number of the subrope
+END: one past the final element number of the subrope
+COPY: if true, copy leaf strings
+
+</blockquote>
+
+<!-- End of entry for SUBROPE -->
+
+
+<!-- Entry for TREE-MAP -->
+
+<p><br>[Standard class]<br><a class=none name='tree-map'><b>tree-map</b></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP -->
+
+
+<!-- Entry for TREE-MAP-ALIST -->
+
+<p><br>[Function]<br><a class=none name='tree-map-alist'><b>tree-map-alist</b> <i>tree-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Returns an association list containging the keys and values of tree-map TREE-MAP.
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-ALIST -->
+
+
+<!-- Entry for TREE-MAP-CONTAINS -->
+
+<p><br>[Function]<br><a class=none name='tree-map-contains'><b>tree-map-contains</b> <i>tree-map key</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Test if a key is present in tree-map
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-CONTAINS -->
 
 
 <!-- Entry for TREE-MAP-COUNT -->
@@ -282,7 +1432,8 @@ Number of elements in MAP.
 
 <!-- Entry for TREE-MAP-FIND -->
 
-<p><br>[Function]<br><a class=none name='tree-map-find'><b>tree-map-find</b> <i>tree-map key <tt>&amp;optional</tt> default</i> =&gt; <i>result</i></a>
+<p><br>[Accessor]<br><a class=none name='tree-map-find'><b>tree-map-find</b> <i>tree-map key <tt>&amp;optional</tt> default</i> =&gt; <i>result</i></a>
+<br><a class=none><tt>(setf (</tt><b>tree-map-find</b> <i>map key</i><tt>)</tt> <i>value</i><tt>)</tt></a>
 <blockquote><br>
 
 Find value indexed by KEY in TREE-MAP.
@@ -290,6 +1441,19 @@ Find value indexed by KEY in TREE-MAP.
 </blockquote>
 
 <!-- End of entry for TREE-MAP-FIND -->
+
+
+<!-- Entry for TREE-MAP-HASH-TABLE -->
+
+<p><br>[Function]<br><a class=none name='tree-map-hash-table'><b>tree-map-hash-table</b> <i>tree-map <tt>&amp;rest</tt> hash-table-initargs</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Returns a hash table containing the keys and values of the tree-map TREE-MAP.
+Hash table is initialized using the HASH-TABLE-INITARGS.
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-HASH-TABLE -->
 
 
 <!-- Entry for TREE-MAP-INSERT -->
@@ -304,16 +1468,88 @@ Insert KEY=&gt;VALUE into TREE-MAP, returning the new tree-map.
 <!-- End of entry for TREE-MAP-INSERT -->
 
 
+<!-- Entry for TREE-MAP-INSERT-ALIST -->
+
+<p><br>[Function]<br><a class=none name='tree-map-insert-alist'><b>tree-map-insert-alist</b> <i>tree-map alist</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Insert all elements of ALIST into TREE-MAP
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-INSERT-ALIST -->
+
+
+<!-- Entry for TREE-MAP-INSERT-HASH-TABLE -->
+
+<p><br>[Function]<br><a class=none name='tree-map-insert-hash-table'><b>tree-map-insert-hash-table</b> <i>tree-map hash-table</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Insert all elements of HASH-TABLE into TREE-MAP
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-INSERT-HASH-TABLE -->
+
+
+<!-- Entry for TREE-MAP-INSERT-MAP -->
+
+<p><br>[Function]<br><a class=none name='tree-map-insert-map'><b>tree-map-insert-map</b> <i>tree-map other-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Insert all elements of OTHER-MAP into TREE-MAP
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-INSERT-MAP -->
+
+
+<!-- Entry for TREE-MAP-INSERTF -->
+
+<p><br>[Macro]<br><a class=none name='tree-map-insertf'><b>tree-map-insertf</b> <i>place key value</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Insert KEY=&gt;VALUE into the tree map at PLACE, store at place.
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-INSERTF -->
+
+
+<!-- Entry for TREE-MAP-KEYS -->
+
+<p><br>[Function]<br><a class=none name='tree-map-keys'><b>tree-map-keys</b> <i>tree-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-KEYS -->
+
+
 <!-- Entry for TREE-MAP-REMOVE -->
 
 <p><br>[Function]<br><a class=none name='tree-map-remove'><b>tree-map-remove</b> <i>tree-map key</i> =&gt; <i>result</i></a>
 <blockquote><br>
 
-Insert KEY from TREE-MAP, returning the new tree-map.
+Remove KEY from TREE-MAP, returning the new tree-map.
 
 </blockquote>
 
 <!-- End of entry for TREE-MAP-REMOVE -->
+
+
+<!-- Entry for TREE-MAP-VALUES -->
+
+<p><br>[Function]<br><a class=none name='tree-map-values'><b>tree-map-values</b> <i>tree-map</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+
+
+</blockquote>
+
+<!-- End of entry for TREE-MAP-VALUES -->
 
 
 <!-- Entry for TREE-SET -->
@@ -390,7 +1626,8 @@ Do SET-1 and SET-2 contain the same elements?
 
 <!-- Entry for TREE-SET-FIND -->
 
-<p><br>[Function]<br><a class=none name='tree-set-find'><b>tree-set-find</b> <i>set item</i> =&gt; <i>result</i></a>
+<p><br>[Accessor]<br><a class=none name='tree-set-find'><b>tree-set-find</b> <i>set item</i> =&gt; <i>result</i></a>
+<br><a class=none><tt>(setf (</tt><b>tree-set-find</b> <i>set</i><tt>)</tt> <i>item</i><tt>)</tt></a>
 <blockquote><br>
 
 Find ITEM in SET
@@ -410,6 +1647,31 @@ Insert ITEM into SET.
 </blockquote>
 
 <!-- End of entry for TREE-SET-INSERT -->
+
+
+<!-- Entry for TREE-SET-INSERTF -->
+
+<p><br>[Macro]<br><a class=none name='tree-set-insertf'><b>tree-set-insertf</b> <i>place item</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Insert INTER into the tree set at PLACE, store at PLACE.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-INSERTF -->
+
+
+<!-- Entry for TREE-SET-INTERN -->
+
+<p><br>[Function]<br><a class=none name='tree-set-intern'><b>tree-set-intern</b> <i>set item</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Add item to set, unless it already exists.
+RETURNS: (values NEW-SET NEW-ITEM)
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-INTERN -->
 
 
 <!-- Entry for TREE-SET-INTERSECTION -->
@@ -436,6 +1698,19 @@ Simultanously compute intersection and difference.
 <!-- End of entry for TREE-SET-INTERSECTION-DIFFERENCE -->
 
 
+<!-- Entry for TREE-SET-INTERSECTION-P -->
+
+<p><br>[Function]<br><a class=none name='tree-set-intersection-p'><b>tree-set-intersection-p</b> <i>set-1 set-2</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Do SET-1 and SET-2 intersect?
+RETURNS: T or NIL
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-INTERSECTION-P -->
+
+
 <!-- Entry for TREE-SET-LIST -->
 
 <p><br>[Function]<br><a class=none name='tree-set-list'><b>tree-set-list</b> <i>set</i> =&gt; <i>result</i></a>
@@ -448,6 +1723,18 @@ Return list of elements in `SET&#039; in comparison order.
 <!-- End of entry for TREE-SET-LIST -->
 
 
+<!-- Entry for TREE-SET-MAX -->
+
+<p><br>[Function]<br><a class=none name='tree-set-max'><b>tree-set-max</b> <i>set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Return the greatest item in SET.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-MAX -->
+
+
 <!-- Entry for TREE-SET-MEMBER-P -->
 
 <p><br>[Function]<br><a class=none name='tree-set-member-p'><b>tree-set-member-p</b> <i>set item</i> =&gt; <i>result</i></a>
@@ -458,6 +1745,18 @@ Is ITEM a member of SET?
 </blockquote>
 
 <!-- End of entry for TREE-SET-MEMBER-P -->
+
+
+<!-- Entry for TREE-SET-MIN -->
+
+<p><br>[Function]<br><a class=none name='tree-set-min'><b>tree-set-min</b> <i>set</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Return the lest item in SET.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-MIN -->
 
 
 <!-- Entry for TREE-SET-P -->
@@ -544,12 +1843,25 @@ Remove element of SET and position I.
 <!-- End of entry for TREE-SET-REMOVE-POSITION -->
 
 
+<!-- Entry for TREE-SET-REPLACE -->
+
+<p><br>[Function]<br><a class=none name='tree-set-replace'><b>tree-set-replace</b> <i>set item</i> =&gt; <i>result</i></a>
+<blockquote><br>
+
+Replace ITEM into SET.
+
+</blockquote>
+
+<!-- End of entry for TREE-SET-REPLACE -->
+
+
 <!-- Entry for TREE-SET-SUBSET-P -->
 
 <p><br>[Function]<br><a class=none name='tree-set-subset-p'><b>tree-set-subset-p</b> <i>set-1 set-2</i> =&gt; <i>result</i></a>
 <blockquote><br>
 
-Is SET-1 as subset of SET-2?
+Is SET-1 a subset of SET-2?
+RETURNS: T or NIL
 
 </blockquote>
 
@@ -575,7 +1887,7 @@ Union of SET-1 and SET-2.
 <br>&nbsp;<br><h3><a class=none name="ack">Acknowledgements</a></h3><p>
 This documentation was prepared with <a href="http://weitz.de/documentation-template/">DOCUMENTATION-TEMPLATE</a>.
 </p>
-<p><a href="http://www.neil.dantam.name">BACK TO MY HOMEPAGE</a></p>
+
 
 </body>
 </html>
