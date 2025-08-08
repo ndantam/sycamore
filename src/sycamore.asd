@@ -38,7 +38,7 @@
 
 
 (asdf:defsystem sycamore
-  :version "0.0.20120604"
+  :version "0.0.20250808"
   :description "Fast, purely functional data structures"
   :depends-on (:cl-ppcre :alexandria)
   :license :bsd-3
