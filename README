@@ -9,10 +9,7 @@ Comprehensive Set Benchmarks: https://ndantam.github.io/sycamore/bench.html
 
 Features
 ========
-* Fast, purely functional weight-balanced binary trees (WB-trees).
-  - http://en.wikipedia.org/wiki/Weight-balanced_tree
-  - Leaf nodes are simple-vectors, greatly reducing tree height.
-* Fast, purely functional Hash Array Mapped Tries (HAMT).
+* Fast, purely functional Hash Array Mapped Tries (HAMT) [1,2].
   - https://en.wikipedia.org/wiki/Hash_array_mapped_trie
   - One simple-vector per layer (bitmap+children) reduces indirection.
   - SBCL VOPs (when available) enable single machine instructions for
@@ -21,8 +18,12 @@ Features
   - Requires hashing and test functions (defaults are CL standard
     SXHASH and EQL), but does not need the total ordering function
     required by trees.
+* Fast, purely functional weight-balanced binary trees (WB-trees)
+  [3,4,5].
+  - http://en.wikipedia.org/wiki/Weight-balanced_tree
+  - Leaf nodes are simple-vectors, greatly reducing tree height.
 * Interfaces for tree Sets and Maps (dictionaries).
-* Ropes
+* Ropes [6]
   - http://en.wikipedia.org/wiki/Rope_(data_structure)
 * Purely functional pairing heaps
   - http://en.wikipedia.org/wiki/Pairing_heap
@@ -314,17 +315,24 @@ FSet
 ----
 https://gitlab.common-lisp.net/fset/fset
 
-FSet implements finite sets using a data structure similar to (and
-which in part inspired) Sycamore's WB-tree implementation.  FSet trees
-support partial orders, whereas Sycamore trees assume a total order
-(Sycamore HAMTs don't require any order).  FSet uses a single, global
-ordering for elements via a generic function, while Sycamore orders
-elements with a per-collection COMPARE parameter or hashes elements
-with per-collection HASH-FUNCTION and TEST parameters (defaulting to
-ANSI CL SXHASH and EQL).
+FSet implements finite sets using (1) weight-balanced binary trees
+similar to (and which in part inspired) Sycamore's WB-tree
+implementation and (2) a HAMT variation based on Steindorfer's
+Compressed Hash-Array Mapped Prefix-tree (CHAMP) [5].  FSet trees
+support partial orders, whereas Sycamore trees assume a total order.
+HAMTs don't require any order but do require a hashing function.  FSet
+trees uses a single, global ordering for elements via a generic
+function, while Sycamore orders elements with a per-collection COMPARE
+parameter.  FSet HAMTs do not memoize hash codes, while Sycamore HAMTs
+do.
 
-Included benchmarks show that Sycamore WB-trees are 1.5-3x faster than
-FSET, and Sycamore HAMTs are 2-10x faster than FSet.
+
+[Benchmarks](https://ndantam.github.io/sycamore/bench.html) indicate
+that Sycamore and FSet HAMTs are similar in performance for insert,
+find, and remove operations, while Sycamore HAMTs are 1.3-4.5x faster
+for new HAMT construction, union, intersection, and difference on the
+tested sets.  Sycamore WB-trees are 1.2-3.8x faster than FSet,
+depending on the operation and size, for the tested sets.
 
 CL-HAMT
 -------
@@ -355,22 +363,25 @@ implementations and a simple, documented API.
 References
 ==========
 
-* Okasaki, Chris. "Purely Functional Data Structures." Cambridge
-  University Press. June 1999. ISBN: 978-0521663502.
+[1] Bagwell, Phil. Ideal Hash Trees. EPFL Technical Report, 2001.
 
-* Boehm, H.J., Atkinson, R. and Plass, M., 1995. Ropes: an alternative
-  to strings. Software: Practice and Experience, 25(12), pp.1315-1330.
+[2] Michael J. Steindorfer and Jurgen J. Vinju. 2015. Optimizing
+    hash-array mapped tries for fast and lean immutable JVM
+    collections. SIGPLAN Not. 50, 10 (October 2015),
+    783–800. https://doi.org/10.1145/2858965.2814312
 
-* Adams, Stephen., 1992. Implementing sets efficiently in a functional
-  language. University of Southampton. Tech Report CSTR 92-10.
+[3] Okasaki, Chris. "Purely Functional Data Structures." Cambridge
+    University Press. June 1999. ISBN: 978-0521663502.
 
-* Bagwell, Phil. Ideal Hash Trees. EPFL Technical Report, 2001.
+[4] Adams, Stephen., 1992. Implementing sets efficiently in a functional
+    language. University of Southampton. Tech Report CSTR 92-10.
 
-* Michael J. Steindorfer and Jurgen J. Vinju. 2015. Optimizing
-  hash-array mapped tries for fast and lean immutable JVM
-  collections. SIGPLAN Not. 50, 10 (October 2015),
-  783–800. https://doi.org/10.1145/2858965.2814312
+[5] OCaml Sets. [Documentation](https://ocaml.org/docs/sets).
+    [Code](https://github.com/ocaml/ocaml/blob/trunk/stdlib/set.ml)
 
+[6] Boehm, H.J., Atkinson, R. and Plass, M., 1995. Ropes: an
+    alternative to strings. Software: Practice and Experience, 25(12),
+    pp.1315-1330.
 
 Name
 ====

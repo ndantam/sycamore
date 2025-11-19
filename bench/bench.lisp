@@ -69,6 +69,14 @@
        while i
        collect i)))
 
+
+;; (defmacro bench-time (form)
+;;   `(time ,form))
+
+(defmacro bench-time (form)
+  `(sb-sprof:with-profiling (:loop t :max-samples 200 :report :flat)
+     ,form))
+
 (defun time-general (build
                      &key
                        (list-1 (bench-load *bench-data-file-1*))
@@ -113,24 +121,24 @@
     (when insert
       (pre-test "insert 2 into 1")
       (time (loop for x in list-2
-               for y =  (funcall insert obj-1 x) then
-                 (funcall insert y x)))
+                  for y = (funcall insert obj-1 x)
+                    then (funcall insert y x)))
 
       (pre-test "insert 1 into 2")
       (time (loop for x in list-1
-               for y =  (funcall insert obj-2 x) then
-                 (funcall insert y x))))
+                  for y = (funcall insert obj-2 x)
+                    then (funcall insert y x))))
     ;; remove
     (when remove
       (pre-test "remove 2 from 1")
       (time (loop for x in list-2
-               for y =  (funcall remove obj-1 x) then
-                 (funcall insert y x)))
+                  for y = (funcall remove obj-1 x)
+                    then (funcall remove y x)))
 
       (pre-test "remove 1 from 2")
       (time (loop for x in list-1
-               for y =  (funcall remove obj-2 x) then
-                 (funcall insert y x))))
+                  for y = (funcall remove obj-2 x)
+                    then (funcall remove y x))))
 
     ;; union
 
@@ -217,6 +225,7 @@
   (time-general (lambda (a) (list-hash-set a))
                 :insert #'hash-set-insert
                 :find #'hash-set-find
+                :remove #'hash-set-remove
                 :union #'hash-set-union
                 :intersection #'hash-set-intersection
                 :intersectionp #'hash-set-intersection-p
@@ -331,8 +340,21 @@
          :union #'fset:union
          :intersection #'fset:intersection
          :difference #'fset:set-difference-2)
+   ;; FSET2
+   (list :name 'fset2
+         :construct (lambda (a) (fold #'fset2:with (fset2:empty-set) a))
+         :insert (lambda (obj x)
+                   (fset2:with obj x))
+         :find (lambda (obj x)
+                 (fset2:member? x obj))
+         :remove (lambda (obj x)
+                   (fset2:less obj x))
+         :union #'fset2:union
+         :intersection #'fset2:intersection
+         :difference #'fset2:set-difference-2)
    ;; CL-HAMT
    (list :name 'cl-hamt
+         :max (expt 2 20)
          :construct (lambda (a) (fold #'cl-hamt:set-insert
                                       (cl-hamt:empty-set)
                                       a))
@@ -426,7 +448,7 @@
                (floor (/ (expt 2 10) n))))))
 
 (defparameter *bench-sizes*
-  (loop for i from 5 upto 20
+  (loop for i from 5 upto 24
         collect (bench-size i)))
 
 (defparameter *bench-samples* 30)
@@ -440,34 +462,37 @@
           do (setf (gethash x h) x))
     (hash-table-values h)))
 
-(defun run-bench (&optional (directory "/tmp/sycamore-bench/"))
+(defun run-bench (&key
+                    (directory "/tmp/sycamore-bench/")
+                    (sizes *bench-sizes*)
+                    (samples *bench-samples*))
   ;; Check Directory
   (when (probe-file directory)
     (error "Directory `~A' already exists, refusing to overwrite." directory))
   (ensure-directories-exist directory)
   ;; Run tests
-  (loop for (n . iterations) in *bench-sizes*
-        do (loop for k below *bench-samples*
+  (loop for (n . iterations) in sizes
+        do (loop for k below samples
                  for list-1 = (gen-list n)
                  for list-2 = (gen-list n)
                  do (loop for plist in *plists*
+                          for max = (getf plist :max)
+                          when (or (null max) (<= n max))
                           do (sample-set k plist n iterations list-1 list-2 directory)))))
 
-(defun bench-line (pathname)
-  (let ((h-time (make-hash-table))
-        (h-bytes (make-hash-table)))
+(defun bench-line (pathname key)
+  (let ((hash (make-hash-table))) ; n => value
     ;; Read data
     (with-open-file (s pathname :direction :input)
       (loop for line = (read s nil nil)
             while line
-            do (destructuring-bind (&key n time bytes) line
-                 (assert (and n time bytes))
-                 (push time (gethash n h-time))
-                 (push bytes (gethash n h-bytes)))))
+            do (let ((n (getf line :n))
+                     (val (getf line key)))
+                 (push val (gethash n hash)))))
     ;; States
-    (loop for key in (sort (copy-list (hash-table-keys h-time)) #'<=)
-          for time-list = (gethash key h-time)
-          collect (mean time-list))))
+    (loop for n in (sort (copy-list (hash-table-keys hash)) #'<=)
+          for list = (gethash n hash)
+          collect (mean list))))
 
 (defun bench-header (&optional (stream t))
   (let ((list (cons "Implementation"
@@ -483,77 +508,128 @@
           (make-string (length heading) :initial-element #\=)))
 
 (defun bench-subsection (heading &optional (stream t))
-  (format stream "~&~A~%~A"
+  (format stream "~&~A~%~A~%~%"
           heading
           (make-string (length heading) :initial-element #\-)))
 
-(defun bench-line-0 (name line &optional (stream t))
+(defun bench-factor-10 (x)
+  (cond ((< x 1e-3)
+         (values 1e6 "u"))
+        ((< x 1)
+         (values 1e3 "m"))
+        (t (values 1 ""))))
+
+(defun bench-factor-2 (x)
+  (cond ((> x (expt 2 30))
+         (values (/ 1 (expt 2 30)) "Gi"))
+        ((> x (expt 2 20))
+         (values (/ 1 (expt 2 20))  "Mi"))
+        ((> x (expt 2 10))
+         (values (/ 1 (expt 2 10)) "Ki"))
+        (t (values 1 ""))))
+
+
+(defun bench-entry-val (mean key &optional (stream t))
+  (let ((unit-base (ecase key
+                     (:time "s")
+                     (:bytes "B"))))
+    (multiple-value-bind (factor unit-prefix)
+        (ecase key
+          (:time (bench-factor-10 mean))
+          (:bytes (bench-factor-2 mean)))
+      (format stream " ~,2F ~A~A |"
+              (* factor mean)
+              unit-prefix
+              unit-base))))
+
+(defun bench-line-0 (name line key &optional (stream t))
   (format stream "~&| ~A |" name)
-  (loop for mean in line
-        for (factor . unit) = (cond ((< mean 1e-3)
-                                     (cons 1e6 "us"))
-                                    ((< mean 1)
-                                     (cons 1e3 "ms"))
-                                    (t (cons 1 "s")))
-        do (format stream " ~,2F ~A |"
-                   (* factor mean)
-                   unit)))
+  (dolist (mean line)
+    (bench-entry-val mean key stream)))
 
-
-(defun bench-line-rel (name line-0 line &optional (stream t))
+(defun bench-line-rel (name line-0 line key &optional (stream t))
   (format stream "~&| ~A |" name)
   (loop for mean-0 in line-0
         for mean in line
-        do (format stream " ~,2Fx |"
-                   (/ mean mean-0))))
+        do (if (zerop mean-0)
+               (bench-entry-val mean key stream)
+               (format stream " ~,2Fx |"
+                       (/ mean mean-0)))))
 
-(defun bench-table (directory &optional (stream t))
-  (bench-section (string-upcase (car (last (pathname-directory directory))))
-                 stream)
+(defun bench-table (directory key &optional (stream t))
+  (bench-subsection (string key) stream)
   (bench-header stream)
   (let* ((name-0 (string (getf (car *plists*) :name)))
          (line-0 (bench-line (concatenate 'string (namestring directory)
-                                          name-0))))
-    (bench-line-0 name-0 line-0 stream)
+                                          name-0)
+                             key)))
+    (bench-line-0 name-0 line-0 key stream)
     (loop for pp in (cdr *plists*)
           for name = (string (getf pp :name))
           for pathname = (concatenate 'string (namestring directory) name)
           when (probe-file pathname)
-            do (bench-line-rel name line-0 (bench-line pathname)
-                               stream))))
+            do (bench-line-rel name line-0 (bench-line pathname key) key
+                               stream)))
+  (terpri stream)
+  (terpri stream))
 
+
+(defun bench-tables (directory &optional (stream t))
+  (bench-section (string-upcase (car (last (pathname-directory directory))))
+                 stream)
+  (bench-table directory :time stream)
+  (bench-table directory :bytes stream)
+  )
+  ;; (bench-header stream)
+  ;; (let* ((name-0 (string (getf (car *plists*) :name)))
+  ;;        (line-0 (bench-line (concatenate 'string (namestring directory)
+  ;;                                         name-0))))
+  ;;   (bench-line-0 name-0 line-0 stream)
+  ;;   (loop for pp in (cdr *plists*)
+  ;;         for name = (string (getf pp :name))
+  ;;         for pathname = (concatenate 'string (namestring directory) name)
+  ;;         when (probe-file pathname)
+  ;;           do (bench-line-rel name line-0 (bench-line pathname)
+  ;;                              stream))))
+
+(defun bench-chomp (s)
+  (string-trim '(#\Space #\Newline #\Tab #\Linefeed #\Return #\Page #\Backspace #\Rubout)
+               s))
 
 (defun bench-cpu ()
   #-sbcl
   "Unknown"
   #+sbcl
-  (with-output-to-string (s)
-    (sb-ext:run-program
-     "/bin/sh"
-     '("-c"
-       "cat /proc/cpuinfo | grep 'model name' | head -n 1 | sed -e 's/model name\\s*:\\s*//'")
-     :output s)))
+  (bench-chomp
+   (with-output-to-string (s)
+     (sb-ext:run-program
+      "/bin/sh"
+      '("-c"
+        "cat /proc/cpuinfo | grep 'model name' | head -n 1 | sed -e 's/model name\\s*:\\s*//'")
+      :output s))))
+
 (defun bench-uname ()
   #-sbcl
   "Unknown"
   #+sbcl
-  (with-output-to-string (s)
-    (sb-ext:run-program
-     "/bin/sh"
-     '("-c"
-       "uname -a"
-       )
-     :output s)))
+  (bench-chomp (with-output-to-string (s)
+                 (sb-ext:run-program
+                  "/bin/sh"
+                  '("-c"
+                    "uname -a"
+                    )
+                  :output s))))
+
+(defun bench-text-header (out)
+  (with-open-file (s (asdf:system-relative-pathname "sycamore" "../share/bench-header.md")
+                     :direction :input)
+    (loop for line = (read-line s nil :eof)
+          until (eq line :eof)
+          do (format out "~A~%" line))))
 
 (defun bench-text (&optional (directory "/tmp/sycamore-bench/") (stream t))
 
-  (bench-section "Sycamore Persistent Set Benchmarks" stream)
-  (format stream "~&This document contains timing benchmarks of the persistent set implementations in Sycamore, FSET, and CL-HAMT, along with a baseline of (mutable) ANSI CL Hash-Tables. The performance ranking is as follows and is generally consistent across the tested operations:~%~%")
-  (format stream "~&1. ANSI CL Hash-Tables (fastest construction and find, but mutable only)")
-  (format stream "~&2. Sycamore HAMTs (fastest persistent set)")
-  (format stream "~&3. Sycamore WB-Trees")
-  (format stream "~&4. FSet")
-  (format stream "~&5. CL-HAMT")
+  (bench-text-header stream)
 
   (format stream "~&~%")
   (bench-section "Test Setup" stream)
@@ -561,9 +637,9 @@
   (bench-subsection "Data" stream)
   (format stream "~&- Operations performed for random sets of the stated sizes")
   (format stream "~&- ~D samples (random sets) per size" *bench-samples*)
-  (format stream "~&- Results for ~A are shown as mean run time"
+  (format stream "~&- Results for ~A are shown as mean run time (from `GET-INTERNAL-RUN-TIME`) and mean memory allocations (from `SB-EXT:GET-BYTES-CONSED`)"
           (getf (car *plists*) :name))
-  (format stream "~&- Results for others are shown as relative run time (/ TIME-OTHER TIME-~A), equivalent to the speedup of ~A over OTHER"
+  (format stream "~&- Results for others are shown as relative `(/ OTHER ~A)`, equivalent to the speedup of ~A over OTHER"
           (getf (car *plists*) :name) (getf (car *plists*) :name))
 
   (format stream "~&~%")
@@ -573,19 +649,19 @@
       (get-decoded-time)
     (declare (ignore second day-of-week dst-p tz))
     (format stream "~&- Date: ~D-~2,'0D-~2,'0D, ~2,'0D:~2,'0D"
-            year month day minute hour))
-  (format stream "~&- Uname: ~A" (bench-uname))
-  (format stream "~&- CPU: ~A" (bench-cpu))
-  (format stream "~&- Lisp Implementation: ~A ~A"
+            year month day hour minute))
+  (format stream "~&- Uname: `~A`" (bench-uname))
+  (format stream "~&- CPU: `~A`" (bench-cpu))
+  (format stream "~&- Lisp Implementation: `~A ~A`"
           (lisp-implementation-type) (lisp-implementation-version))
 
 
+  (format stream "~%~%")
   (loop for op in '(construct insert find remove union intersection difference)
         for subdir = (concatenate 'string (namestring directory)
                                   (string-downcase (string op))
                                   "/")
-        do (format stream "~%~%")
-           (bench-table subdir stream)))
+        do (bench-tables subdir stream)))
 
 (defun bench-file (filespec &optional (directory "/tmp/sycamore-bench/"))
   (with-open-file (stream filespec
