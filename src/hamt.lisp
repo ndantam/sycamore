@@ -605,8 +605,11 @@
              (let ((other-hash-code (hamt-bucket-hash-code bucket)))
                (if (= hash-code other-hash-code)
                    ;; Collision or already exists
-                   (hamt-bucket hash-code
-                                (cons key (remove key (hamt-bucket-list bucket) :test test)))
+                   (hamt-layer-update hamt index
+                                      (hamt-bucket hash-code
+                                                   (cons key
+                                                         (remove key (hamt-bucket-list bucket)
+                                                                 :test test))))
                    ;; different hashes: create a new layer
                    (hamt-set-insert-2 hamt index
                                       (hamt-subhash subhash)
